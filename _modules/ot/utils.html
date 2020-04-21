@@ -1,0 +1,721 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ot.utils &mdash; POT Python Optimal Transport 0.7.0b documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7.0b
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">Python modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">POT Examples</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ot.utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ot.utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Various useful functions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="kn">import</span> <span class="n">cdist</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.externals.funcsigs</span> <span class="kn">import</span> <span class="n">signature</span>
+
+<span class="n">__time_tic_toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="tic"><a class="viewcode-back" href="../../all.html#ot.tic">[docs]</a><span class="k">def</span> <span class="nf">tic</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Python implementation of Matlab tic() function &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">__time_tic_toc</span>
+    <span class="n">__time_tic_toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="toc"><a class="viewcode-back" href="../../all.html#ot.toc">[docs]</a><span class="k">def</span> <span class="nf">toc</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s1">&#39;Elapsed time : </span><span class="si">{}</span><span class="s1"> s&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Python implementation of Matlab toc() function &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">__time_tic_toc</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">-</span> <span class="n">__time_tic_toc</span></div>
+
+
+<div class="viewcode-block" id="toq"><a class="viewcode-back" href="../../all.html#ot.toq">[docs]</a><span class="k">def</span> <span class="nf">toq</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Python implementation of Julia toc() function &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">-</span> <span class="n">__time_tic_toc</span></div>
+
+
+<div class="viewcode-block" id="kernel"><a class="viewcode-back" href="../../all.html#ot.kernel">[docs]</a><span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute kernel matrix&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;gauss&#39;</span><span class="p">,</span> <span class="s1">&#39;rbf&#39;</span><span class="p">]:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">dist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">K</span></div>
+
+
+<div class="viewcode-block" id="laplacian"><a class="viewcode-back" href="../../all.html#ot.laplacian">[docs]</a><span class="k">def</span> <span class="nf">laplacian</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute Laplacian matrix&quot;&quot;&quot;</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">-</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">L</span></div>
+
+
+<div class="viewcode-block" id="unif"><a class="viewcode-back" href="../../all.html#ot.unif">[docs]</a><span class="k">def</span> <span class="nf">unif</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; return a uniform histogram of length n (simplex)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    n : int</span>
+<span class="sd">        number of bins in the histogram</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    h : np.array (n,)</span>
+<span class="sd">        histogram of length n such that h_i=1/n for all i</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,))</span> <span class="o">/</span> <span class="n">n</span></div>
+
+
+<div class="viewcode-block" id="clean_zeros"><a class="viewcode-back" href="../../all.html#ot.clean_zeros">[docs]</a><span class="k">def</span> <span class="nf">clean_zeros</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Remove all components with zeros weights in a and b</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">M2</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:][:,</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># copy force c style matrix (froemd)</span>
+    <span class="n">a2</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">b2</span> <span class="o">=</span> <span class="n">b</span><span class="p">[</span><span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b2</span><span class="p">,</span> <span class="n">M2</span></div>
+
+
+<div class="viewcode-block" id="euclidean_distances"><a class="viewcode-back" href="../../all.html#ot.euclidean_distances">[docs]</a><span class="k">def</span> <span class="nf">euclidean_distances</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Considering the rows of X (and Y=X) as vectors, compute the</span>
+<span class="sd">    distance matrix between each pair of vectors.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : {array-like}, shape (n_samples_1, n_features)</span>
+<span class="sd">    Y : {array-like}, shape (n_samples_2, n_features)</span>
+<span class="sd">    squared : boolean, optional</span>
+<span class="sd">        Return squared Euclidean distances.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    distances : {array}, shape (n_samples_1, n_samples_2)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">XX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">YY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Y</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">distances</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">2</span>
+    <span class="n">distances</span> <span class="o">+=</span> <span class="n">XX</span>
+    <span class="n">distances</span> <span class="o">+=</span> <span class="n">YY</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">distances</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="n">Y</span><span class="p">:</span>
+        <span class="c1"># Ensure that distances between vectors and themselves are set to 0.0.</span>
+        <span class="c1"># This may not be the case due to floating point rounding errors.</span>
+        <span class="n">distances</span><span class="o">.</span><span class="n">flat</span><span class="p">[::</span><span class="n">distances</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">distances</span> <span class="k">if</span> <span class="n">squared</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">distances</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dist"><a class="viewcode-back" href="../../all.html#ot.dist">[docs]</a><span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute distance between samples in x1 and x2 using function scipy.spatial.distance.cdist</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    x1 : ndarray, shape (n1,d)</span>
+<span class="sd">        matrix with n1 samples of size d</span>
+<span class="sd">    x2 : array, shape (n2,d), optional</span>
+<span class="sd">        matrix with n2 samples of size d (if None then x2=x1)</span>
+<span class="sd">    metric : str | callable, optional</span>
+<span class="sd">        Name of the metric to be computed (full list in the doc of scipy),  If a string,</span>
+<span class="sd">        the distance function can be &#39;braycurtis&#39;, &#39;canberra&#39;, &#39;chebyshev&#39;, &#39;cityblock&#39;,</span>
+<span class="sd">        &#39;correlation&#39;, &#39;cosine&#39;, &#39;dice&#39;, &#39;euclidean&#39;, &#39;hamming&#39;, &#39;jaccard&#39;, &#39;kulsinski&#39;,</span>
+<span class="sd">        &#39;mahalanobis&#39;, &#39;matching&#39;, &#39;minkowski&#39;, &#39;rogerstanimoto&#39;, &#39;russellrao&#39;, &#39;seuclidean&#39;,</span>
+<span class="sd">        &#39;sokalmichener&#39;, &#39;sokalsneath&#39;, &#39;sqeuclidean&#39;, &#39;wminkowski&#39;, &#39;yule&#39;.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    M : np.array (n1,n2)</span>
+<span class="sd">        distance matrix computed with given metric</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">x2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">x1</span>
+    <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">euclidean_distances</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cdist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dist0"><a class="viewcode-back" href="../../all.html#ot.dist0">[docs]</a><span class="k">def</span> <span class="nf">dist0</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;lin_square&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute standard cost matrices of size (n, n) for OT problems</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        Size of the cost matrix.</span>
+<span class="sd">    method : str, optional</span>
+<span class="sd">        Type of loss matrix chosen from:</span>
+
+<span class="sd">        * &#39;lin_square&#39; : linear sampling between 0 and n-1, quadratic loss</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    M : ndarray, shape (n1,n2)</span>
+<span class="sd">        Distance matrix computed with given metric.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;lin_square&#39;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="cost_normalization"><a class="viewcode-back" href="../../all.html#ot.cost_normalization">[docs]</a><span class="k">def</span> <span class="nf">cost_normalization</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Apply normalization to the loss matrix</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C : ndarray, shape (n1, n2)</span>
+<span class="sd">        The cost matrix to normalize.</span>
+<span class="sd">    norm : str</span>
+<span class="sd">        Type of normalization from &#39;median&#39;, &#39;max&#39;, &#39;log&#39;, &#39;loglog&#39;. Any</span>
+<span class="sd">        other value do not normalize.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    C : ndarray, shape (n1, n2)</span>
+<span class="sd">        The input cost matrix normalized according to given norm.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">norm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">elif</span> <span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;median&quot;</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">C</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">C</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;log&quot;</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">C</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;loglog&quot;</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">C</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Norm </span><span class="si">%s</span><span class="s1"> is not a valid option.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;Valid options are:</span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;median, max, log, loglog&#39;</span> <span class="o">%</span> <span class="n">norm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">C</span></div>
+
+
+<div class="viewcode-block" id="dots"><a class="viewcode-back" href="../../all.html#ot.dots">[docs]</a><span class="k">def</span> <span class="nf">dots</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; dots function for multiple matrix multiply &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="label_normalization"><a class="viewcode-back" href="../../all.html#ot.label_normalization">[docs]</a><span class="k">def</span> <span class="nf">label_normalization</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Transform labels to start at a given value</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y : array-like, shape (n, )</span>
+<span class="sd">        The vector of labels to be normalized.</span>
+<span class="sd">    start : int</span>
+<span class="sd">        Desired value for the smallest label in y (default=0)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    y : array-like, shape (n1, )</span>
+<span class="sd">        The input vector of labels normalized according to given start value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="o">-</span> <span class="n">start</span>
+    <span class="k">if</span> <span class="n">diff</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">-=</span> <span class="n">diff</span>
+    <span class="k">return</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="fun"><a class="viewcode-back" href="../../all.html#ot.fun">[docs]</a><span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">q_in</span><span class="p">,</span> <span class="n">q_out</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Utility function for parmap with no serializing problems &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">q_in</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">q_out</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="parmap"><a class="viewcode-back" href="../../all.html#ot.parmap">[docs]</a><span class="k">def</span> <span class="nf">parmap</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">nprocs</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()):</span>
+    <span class="sd">&quot;&quot;&quot; paralell map for multiprocessing (only map on windows)&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;win32&#39;</span><span class="p">):</span>
+
+        <span class="n">q_in</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Queue</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">q_out</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+        <span class="n">proc</span> <span class="o">=</span> <span class="p">[</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">fun</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">q_in</span><span class="p">,</span> <span class="n">q_out</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nprocs</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">proc</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="n">sent</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_in</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">X</span><span class="p">)]</span>
+        <span class="p">[</span><span class="n">q_in</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nprocs</span><span class="p">)]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_out</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sent</span><span class="p">))]</span>
+
+        <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">join</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">proc</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">X</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="check_params"><a class="viewcode-back" href="../../all.html#ot.check_params">[docs]</a><span class="k">def</span> <span class="nf">check_params</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;check_params: check whether some parameters are missing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">missing_params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">check</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">missing_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing_params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;POT - Warning: following necessary parameters are missing&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">missing_params</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+        <span class="n">check</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">check</span></div>
+
+
+<div class="viewcode-block" id="check_random_state"><a class="viewcode-back" href="../../all.html#ot.check_random_state">[docs]</a><span class="k">def</span> <span class="nf">check_random_state</span><span class="p">(</span><span class="n">seed</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Turn seed into a np.random.RandomState instance</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    seed : None | int | instance of RandomState</span>
+<span class="sd">        If seed is None, return the RandomState singleton used by np.random.</span>
+<span class="sd">        If seed is an int, return a new RandomState instance seeded with seed.</span>
+<span class="sd">        If seed is already a RandomState instance, return it.</span>
+<span class="sd">        Otherwise raise ValueError.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">seed</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">_rand</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">seed</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> cannot be used to seed a numpy.random.RandomState&#39;</span>
+                     <span class="s1">&#39; instance&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="deprecated"><a class="viewcode-back" href="../../all.html#ot.deprecated">[docs]</a><span class="k">class</span> <span class="nc">deprecated</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator to mark a function or class as deprecated.</span>
+
+<span class="sd">    deprecated class from scikit-learn package</span>
+<span class="sd">    https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/deprecation.py</span>
+<span class="sd">    Issue a warning when the function is called/the class is instantiated and</span>
+<span class="sd">    adds a warning to the docstring.</span>
+<span class="sd">    The optional extra argument will be appended to the deprecation message</span>
+<span class="sd">    and the docstring. Note: to use this with the default value for extra, put</span>
+<span class="sd">    in an empty of parentheses:</span>
+<span class="sd">    &gt;&gt;&gt; from ot.deprecation import deprecated  # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; @deprecated()  # doctest: +SKIP</span>
+<span class="sd">    ... def some_function(): pass  # doctest: +SKIP</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    extra : str</span>
+<span class="sd">        To be added to the deprecation messages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,</span>
+    <span class="c1"># but with many changes.</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extra</span> <span class="o">=</span> <span class="n">extra</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call method</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obj : object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decorate_class</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decorate_fun</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_decorate_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Class </span><span class="si">%s</span><span class="s2"> is deprecated&quot;</span> <span class="o">%</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span>
+
+        <span class="c1"># FIXME: we should probably reset __new__ for full generality</span>
+        <span class="n">init</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span>
+
+        <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">wrapped</span>
+
+        <span class="n">wrapped</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;__init__&#39;</span>
+        <span class="n">wrapped</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_doc</span><span class="p">(</span><span class="n">init</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+        <span class="n">wrapped</span><span class="o">.</span><span class="n">deprecated_original</span> <span class="o">=</span> <span class="n">init</span>
+
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="k">def</span> <span class="nf">_decorate_fun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decorate function fun&quot;&quot;&quot;</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Function </span><span class="si">%s</span><span class="s2"> is deprecated&quot;</span> <span class="o">%</span> <span class="n">fun</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span>
+
+        <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">fun</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">wrapped</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">fun</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">wrapped</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">fun</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="n">wrapped</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_doc</span><span class="p">(</span><span class="n">fun</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wrapped</span>
+
+    <span class="k">def</span> <span class="nf">_update_doc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">olddoc</span><span class="p">):</span>
+        <span class="n">newdoc</span> <span class="o">=</span> <span class="s2">&quot;DEPRECATED&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="p">:</span>
+            <span class="n">newdoc</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">newdoc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">olddoc</span><span class="p">:</span>
+            <span class="n">newdoc</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">newdoc</span><span class="p">,</span> <span class="n">olddoc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">newdoc</span></div>
+
+
+<span class="k">def</span> <span class="nf">_is_deprecated</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper to check if func is wraped by our deprecated decorator&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This is only available for python3.5 &quot;</span>
+                                  <span class="s2">&quot;or above&quot;</span><span class="p">)</span>
+    <span class="n">closures</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__closure__&#39;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="n">closures</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">closures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">is_deprecated</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;deprecated&#39;</span> <span class="ow">in</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">cell_contents</span>
+                                              <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">closures</span>
+                                              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">cell_contents</span><span class="p">,</span> <span class="nb">str</span><span class="p">)]))</span>
+    <span class="k">return</span> <span class="n">is_deprecated</span>
+
+
+<div class="viewcode-block" id="BaseEstimator"><a class="viewcode-back" href="../../all.html#ot.BaseEstimator">[docs]</a><span class="k">class</span> <span class="nc">BaseEstimator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for most objects in POT</span>
+
+<span class="sd">    Code adapted from sklearn BaseEstimator class</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    All estimators should specify all the parameters that can be set</span>
+<span class="sd">    at the class level in their ``__init__`` as explicit keyword</span>
+<span class="sd">    arguments (no ``*args`` or ``**kwargs``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_param_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get parameter names for the estimator&quot;&quot;&quot;</span>
+
+        <span class="c1"># fetch the constructor or the original constructor before</span>
+        <span class="c1"># deprecation wrapping if any</span>
+        <span class="n">init</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span> <span class="s1">&#39;deprecated_original&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">init</span> <span class="ow">is</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__init__</span><span class="p">:</span>
+            <span class="c1"># No explicit constructor to introspect</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="c1"># introspect the constructor arguments to find the model parameters</span>
+        <span class="c1"># to represent</span>
+        <span class="n">init_signature</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">init</span><span class="p">)</span>
+        <span class="c1"># Consider the constructor parameters excluding &#39;self&#39;</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;self&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;POT estimators should always &quot;</span>
+                                   <span class="s2">&quot;specify their parameters in the signature&quot;</span>
+                                   <span class="s2">&quot; of their __init__ (no varargs).&quot;</span>
+                                   <span class="s2">&quot; </span><span class="si">%s</span><span class="s2"> with constructor </span><span class="si">%s</span><span class="s2"> doesn&#39;t &quot;</span>
+                                   <span class="s2">&quot; follow this convention.&quot;</span>
+                                   <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">init_signature</span><span class="p">))</span>
+        <span class="c1"># Extract and sort argument names excluding &#39;self&#39;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">])</span>
+
+<div class="viewcode-block" id="BaseEstimator.get_params"><a class="viewcode-back" href="../../all.html#ot.BaseEstimator.get_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get parameters for this estimator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        deep : bool, optional</span>
+<span class="sd">            If True, will return the parameters for this estimator and</span>
+<span class="sd">            contained subobjects that are estimators.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        params : mapping of string to any</span>
+<span class="sd">            Parameter names mapped to their values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_param_names</span><span class="p">():</span>
+            <span class="c1"># We need deprecation warnings to always be on in order to</span>
+            <span class="c1"># catch deprecated param values.</span>
+            <span class="c1"># This is set in utils/__init__.py but it gets overwritten</span>
+            <span class="c1"># when running under python3 somehow.</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="ow">and</span> <span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">category</span> <span class="o">==</span> <span class="ne">DeprecationWarning</span><span class="p">:</span>
+                    <span class="c1"># if the parameter is deprecated, don&#39;t show it</span>
+                    <span class="k">continue</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">filters</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># XXX: should we rather test if instance of estimator?</span>
+            <span class="k">if</span> <span class="n">deep</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;get_params&#39;</span><span class="p">):</span>
+                <span class="n">deep_items</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get_params</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;__&#39;</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">deep_items</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="BaseEstimator.set_params"><a class="viewcode-back" href="../../all.html#ot.BaseEstimator.set_params">[docs]</a>    <span class="k">def</span> <span class="nf">set_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the parameters of this estimator.</span>
+
+<span class="sd">        The method works on simple estimators as well as on nested objects</span>
+<span class="sd">        (such as pipelines). The latter have parameters of the form</span>
+<span class="sd">        ``&lt;component&gt;__&lt;parameter&gt;`` so that it&#39;s possible to update each</span>
+<span class="sd">        component of a nested object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="p">:</span>
+            <span class="c1"># Simple optimisation to gain speed (inspect is slow)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="n">valid_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># for key, value in iteritems(params):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># nested objects case</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">sub_name</span> <span class="o">=</span> <span class="n">split</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_params</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid parameter </span><span class="si">%s</span><span class="s1"> for estimator </span><span class="si">%s</span><span class="s1">. &#39;</span>
+                                     <span class="s1">&#39;Check the list of available parameters &#39;</span>
+                                     <span class="s1">&#39;with `estimator.get_params().keys()`.&#39;</span> <span class="o">%</span>
+                                     <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span>
+                <span class="n">sub_object</span> <span class="o">=</span> <span class="n">valid_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">sub_object</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">sub_name</span><span class="p">:</span> <span class="n">value</span><span class="p">})</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># simple objects case</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_params</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid parameter </span><span class="si">%s</span><span class="s1"> for estimator </span><span class="si">%s</span><span class="s1">. &#39;</span>
+                                     <span class="s1">&#39;Check the list of available parameters &#39;</span>
+                                     <span class="s1">&#39;with `estimator.get_params().keys()`.&#39;</span> <span class="o">%</span>
+                                     <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
+
+
+<div class="viewcode-block" id="UndefinedParameter"><a class="viewcode-back" href="../../all.html#ot.UndefinedParameter">[docs]</a><span class="k">class</span> <span class="nc">UndefinedParameter</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Aim at raising an Exception when a undefined parameter is called</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016-2019, Rémi Flamary, Nicolas Courty
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

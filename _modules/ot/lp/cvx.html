@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ot.lp.cvx &mdash; POT Python Optimal Transport 0.7.0b documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> POT Python Optimal Transport
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7.0b
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">Python modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">POT Examples</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../lp.html">ot.lp</a> &raquo;</li>
+        
+      <li>ot.lp.cvx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ot.lp.cvx</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">LP solvers for optimal transport using cvxopt</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="k">as</span> <span class="nn">sps</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cvxopt</span>
+    <span class="kn">from</span> <span class="nn">cvxopt</span> <span class="kn">import</span> <span class="n">solvers</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">spmatrix</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">cvxopt</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">scipy_sparse_to_spmatrix</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Efficient conversion from scipy sparse matrix to cvxopt sparse matrix&quot;&quot;&quot;</span>
+    <span class="n">coo</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">tocoo</span><span class="p">()</span>
+    <span class="n">SP</span> <span class="o">=</span> <span class="n">spmatrix</span><span class="p">(</span><span class="n">coo</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">coo</span><span class="o">.</span><span class="n">row</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">coo</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">size</span><span class="o">=</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">SP</span>
+
+
+<div class="viewcode-block" id="barycenter"><a class="viewcode-back" href="../../../all.html#ot.lp.barycenter">[docs]</a><span class="k">def</span> <span class="nf">barycenter</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;interior-point&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the Wasserstein barycenter of distributions A</span>
+
+<span class="sd">     The function solves the following optimization problem [16]:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">       \mathbf{a} = arg\min_\mathbf{a} \sum_i W_{1}(\mathbf{a},\mathbf{a}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`W_1(\cdot,\cdot)` is the Wasserstein distance (see ot.emd.sinkhorn)</span>
+<span class="sd">    - :math:`\mathbf{a}_i` are training distributions in the columns of matrix :math:`\mathbf{A}`</span>
+
+<span class="sd">    The linear program is solved using the interior point solver from scipy.optimize.</span>
+<span class="sd">    If cvxopt solver if installed it can use cvxopt</span>
+
+<span class="sd">    Note that this problem do not scale well (both in memory and computational time).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : np.ndarray (d,n)</span>
+<span class="sd">        n training distributions a_i of size d</span>
+<span class="sd">    M : np.ndarray (d,d)</span>
+<span class="sd">        loss matrix   for OT</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    weights : np.ndarray (n,)</span>
+<span class="sd">        Weights of each histogram a_i on the simplex (barycentric coodinates)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    solver : string, optional</span>
+<span class="sd">        the solver used, default &#39;interior-point&#39; use the lp solver from</span>
+<span class="sd">        scipy.optimize. None, or &#39;glpk&#39; or &#39;mosek&#39; use the solver from cvxopt.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a : (d,) ndarray</span>
+<span class="sd">        Wasserstein barycenter</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [16] Agueh, M., &amp; Carlier, G. (2011). Barycenters in the Wasserstein space. SIAM Journal on Mathematical Analysis, 43(2), 904-924.</span>
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">n_distributions</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">n2</span> <span class="o">=</span> <span class="n">n</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">b_eq1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_distributions</span><span class="p">):</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">*</span> <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="n">b_eq1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">b_eq1</span><span class="p">,</span> <span class="n">A</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]))</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span>
+
+    <span class="n">lst_idiag1</span> <span class="o">=</span> <span class="p">[</span><span class="n">sps</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sps</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_distributions</span><span class="p">)]</span>
+    <span class="c1">#  row constraints</span>
+    <span class="n">A_eq1</span> <span class="o">=</span> <span class="n">sps</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">sps</span><span class="o">.</span><span class="n">block_diag</span><span class="p">(</span><span class="n">lst_idiag1</span><span class="p">),</span> <span class="n">sps</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">((</span><span class="n">n_distributions</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))))</span>
+
+    <span class="c1"># columns constraints</span>
+    <span class="n">lst_idiag2</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lst_eye</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_distributions</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lst_idiag2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sps</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)),</span> <span class="n">sps</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span>
+            <span class="n">lst_eye</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">sps</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lst_idiag2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sps</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)),</span> <span class="n">sps</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span>
+            <span class="n">lst_eye</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">sps</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+
+    <span class="n">A_eq2</span> <span class="o">=</span> <span class="n">sps</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">sps</span><span class="o">.</span><span class="n">block_diag</span><span class="p">(</span><span class="n">lst_idiag2</span><span class="p">),</span> <span class="n">sps</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">lst_eye</span><span class="p">)))</span>
+    <span class="n">b_eq2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">A_eq2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="c1"># full problem</span>
+    <span class="n">A_eq</span> <span class="o">=</span> <span class="n">sps</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">A_eq1</span><span class="p">,</span> <span class="n">A_eq2</span><span class="p">))</span>
+    <span class="n">b_eq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">b_eq1</span><span class="p">,</span> <span class="n">b_eq2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cvxopt</span> <span class="ow">or</span> <span class="n">solver</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;interior-point&#39;</span><span class="p">]:</span>
+        <span class="c1"># cvxopt not installed or interior point</span>
+
+        <span class="k">if</span> <span class="n">solver</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">solver</span> <span class="o">=</span> <span class="s1">&#39;interior-point&#39;</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sparse&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;disp&#39;</span><span class="p">:</span> <span class="n">verbose</span><span class="p">}</span>
+        <span class="n">sol</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">linprog</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">A_eq</span><span class="o">=</span><span class="n">A_eq</span><span class="p">,</span> <span class="n">b_eq</span><span class="o">=</span><span class="n">b_eq</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+                                  <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">x</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_distributions</span> <span class="o">*</span> <span class="n">n2</span> <span class="o">+</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="o">-</span><span class="n">sps</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n_distributions</span> <span class="o">*</span> <span class="n">n2</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span>
+
+        <span class="n">sol</span> <span class="o">=</span> <span class="n">solvers</span><span class="o">.</span><span class="n">lp</span><span class="p">(</span><span class="n">matrix</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">scipy_sparse_to_spmatrix</span><span class="p">(</span><span class="n">G</span><span class="p">),</span> <span class="n">matrix</span><span class="p">(</span><span class="n">h</span><span class="p">),</span>
+                         <span class="n">A</span><span class="o">=</span><span class="n">scipy_sparse_to_spmatrix</span><span class="p">(</span><span class="n">A_eq</span><span class="p">),</span> <span class="n">b</span><span class="o">=</span><span class="n">matrix</span><span class="p">(</span><span class="n">b_eq</span><span class="p">),</span>
+                         <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sol</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">b</span><span class="p">,</span> <span class="n">sol</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">b</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016-2019, Rémi Flamary, Nicolas Courty
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

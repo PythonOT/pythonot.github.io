@@ -1,0 +1,339 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ot.gpu.da &mdash; POT Python Optimal Transport 0.7.0b documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> POT Python Optimal Transport
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7.0b
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">Python modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">POT Examples</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ot.gpu.da</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ot.gpu.da</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Domain adaptation with optimal transport with GPU implementation</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
+<span class="c1">#         Michael Perrot &lt;michael.perrot@univ-st-etienne.fr&gt;</span>
+<span class="c1">#         Leo Gautheron &lt;https://github.com/aje&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+
+<span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">np</span>  <span class="c1"># np used for matrix computation</span>
+<span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">cp</span>  <span class="c1"># cp used for cupy specific operations</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">npp</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">utils</span>
+
+<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span>
+
+
+<div class="viewcode-block" id="sinkhorn_lpl1_mm"><a class="viewcode-back" href="../../../all.html#ot.gpu.sinkhorn_lpl1_mm">[docs]</a><span class="k">def</span> <span class="nf">sinkhorn_lpl1_mm</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                     <span class="n">numInnerItermax</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">stopInnerThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">to_numpy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solve the entropic regularization optimal transport problem with nonconvex</span>
+<span class="sd">    group lasso regularization on GPU</span>
+
+<span class="sd">    If the input matrix are in numpy format, they will be uploaded to the</span>
+<span class="sd">    GPU first which can incur significant time overhead.</span>
+
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma &lt;\gamma,M&gt;_F + reg\cdot\Omega_e(\gamma)</span>
+<span class="sd">        + \eta \Omega_g(\gamma)</span>
+
+<span class="sd">        s.t. \gamma 1 = a</span>
+
+<span class="sd">             \gamma^T 1= b</span>
+
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - M is the (ns,nt) metric cost matrix</span>
+<span class="sd">    - :math:`\Omega_e` is the entropic regularization term</span>
+<span class="sd">        :math:`\Omega_e(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\Omega_g` is the group lasso  regulaization term</span>
+<span class="sd">      :math:`\Omega_g(\gamma)=\sum_{i,c} \|\gamma_{i,\mathcal{I}_c}\|^{1/2}_1`</span>
+<span class="sd">      where  :math:`\mathcal{I}_c` are the index of samples from class c</span>
+<span class="sd">      in the source domain.</span>
+<span class="sd">    - a and b are source and target weights (sum to 1)</span>
+
+<span class="sd">    The algorithm used for solving the problem is the generalised conditional</span>
+<span class="sd">    gradient as proposed in  [5]_ [7]_</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : np.ndarray (ns,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    labels_a : np.ndarray (ns,)</span>
+<span class="sd">        labels of samples in the source domain</span>
+<span class="sd">    b : np.ndarray (nt,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    M : np.ndarray (ns,nt)</span>
+<span class="sd">        loss matrix</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term for entropic regularization &gt;0</span>
+<span class="sd">    eta : float, optional</span>
+<span class="sd">        Regularization term  for group lasso regularization &gt;0</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    numInnerItermax : int, optional</span>
+<span class="sd">        Max number of iterations (inner sinkhorn solver)</span>
+<span class="sd">    stopInnerThr : float, optional</span>
+<span class="sd">        Stop threshold on error (inner sinkhorn solver) (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    to_numpy : boolean, optional (default True)</span>
+<span class="sd">        If true convert back the GPU array result to numpy format.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : (ns x nt) ndarray</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [5] N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,</span>
+<span class="sd">       &quot;Optimal Transport for Domain Adaptation,&quot; in IEEE</span>
+<span class="sd">       Transactions on Pattern Analysis and Machine Intelligence ,</span>
+<span class="sd">       vol.PP, no.99, pp.1-1</span>
+<span class="sd">    .. [7] Rakotomamonjy, A., Flamary, R., &amp; Courty, N. (2015).</span>
+<span class="sd">       Generalized conditional gradient: analysis of convergence</span>
+<span class="sd">       and applications. arXiv preprint arXiv:1510.06567.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd : Unregularized OT</span>
+<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT</span>
+<span class="sd">    ot.optim.cg : General regularized OT</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-3</span>
+
+    <span class="n">indices_labels</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">labels_a2</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">labels_a</span><span class="p">)</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">npp</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels_a2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+        <span class="n">idxc</span><span class="p">,</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">npp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels_a2</span> <span class="o">==</span> <span class="n">c</span><span class="p">))</span>
+        <span class="n">indices_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idxc</span><span class="p">)</span>
+
+    <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">cpt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">Mreg</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">W</span>
+        <span class="n">transp</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">Mreg</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span>
+                          <span class="n">stopThr</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">,</span> <span class="n">to_numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># the transport has been computed. Check if classes are really</span>
+        <span class="c1"># separated</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">classes</span><span class="p">):</span>
+
+            <span class="n">majs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">transp</span><span class="p">[</span><span class="n">indices_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">majs</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="p">((</span><span class="n">majs</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">W</span><span class="p">[</span><span class="n">indices_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">majs</span>
+
+    <span class="k">if</span> <span class="n">to_numpy</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">to_np</span><span class="p">(</span><span class="n">transp</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">transp</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016-2019, Rémi Flamary, Nicolas Courty
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
