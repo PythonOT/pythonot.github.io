@@ -432,7 +432,7 @@
 
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
-    
+
     <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
@@ -549,7 +549,7 @@
     <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
             <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
-            
+
             <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
@@ -595,26 +595,36 @@
 
 <div class="viewcode-block" id="free_support_barycenter"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.free_support_barycenter">[docs]</a><span class="k">def</span> <span class="nf">free_support_barycenter</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
                             <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Wasserstein distance)</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Wasserstein distance), formally:</span>
 
-<span class="sd">    The function solves the Wasserstein barycenter problem when the barycenter measure is constrained to be supported on k atoms.</span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_X \sum_{i=1}^N w_i W_2^2(b, X, a_i, X_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`w \in \mathbb{(0, 1)}^{N}`&#39;s are the barycenter weights and sum to one</span>
+<span class="sd">    - the :math:`a_i \in \mathbb{R}^{k_i}` are the empirical measures weights and sum to one for each :math:`i`</span>
+<span class="sd">    - the :math:`X_i \in \mathbb{R}^{k_i, d}` are the empirical measures atoms locations</span>
+<span class="sd">    - :math:`b \in \mathbb{R}^{k}` is the desired weights vector of the barycenter</span>
+
 <span class="sd">    This problem is considered in [1] (Algorithm 2). There are two differences with the following codes:</span>
+
 <span class="sd">    - we do not optimize over the weights</span>
 <span class="sd">    - we do not do line search for the locations updates, we use i.e. theta = 1 in [1] (Algorithm 2). This can be seen as a discrete implementation of the fixed-point algorithm of [2] proposed in the continuous setting.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    measures_locations : list of (k_i,d) numpy.ndarray</span>
+<span class="sd">    measures_locations : list of N (k_i,d) numpy.ndarray</span>
 <span class="sd">        The discrete support of a measure supported on k_i locations of a d-dimensional space (k_i can be different for each element of the list)</span>
-<span class="sd">    measures_weights : list of (k_i,) numpy.ndarray</span>
+<span class="sd">    measures_weights : list of N (k_i,) numpy.ndarray</span>
 <span class="sd">        Numpy arrays where each numpy array has k_i non-negatives values summing to one representing the weights of each discrete input measure</span>
 
 <span class="sd">    X_init : (k,d) np.ndarray</span>
 <span class="sd">        Initialization of the support locations (on k atoms) of the barycenter</span>
 <span class="sd">    b : (k,) np.ndarray</span>
 <span class="sd">        Initialization of the weights of the barycenter (non-negatives, sum to 1)</span>
-<span class="sd">    weights : (k,) np.ndarray</span>
+<span class="sd">    weights : (N,) np.ndarray</span>
 <span class="sd">        Initialization of the coefficients of the barycenter (non-negatives, sum to 1)</span>
 
 <span class="sd">    numItermax : int, optional</span>
