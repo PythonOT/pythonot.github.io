@@ -33,7 +33,6 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
         <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
@@ -94,6 +93,18 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="index.html">POT: Python Optimal Transport</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quick start guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#why-optimal-transport">Why Optimal Transport ?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#when-to-use-ot">When to use OT</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#wasserstein-distance-between-distributions">Wasserstein distance between distributions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot-for-mapping-estimation">OT for mapping estimation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#when-to-use-pot">When to use POT</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-not-to-use-pot">When not to use POT</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#optimal-transport-and-wasserstein-distance">Optimal transport and Wasserstein distance</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#solving-optimal-transport">Solving optimal transport</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#computing-wasserstein-distance">Computing Wasserstein distance</a></li>
@@ -207,39 +218,157 @@
 to use for different problems related to optimal transport (OT) and machine
 learning. We refer when we can to concrete examples in the documentation that
 are also available as notebooks on the POT Github.</p>
-<p>This document is not a tutorial on numerical optimal transport. For this we strongly
-recommend to read the very nice book <a class="footnote-reference brackets" href="#id64" id="id1">15</a> .</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a  good introduction to numerical optimal transport we refer the reader
+to <a class="reference external" href="https://arxiv.org/pdf/1803.00567.pdf">the book</a> by Peyré and Cuturi
+<a class="footnote-reference brackets" href="#id65" id="id1">15</a>. For more detailed introduction to OT and how it can be used
+in ML applications we refer the reader to the following <a class="reference external" href="https://remi.flamary.com/cours/tuto_otml.html">OTML tutorial</a>.</p>
+</div>
+<div class="section" id="why-optimal-transport">
+<h2>Why Optimal Transport ?<a class="headerlink" href="#why-optimal-transport" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="when-to-use-ot">
+<h3>When to use OT<a class="headerlink" href="#when-to-use-ot" title="Permalink to this headline">¶</a></h3>
+<p>Optimal Transport (OT) is a mathematical  problem introduced by Gaspard Monge in
+1781 that aim at finding the most efficient way to move mass between
+distributions. The cost of moving a unit of mass between two positions is called
+the ground cost and the objective is to minimize the overall cost of moving one
+mass distribution onto another one. The optimization problem can be expressed
+for two distributions <span class="math notranslate nohighlight">\(\mu_s\)</span> and <span class="math notranslate nohighlight">\(\mu_t\)</span> as</p>
+<div class="math notranslate nohighlight">
+\[\min_{m, m \# \mu_s = \mu_t} \int c(x,m(x))d\mu_s(x) ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(c(\cdot,\cdot)\)</span> is the ground cost and the constraint
+<span class="math notranslate nohighlight">\(m \# \mu_s = \mu_t\)</span>  ensures that  <span class="math notranslate nohighlight">\(\mu_s\)</span> is completely transported to <span class="math notranslate nohighlight">\(\mu_t\)</span>.
+This problem is particularly difficult to solve because of this constraint and
+has been replaced in practice (on discrete distributions) by a
+linear program easier to solve. It corresponds to the Kantorovitch formulation
+where the Monge mapping <span class="math notranslate nohighlight">\(m\)</span> is replaced by a joint distribution
+(OT matrix expressed in the next section) (see <a class="reference internal" href="#kantorovitch-solve"><span class="std std-ref">Solving optimal transport</span></a>).</p>
+<p>From the optimization problem above we can see that there are two main aspects
+to the OT solution that can be used in practical applications:</p>
+<ul class="simple">
+<li><p>The optimal value (Wasserstein distance): Measures similarity between distributions.</p></li>
+<li><p>The optimal mapping (Monge mapping, OT matrix): Finds correspondences between distributions.</p></li>
+</ul>
+<p>In the first case, OT can be used to measure similarity between distributions
+(or datasets), in this case the Wasserstein distance (the optimal value of the
+problem) is used. In the second case one can be interested in the way the mass
+is moved between the distributions (the mapping). This mapping can then be used
+to transfer knowledge between distributions.</p>
+<div class="section" id="wasserstein-distance-between-distributions">
+<h4>Wasserstein distance between distributions<a class="headerlink" href="#wasserstein-distance-between-distributions" title="Permalink to this headline">¶</a></h4>
+<p>OT is often used to measure similarity between distributions, especially
+when they do not share the same support.  When the support between the
+distributions is disjoint OT-based Wasserstein distances compare  favorably to
+popular f-divergences including the popular Kullback-Leibler, Jensen-Shannon
+divergences, and the Total Variation distance. What is particularly interesting
+for data science applications is that one can compute meaningful sub-gradients
+of the Wasserstein distance. For these reasons it became a very efficient tool
+for machine learning applications that need to measure and optimize similarity
+between empirical distributions.</p>
+<p>Numerous contributions make use of this an approach is the machine learning (ML)
+literature. For example OT was used for training <a class="reference external" href="https://arxiv.org/pdf/1701.07875.pdf">Generative
+Adversarial Networks (GANs)</a>
+in order to overcome the vanishing gradient problem. It has also
+been used to find <a class="reference external" href="https://arxiv.org/pdf/1608.08063.pdf">discriminant</a> or
+<a class="reference external" href="https://arxiv.org/pdf/1901.08949.pdf">robust</a> subspaces for a dataset. The
+Wasserstein distance has also been used to measure <a class="reference external" href="http://proceedings.mlr.press/v37/kusnerb15.pdf">similarity between word
+embeddings of documents</a> or
+between <a class="reference external" href="https://www.math.ucdavis.edu/~saito/data/acha.read.s19/kolouri-etal_optimal-mass-transport.pdf">signals</a>
+or <a class="reference external" href="https://arxiv.org/pdf/1609.09799.pdf">spectra</a>.</p>
+</div>
+<div class="section" id="ot-for-mapping-estimation">
+<h4>OT for mapping estimation<a class="headerlink" href="#ot-for-mapping-estimation" title="Permalink to this headline">¶</a></h4>
+<p>A very interesting aspect of OT problem is the OT mapping in itself. When
+computing optimal transport between discrete distributions one output is the OT
+matrix that will provide you with correspondences between the samples in each
+distributions.</p>
+<p>This correspondence is estimated with respect to the OT criterion and is found
+in a non-supervised way, which makes it very interesting on problems of transfer
+between datasets. It has been used to perform
+<a class="reference external" href="https://arxiv.org/pdf/1307.5551.pdf">color transfer between images</a> or in
+the context of <a class="reference external" href="https://arxiv.org/pdf/1507.00504.pdf">domain adaptation</a>.
+More recent applications include the use of extension of OT (Gromov-Wasserstein)
+to find correspondences between languages in <a class="reference external" href="https://arxiv.org/pdf/1809.00013.pdf">word embeddings</a>.</p>
+</div>
+</div>
+<div class="section" id="when-to-use-pot">
+<h3>When to use POT<a class="headerlink" href="#when-to-use-pot" title="Permalink to this headline">¶</a></h3>
+<p>The main objective of POT is to provide OT solvers for the rapidly growing area
+of OT in the context of machine learning. To this end we implement a number of
+solvers that have been proposed in research papers. Doing so we aim to promote
+reproducible research and foster novel developments.</p>
+<p>One very important aspect of POT is its ability to be easily extended. For
+instance we provide a very generic OT solver <a class="reference internal" href="gen_modules/ot.optim.html#ot.optim.cg" title="ot.optim.cg"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.optim.cg</span></code></a> that can solve
+OT problems with any smooth/continuous regularization term making it
+particularly practical for research purpose. Note that this generic solver has
+been used to solve both graph Laplacian regularization OT and Gromov
+Wasserstein <a class="footnote-reference brackets" href="#id79" id="id2">30</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>POT is originally designed to solve OT problems with Numpy interface and
+is not yet compatible with Pytorch API. We are currently working on a torch
+submodule that will provide OT solvers and losses for the most common deep
+learning configurations.</p>
+</div>
+<div class="section" id="when-not-to-use-pot">
+<h4>When not to use POT<a class="headerlink" href="#when-not-to-use-pot" title="Permalink to this headline">¶</a></h4>
+<p>While POT has to the best of our knowledge one of the most efficient exact OT
+solvers, it has not been designed to handle large scale OT problems. For
+instance the memory cost for an OT problem is always <span class="math notranslate nohighlight">\(\mathcal{O}(n^2)\)</span> in
+memory because the cost matrix has to be computed. The exact solver in of time
+complexity <span class="math notranslate nohighlight">\(\mathcal{O}(n^3\log(n))\)</span> and the Sinkhorn solver has been
+proven to be nearly <span class="math notranslate nohighlight">\(\mathcal{O}(n^2)\)</span> which is still too complex for very
+large scale solvers.</p>
+<p>If you need to solve OT with large number of samples, we recommend to use
+entropic regularization and memory efficient implementation of Sinkhorn as
+proposed in <a class="reference external" href="https://www.kernel-operations.io/geomloss/">GeomLoss</a>. This
+implementation is compatible with Pytorch and can handle large number of
+samples. Another approach to estimate the Wasserstein distance for very large
+number of sample is to use the trick from <a class="reference external" href="https://arxiv.org/pdf/1701.07875.pdf">Wasserstein GAN</a> that solves the problem
+in the dual with a neural network estimating the dual variable. Note that in this
+case you are only solving an approximation of the Wasserstein distance because
+the 1-Lipschitz constraint on the dual cannot be enforced exactly (approximated
+through filter thresholding or regularization). Finally note that in order to
+avoid solving large scale OT problems, a number of recent approached minimized
+the expected Wasserstein distance on minibtaches that is different from the
+Wasserstein but has better computational and
+<a class="reference external" href="https://arxiv.org/pdf/1910.04091.pdf">statistical properties</a>.</p>
+</div>
+</div>
+</div>
 <div class="section" id="optimal-transport-and-wasserstein-distance">
 <h2>Optimal transport and Wasserstein distance<a class="headerlink" href="#optimal-transport-and-wasserstein-distance" title="Permalink to this headline">¶</a></h2>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In POT, most functions that solve OT or regularized OT problems have two
 versions that return the OT matrix or the value of the optimal solution. For
-instance <a class="reference internal" href="all.html#ot.emd" title="ot.emd"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd</span></code></a> return the OT matrix and <a class="reference internal" href="all.html#ot.emd2" title="ot.emd2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2</span></code></a> return the
+instance <a class="reference internal" href="all.html#ot.emd" title="ot.emd"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd</span></code></a> returns the OT matrix and <a class="reference internal" href="all.html#ot.emd2" title="ot.emd2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2</span></code></a> returns the
 Wassertsein distance. This approach has been implemented in practice for all
-solvers that return an OT matrix (even Gromov-Wasserstsein)</p>
+solvers that return an OT matrix (even Gromov-Wasserstsein).</p>
 </div>
 <div class="section" id="solving-optimal-transport">
-<h3>Solving optimal transport<a class="headerlink" href="#solving-optimal-transport" title="Permalink to this headline">¶</a></h3>
+<span id="kantorovitch-solve"></span><h3>Solving optimal transport<a class="headerlink" href="#solving-optimal-transport" title="Permalink to this headline">¶</a></h3>
 <p>The optimal transport problem between discrete distributions is often expressed
 as</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\gamma^* = arg\min_\gamma \quad \sum_{i,j}\gamma_{i,j}M_{i,j}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
-<p>where :</p>
-<ul class="simple">
+\[ \begin{align}\begin{aligned}\gamma^* = arg\min_{\gamma \in \mathbb{R}_+^{m\times n}} \quad \sum_{i,j}\gamma_{i,j}M_{i,j}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
+<p>where:</p>
+<blockquote>
+<div><ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(M\in\mathbb{R}_+^{m\times n}\)</span> is the metric cost matrix defining the cost to move mass from bin <span class="math notranslate nohighlight">\(a_i\)</span> to bin <span class="math notranslate nohighlight">\(b_j\)</span>.</p></li>
-<li><p><span class="math notranslate nohighlight">\(a\)</span> and <span class="math notranslate nohighlight">\(b\)</span> are histograms on the simplex (positive, sum to 1) that represent the</p></li>
+<li><p><span class="math notranslate nohighlight">\(a\)</span> and <span class="math notranslate nohighlight">\(b\)</span> are histograms on the simplex (positive, sum to 1) that represent the weights of each samples in the source an target distributions.</p></li>
 </ul>
-<p>weights of each samples in the source an target distributions.</p>
+</div></blockquote>
 <p>Solving the linear program above can be done using the function <a class="reference internal" href="all.html#ot.emd" title="ot.emd"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd</span></code></a>
 that will return the optimal transport matrix <span class="math notranslate nohighlight">\(\gamma^*\)</span>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># a,b are 1D histograms (sum to 1 and positive)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># a and b are 1D histograms (sum to 1 and positive)</span>
 <span class="c1"># M is the ground cost matrix</span>
-<span class="n">T</span><span class="o">=</span><span class="n">ot</span><span class="o">.</span><span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">M</span><span class="p">)</span> <span class="c1"># exact linear program</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>  <span class="c1"># exact linear program</span>
 </pre></div>
 </div>
-<p>The method implemented for solving the OT problem is the network simplex, it is
-implemented in C from  <a class="footnote-reference brackets" href="#id50" id="id2">1</a>. It has a complexity of <span class="math notranslate nohighlight">\(O(n^3)\)</span> but the
+<p>The method implemented for solving the OT problem is the network simplex. It is
+implemented in C from <a class="footnote-reference brackets" href="#id52" id="id3">1</a>. It has a complexity of <span class="math notranslate nohighlight">\(O(n^3)\)</span> but the
 solver is quite efficient and uses sparsity of the solution.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
@@ -253,27 +382,27 @@ solver is quite efficient and uses sparsity of the solution.</p>
 </div>
 <div class="section" id="computing-wasserstein-distance">
 <h3>Computing Wasserstein distance<a class="headerlink" href="#computing-wasserstein-distance" title="Permalink to this headline">¶</a></h3>
-<p>The value of the OT solution is often more of interest than the OT matrix :</p>
+<p>The value of the OT solution is often more interesting than the OT matrix:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}OT(a,b)=\min_\gamma \quad \sum_{i,j}\gamma_{i,j}M_{i,j}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
+\[ \begin{align}\begin{aligned}OT(a,b) = \min_{\gamma \in \mathbb{R}_+^{m\times n}} \quad \sum_{i,j}\gamma_{i,j}M_{i,j}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>It can computed from an already estimated OT matrix with
 <code class="code docutils literal notranslate"><span class="pre">np.sum(T*M)</span></code> or directly with the function <a class="reference internal" href="all.html#ot.emd2" title="ot.emd2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2</span></code></a>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># a,b are 1D histograms (sum to 1 and positive)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># a and b are 1D histograms (sum to 1 and positive)</span>
 <span class="c1"># M is the ground cost matrix</span>
-<span class="n">W</span><span class="o">=</span><span class="n">ot</span><span class="o">.</span><span class="n">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">M</span><span class="p">)</span> <span class="c1"># Wasserstein distance / EMD value</span>
+<span class="n">W</span> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>  <span class="c1"># Wasserstein distance / EMD value</span>
 </pre></div>
 </div>
 <p>Note that the well known  <a class="reference external" href="https://en.wikipedia.org/wiki/Wasserstein_metric">Wasserstein distance</a> between distributions a and
 b is defined as</p>
 <blockquote>
 <div><div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W_p(a,b)=(\min_\gamma \sum_{i,j}\gamma_{i,j}\|x_i-y_j\|_p)^\frac{1}{p}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
+\[ \begin{align}\begin{aligned}W_p(a,b)=(\min_{\gamma \in \mathbb{R}_+^{m\times n}} \sum_{i,j}\gamma_{i,j}\|x_i-y_j\|_p)^\frac{1}{p}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
 </div></blockquote>
 <p>This means that if you want to compute the <span class="math notranslate nohighlight">\(W_2\)</span> you need to compute the
 square root of <a class="reference internal" href="all.html#ot.emd2" title="ot.emd2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2</span></code></a> when providing
-<code class="code docutils literal notranslate"><span class="pre">M=ot.dist(xs,xt)</span></code> that use the squared euclidean distance by default. Computing
-the <span class="math notranslate nohighlight">\(W_1\)</span> wasserstein distance can be done directly with  <a class="reference internal" href="all.html#ot.emd2" title="ot.emd2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2</span></code></a>
-when providing <code class="code docutils literal notranslate"><span class="pre">M=ot.dist(xs,xt,</span> <span class="pre">metric='euclidean')</span></code> to use the euclidean
+<code class="code docutils literal notranslate"><span class="pre">M</span> <span class="pre">=</span> <span class="pre">ot.dist(xs,</span> <span class="pre">xt)</span></code>, that uses the squared euclidean distance by default. Computing
+the <span class="math notranslate nohighlight">\(W_1\)</span> Wasserstein distance can be done directly with <a class="reference internal" href="all.html#ot.emd2" title="ot.emd2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2</span></code></a>
+when providing <code class="code docutils literal notranslate"><span class="pre">M</span> <span class="pre">=</span> <span class="pre">ot.dist(xs,</span> <span class="pre">xt,</span> <span class="pre">metric='euclidean')</span></code> to use the Euclidean
 distance.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
@@ -289,19 +418,19 @@ distance.</p>
 special cases be computed very efficiently.</p>
 <p>For instance when the samples are in 1D, then the OT problem can be solved in
 <span class="math notranslate nohighlight">\(O(n\log(n))\)</span> by using a simple sorting. In this case we provide the
-function <a class="reference internal" href="all.html#id0" title="ot.emd_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd_1d</span></code></a> and   <a class="reference internal" href="all.html#ot.emd2_1d" title="ot.emd2_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2_1d</span></code></a> to return respectively the OT
+function <a class="reference internal" href="all.html#ot.emd_1d" title="ot.emd_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd_1d</span></code></a> and   <a class="reference internal" href="all.html#ot.emd2_1d" title="ot.emd2_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd2_1d</span></code></a> to return respectively the OT
 matrix and value. Note that since the solution is very sparse the <code class="code docutils literal notranslate"><span class="pre">sparse</span></code>
-parameter of <a class="reference internal" href="all.html#id0" title="ot.emd_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd_1d</span></code></a> allows for solving and returning the solution for
+parameter of <a class="reference internal" href="all.html#ot.emd_1d" title="ot.emd_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd_1d</span></code></a> allows for solving and returning the solution for
 very large problems. Note that in order to compute directly the <span class="math notranslate nohighlight">\(W_p\)</span>
 Wasserstein distance in 1D we provide the function <a class="reference internal" href="all.html#ot.wasserstein_1d" title="ot.wasserstein_1d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.wasserstein_1d</span></code></a> that
 takes <code class="code docutils literal notranslate"><span class="pre">p</span></code> as a parameter.</p>
 <p>Another special case for estimating OT and Monge mapping is between Gaussian
 distributions. In this case there exists a close form solution given in Remark
-2.29 in <a class="footnote-reference brackets" href="#id64" id="id3">15</a> and the Monge mapping is an affine function and can be
+2.29 in <a class="footnote-reference brackets" href="#id65" id="id4">15</a> and the Monge mapping is an affine function and can be
 also computed from the covariances and means of the source and target
-distributions. In the case when the finite sample dataset is supposed gaussian, we provide
-<a class="reference internal" href="gen_modules/ot.da.html#ot.da.OT_mapping_linear" title="ot.da.OT_mapping_linear"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.OT_mapping_linear</span></code></a> that returns the parameters for the Monge
-mapping.</p>
+distributions. In the case when the finite sample dataset is supposed Gaussian,
+we provide <a class="reference internal" href="gen_modules/ot.da.html#ot.da.OT_mapping_linear" title="ot.da.OT_mapping_linear"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.OT_mapping_linear</span></code></a> that returns the parameters for the
+Monge mapping.</p>
 </div>
 </div>
 <div class="section" id="regularized-optimal-transport">
@@ -310,7 +439,7 @@ mapping.</p>
 computational and statistical properties.
 We address in this section the regularized OT problems that can be expressed as</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\gamma^* = arg\min_\gamma \quad \sum_{i,j}\gamma_{i,j}M_{i,j} + \lambda\Omega(\gamma)\\    s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
+\[ \begin{align}\begin{aligned}\gamma^* = arg\min_{\gamma \in \mathbb{R}_+^{m\times n}} \quad \sum_{i,j}\gamma_{i,j}M_{i,j} + \lambda\Omega(\gamma)\\    s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(M\in\mathbb{R}_+^{m\times n}\)</span> is the metric cost matrix defining the cost to move mass from bin <span class="math notranslate nohighlight">\(a_i\)</span> to bin <span class="math notranslate nohighlight">\(b_j\)</span>.</p></li>
@@ -322,13 +451,13 @@ the regularization term.</p>
 <div class="section" id="entropic-regularized-ot">
 <h3>Entropic regularized OT<a class="headerlink" href="#entropic-regularized-ot" title="Permalink to this headline">¶</a></h3>
 <p>This is the most common regularization used for optimal transport. It has been
-proposed in the ML community by Marco Cuturi in his seminal paper <a class="footnote-reference brackets" href="#id51" id="id4">2</a>. This
+proposed in the ML community by Marco Cuturi in his seminal paper <a class="footnote-reference brackets" href="#id53" id="id5">2</a>. This
 regularization has the following expression</p>
 <div class="math notranslate nohighlight">
 \[\Omega(\gamma)=\sum_{i,j}\gamma_{i,j}\log(\gamma_{i,j})\]</div>
 <p>The use of the regularization term above in the optimization problem has a very
 strong impact. First it makes the problem smooth which leads to new optimization
-procedures such as the well known Sinkhorn algorithm <a class="footnote-reference brackets" href="#id51" id="id5">2</a> or L-BFGS (see
+procedures such as the well known Sinkhorn algorithm <a class="footnote-reference brackets" href="#id53" id="id6">2</a> or L-BFGS (see
 <a class="reference internal" href="gen_modules/ot.smooth.html#module-ot.smooth" title="ot.smooth"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.smooth</span></code></a> ). Next it makes the problem
 strictly convex meaning that there will be a unique solution. Finally the
 solution of the resulting optimization problem can be expressed as:</p>
@@ -336,17 +465,17 @@ solution of the resulting optimization problem can be expressed as:</p>
 \[\gamma_\lambda^*=\text{diag}(u)K\text{diag}(v)\]</div>
 <p>where <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(v\)</span> are vectors and <span class="math notranslate nohighlight">\(K=\exp(-M/\lambda)\)</span> where
 the <span class="math notranslate nohighlight">\(\exp\)</span> is taken component-wise. In order to solve the optimization
-problem, on can use an alternative projection algorithm called Sinkhorn-Knopp that can be very
-efficient for large values of regularization.</p>
+problem, one can use an alternative projection algorithm called Sinkhorn-Knopp
+that can be very efficient for large values of regularization.</p>
 <p>The Sinkhorn-Knopp algorithm is implemented in <a class="reference internal" href="all.html#ot.sinkhorn" title="ot.sinkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn</span></code></a> and
 <a class="reference internal" href="all.html#ot.sinkhorn2" title="ot.sinkhorn2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn2</span></code></a> that return respectively the OT matrix and the value of the
 linear term. Note that the regularization parameter <span class="math notranslate nohighlight">\(\lambda\)</span> in the
 equation above is given to those functions with the parameter <code class="code docutils literal notranslate"><span class="pre">reg</span></code>.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">ot</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span><span class="o">.</span><span class="mi">5</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span><span class="o">.</span><span class="mi">5</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">],[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ot</span><span class="o">.</span><span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">M</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span> <span class="o">.</span><span class="mi">5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span> <span class="o">.</span><span class="mi">5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ot</span><span class="o">.</span><span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="go">array([[ 0.36552929,  0.13447071],</span>
 <span class="go">    [ 0.13447071,  0.36552929]])</span>
 </pre></div>
@@ -355,39 +484,54 @@ equation above is given to those functions with the parameter <code class="code 
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The main function to solve entropic regularized OT is <a class="reference internal" href="all.html#ot.sinkhorn" title="ot.sinkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn</span></code></a>.
-This function is a wrapper and the parameter <code class="code docutils literal notranslate"><span class="pre">method</span></code> help you select
+This function is a wrapper and the parameter <code class="code docutils literal notranslate"><span class="pre">method</span></code> allows you to select
 the actual algorithm used to solve the problem:</p>
 <ul class="simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn'</span></code> calls <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.sinkhorn_knopp" title="ot.bregman.sinkhorn_knopp"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.sinkhorn_knopp</span></code></a>  the
-classic algorithm <a class="footnote-reference brackets" href="#id51" id="id6">2</a>.</p></li>
+classic algorithm <a class="footnote-reference brackets" href="#id53" id="id7">2</a>.</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn_stabilized'</span></code> calls <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.sinkhorn_stabilized" title="ot.bregman.sinkhorn_stabilized"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.sinkhorn_stabilized</span></code></a>  the
-log stabilized version of the algorithm <a class="footnote-reference brackets" href="#id58" id="id7">9</a>.</p></li>
+log stabilized version of the algorithm <a class="footnote-reference brackets" href="#id59" id="id8">9</a>.</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn_epsilon_scaling'</span></code> calls
 <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.sinkhorn_epsilon_scaling" title="ot.bregman.sinkhorn_epsilon_scaling"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.sinkhorn_epsilon_scaling</span></code></a>  the epsilon scaling version
-of the algorithm <a class="footnote-reference brackets" href="#id58" id="id8">9</a>.</p></li>
+of the algorithm <a class="footnote-reference brackets" href="#id59" id="id9">9</a>.</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='greenkhorn'</span></code> calls <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.greenkhorn" title="ot.bregman.greenkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.greenkhorn</span></code></a>  the
-greedy sinkhorn verison of the algorithm <a class="footnote-reference brackets" href="#id71" id="id9">22</a>.</p></li>
+greedy Sinkhorn version of the algorithm <a class="footnote-reference brackets" href="#id72" id="id10">22</a>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">method='screenkhorn'</span></code> calls <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.screenkhorn" title="ot.bregman.screenkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.screenkhorn</span></code></a>  the
+screening sinkhorn version of the algorithm <a class="footnote-reference brackets" href="#id76" id="id11">26</a>.</p></li>
 </ul>
-<p>In addition to all those variants of sinkhorn, we have another
+<p>In addition to all those variants of Sinkhorn, we have another
 implementation solving the problem in the smooth dual or semi-dual in
 <a class="reference internal" href="gen_modules/ot.smooth.html#module-ot.smooth" title="ot.smooth"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.smooth</span></code></a>. This solver uses the <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize" title="(in SciPy v1.5.4)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.optimize.minimize</span></code></a>
 function to solve the smooth problem with <code class="code docutils literal notranslate"><span class="pre">L-BFGS-B</span></code> algorithm. Tu use
 this solver, use functions <a class="reference internal" href="gen_modules/ot.smooth.html#ot.smooth.smooth_ot_dual" title="ot.smooth.smooth_ot_dual"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.smooth.smooth_ot_dual</span></code></a> or
 <a class="reference internal" href="gen_modules/ot.smooth.html#ot.smooth.smooth_ot_semi_dual" title="ot.smooth.smooth_ot_semi_dual"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.smooth.smooth_ot_semi_dual</span></code></a> with parameter <code class="code docutils literal notranslate"><span class="pre">reg_type='kl'</span></code> to
 choose entropic/Kullbach Leibler regularization.</p>
+<p><strong>Choosing a Sinkhorn solver</strong></p>
+<p>By default and when using a regularization parameter that is not too small
+the default Sinkhorn solver should be enough. If you need to use a small
+regularization to get sharper OT matrices, you should use the
+<a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.sinkhorn_stabilized" title="ot.bregman.sinkhorn_stabilized"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.sinkhorn_stabilized</span></code></a> solver that will avoid numerical
+errors. This last solver can be very slow in practice and might not even
+converge to a reasonable OT matrix in a finite time. This is why
+<a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.sinkhorn_epsilon_scaling" title="ot.bregman.sinkhorn_epsilon_scaling"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.sinkhorn_epsilon_scaling</span></code></a> that relie on iterating the value
+of the regularization (and using warm start) sometimes leads to better
+solutions. Note that the greedy version of the Sinkhorn
+<a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.greenkhorn" title="ot.bregman.greenkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.greenkhorn</span></code></a> can also lead to a speedup and the screening
+version of the Sinkhorn <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.screenkhorn" title="ot.bregman.screenkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.screenkhorn</span></code></a> aim a providing a
+fast approximation of the Sinkhorn problem.</p>
 </div>
-<p>Recently <a class="footnote-reference brackets" href="#id72" id="id10">23</a> introduced the sinkhorn divergence that build from entropic
+<p>Recently Genevay et al. <a class="footnote-reference brackets" href="#id73" id="id12">23</a> introduced the Sinkhorn divergence that build from entropic
 regularization to compute fast and differentiable geometric divergence between
-empirical distributions.  Note that we provide a function that compute directly
-(with no need to pre compute the <code class="code docutils literal notranslate"><span class="pre">M</span></code> matrix)
-the sinkhorn divergence for empirical distributions in
+empirical distributions.  Note that we provide a function that computes directly
+(with no need to precompute the <code class="code docutils literal notranslate"><span class="pre">M</span></code> matrix)
+the Sinkhorn divergence for empirical distributions in
 <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn_divergence" title="ot.bregman.empirical_sinkhorn_divergence"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.empirical_sinkhorn_divergence</span></code></a>. Similarly one can compute the
 OT matrix and loss for empirical distributions with respectively
 <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn" title="ot.bregman.empirical_sinkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.empirical_sinkhorn</span></code></a> and <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn2" title="ot.bregman.empirical_sinkhorn2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.empirical_sinkhorn2</span></code></a>.</p>
 <p>Finally note that we also provide in <a class="reference internal" href="gen_modules/ot.stochastic.html#module-ot.stochastic" title="ot.stochastic"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.stochastic</span></code></a> several implementation
-of stochastic solvers for entropic regularized OT <a class="footnote-reference brackets" href="#id67" id="id11">18</a> <a class="footnote-reference brackets" href="#id68" id="id12">19</a>.  Those pure Python
-implementations are not optimized for speed but provide a roust implementation
-of algorithms in <a class="footnote-reference brackets" href="#id67" id="id13">18</a> <a class="footnote-reference brackets" href="#id68" id="id14">19</a>.</p>
+of stochastic solvers for entropic regularized OT <a class="footnote-reference brackets" href="#id68" id="id13">18</a> <a class="footnote-reference brackets" href="#id69" id="id14">19</a>.  Those pure Python
+implementations are not optimized for speed but provide a robust implementation
+of algorithms in <a class="footnote-reference brackets" href="#id68" id="id15">18</a> <a class="footnote-reference brackets" href="#id69" id="id16">19</a>.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
 <p>Examples of use for <a class="reference internal" href="all.html#ot.sinkhorn" title="ot.sinkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn</span></code></a> are available in :</p>
@@ -401,20 +545,20 @@ of algorithms in <a class="footnote-reference brackets" href="#id67" id="id13">1
 </div>
 <div class="section" id="other-regularization">
 <h3>Other regularization<a class="headerlink" href="#other-regularization" title="Permalink to this headline">¶</a></h3>
-<p>While entropic OT is the most common and favored in practice, there exist other
-kind of regularization. We provide in POT two specific solvers for other
-regularization terms, namely quadratic regularization and group lasso
-regularization. But we also provide in <a class="reference internal" href="gen_modules/ot.optim.html#module-ot.optim" title="ot.optim"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.optim</span></code></a>  two generic solvers that allows solving any
-smooth regularization in practice.</p>
+<p>While entropic OT is the most common and favored in practice, there exists other
+kinds of regularizations. We provide in POT two specific solvers for other
+regularization terms, namely quadratic regularization and group Lasso
+regularization. But we also provide in <a class="reference internal" href="gen_modules/ot.optim.html#module-ot.optim" title="ot.optim"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.optim</span></code></a>  two generic solvers
+that allows solving any smooth regularization in practice.</p>
 <div class="section" id="quadratic-regularization">
 <h4>Quadratic regularization<a class="headerlink" href="#quadratic-regularization" title="Permalink to this headline">¶</a></h4>
 <p>The first general regularization term we can solve is the quadratic
 regularization of the form</p>
 <div class="math notranslate nohighlight">
 \[\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}^2\]</div>
-<p>this regularization term has a similar effect to entropic regularization in
-densifying the OT matrix but it keeps some sort of sparsity that is lost with
-entropic regularization as soon as <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span> <a class="footnote-reference brackets" href="#id66" id="id15">17</a>. This problem can be
+<p>This regularization term has an effect similar to entropic regularization by
+densifying the OT matrix, yet it keeps some sort of sparsity that is lost with
+entropic regularization as soon as <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span> <a class="footnote-reference brackets" href="#id67" id="id17">17</a>. This problem can be
 solved with POT using solvers from <a class="reference internal" href="gen_modules/ot.smooth.html#module-ot.smooth" title="ot.smooth"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.smooth</span></code></a>, more specifically
 functions <a class="reference internal" href="gen_modules/ot.smooth.html#ot.smooth.smooth_ot_dual" title="ot.smooth.smooth_ot_dual"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.smooth.smooth_ot_dual</span></code></a> or
 <a class="reference internal" href="gen_modules/ot.smooth.html#ot.smooth.smooth_ot_semi_dual" title="ot.smooth.smooth_ot_semi_dual"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.smooth.smooth_ot_semi_dual</span></code></a> with parameter <code class="code docutils literal notranslate"><span class="pre">reg_type='l2'</span></code> to
@@ -430,28 +574,27 @@ choose the quadratic regularization.</p>
 </div>
 <div class="section" id="group-lasso-regularization">
 <h4>Group Lasso regularization<a class="headerlink" href="#group-lasso-regularization" title="Permalink to this headline">¶</a></h4>
-<p>Another regularization that has been used in recent years <a class="footnote-reference brackets" href="#id54" id="id16">5</a>  is the group lasso
+<p>Another regularization that has been used in recent years <a class="footnote-reference brackets" href="#id55" id="id18">5</a> is the group Lasso
 regularization</p>
 <div class="math notranslate nohighlight">
 \[\Omega(\gamma)=\sum_{j,G\in\mathcal{G}} \|\gamma_{G,j}\|_q^p\]</div>
-<p>where <span class="math notranslate nohighlight">\(\mathcal{G}\)</span> contains non overlapping groups of lines in the OT
-matrix. This regularization proposed in <a class="footnote-reference brackets" href="#id54" id="id17">5</a> will promote sparsity at the group level and for
+<p>where <span class="math notranslate nohighlight">\(\mathcal{G}\)</span> contains non-overlapping groups of lines in the OT
+matrix. This regularization proposed in <a class="footnote-reference brackets" href="#id55" id="id19">5</a> promotes sparsity at the group level and for
 instance will force target samples to get mass from a small number of groups.
 Note that the exact OT solution is already sparse so this regularization does
-not make sens if it is not combined with entropic regularization. Depending on
+not make sense if it is not combined with entropic regularization. Depending on
 the choice of <code class="code docutils literal notranslate"><span class="pre">p</span></code> and <code class="code docutils literal notranslate"><span class="pre">q</span></code>, the problem can be solved with different
-approaches.  When <code class="code docutils literal notranslate"><span class="pre">q=1</span></code> and <code class="code docutils literal notranslate"><span class="pre">p&lt;1</span></code> the problem is non convex but can
+approaches.  When <code class="code docutils literal notranslate"><span class="pre">q=1</span></code> and <code class="code docutils literal notranslate"><span class="pre">p&lt;1</span></code> the problem is non-convex but can
 be solved using an efficient majoration minimization approach with
 <a class="reference internal" href="all.html#ot.sinkhorn_lpl1_mm" title="ot.sinkhorn_lpl1_mm"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn_lpl1_mm</span></code></a>. When <code class="code docutils literal notranslate"><span class="pre">q=2</span></code> and <code class="code docutils literal notranslate"><span class="pre">p=1</span></code> we recover the
 convex group lasso and we provide a solver using generalized conditional
-gradient algorithm <a class="footnote-reference brackets" href="#id56" id="id18">7</a> in function
-<a class="reference internal" href="gen_modules/ot.da.html#ot.da.sinkhorn_l1l2_gl" title="ot.da.sinkhorn_l1l2_gl"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.sinkhorn_l1l2_gl</span></code></a>.</p>
+gradient algorithm <a class="footnote-reference brackets" href="#id57" id="id20">7</a> in function <a class="reference internal" href="gen_modules/ot.da.html#ot.da.sinkhorn_l1l2_gl" title="ot.da.sinkhorn_l1l2_gl"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.sinkhorn_l1l2_gl</span></code></a>.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
-<p>Examples of group Lasso regularization are available in :</p>
+<p>Examples of group Lasso regularization are available in:</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_classes</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_d2</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_classes.html"><span class="doc">OT for domain adaptation</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_d2.html"><span class="doc">OT for domain adaptation on empirical distributions</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -464,17 +607,16 @@ regularization and a function computing its gradient (or sub-gradient).</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\gamma^* = arg\min_\gamma \quad \sum_{i,j}\gamma_{i,j}M_{i,j} + \lambda\Omega(\gamma)\\    s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>you can use function <a class="reference internal" href="gen_modules/ot.optim.html#ot.optim.cg" title="ot.optim.cg"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.optim.cg</span></code></a> that will use a conditional gradient as
-proposed in <a class="footnote-reference brackets" href="#id55" id="id19">6</a> . You need to provide the regularization function as parameter
+proposed in <a class="footnote-reference brackets" href="#id56" id="id21">6</a> . You need to provide the regularization function as parameter
 <code class="docutils literal notranslate"><span class="pre">f</span></code> and its gradient as parameter  <code class="docutils literal notranslate"><span class="pre">df</span></code>. Note that the conditional gradient relies on
 iterative solving of a linearization of the problem using the exact
-<a class="reference internal" href="all.html#ot.emd" title="ot.emd"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd</span></code></a> so it can be  slow in practice. But, being an interior point
-algorithm,  it always returns a
-transport matrix that does not violates the marginals.</p>
-<p>Another generic solver is proposed to solve the problem</p>
+<a class="reference internal" href="all.html#ot.emd" title="ot.emd"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.emd</span></code></a> so it can be quite slow in practice. However, being an interior point
+algorithm, it always returns a transport matrix that does not violates the marginals.</p>
+<p>Another generic solver is proposed to solve the problem:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\gamma^* = arg\min_\gamma \quad \sum_{i,j}\gamma_{i,j}M_{i,j}+ \lambda_e\Omega_e(\gamma) + \lambda\Omega(\gamma)\\    s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>where <span class="math notranslate nohighlight">\(\Omega_e\)</span> is the entropic regularization. In this case we use a
-generalized conditional gradient <a class="footnote-reference brackets" href="#id56" id="id20">7</a> implemented in <a class="reference internal" href="gen_modules/ot.optim.html#ot.optim.gcg" title="ot.optim.gcg"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.optim.gcg</span></code></a>  that
+generalized conditional gradient <a class="footnote-reference brackets" href="#id57" id="id22">7</a> implemented in <a class="reference internal" href="gen_modules/ot.optim.html#ot.optim.gcg" title="ot.optim.gcg"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.optim.gcg</span></code></a>  that
 does not linearize the entropic term but
 relies on <a class="reference internal" href="all.html#ot.sinkhorn" title="ot.sinkhorn"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn</span></code></a> for its iterations.</p>
 <div class="admonition hint">
@@ -489,8 +631,8 @@ relies on <a class="reference internal" href="all.html#ot.sinkhorn" title="ot.si
 </div>
 <div class="section" id="wasserstein-barycenters">
 <h2>Wasserstein Barycenters<a class="headerlink" href="#wasserstein-barycenters" title="Permalink to this headline">¶</a></h2>
-<p>A Wasserstein barycenter is a distribution that minimize its Wasserstein
-distance with respect to other distributions <a class="footnote-reference brackets" href="#id65" id="id21">16</a>. It corresponds to minimizing the
+<p>A Wasserstein barycenter is a distribution that minimizes its Wasserstein
+distance with respect to other distributions <a class="footnote-reference brackets" href="#id66" id="id23">16</a>. It corresponds to minimizing the
 following problem by searching a distribution <span class="math notranslate nohighlight">\(\mu\)</span> such that</p>
 <div class="math notranslate nohighlight">
 \[\min_\mu \quad \sum_{k} w_kW(\mu,\mu_k)\]</div>
@@ -511,48 +653,48 @@ be expressed as</p>
 \[\min_a \quad \sum_{k} w_k W(a,b_k)\]</div>
 <p>where <span class="math notranslate nohighlight">\(b_k\)</span> are also weights in the simplex. In the non-regularized case,
 the problem above is a classical linear program. In this case we propose a
-solver <code class="xref any docutils literal notranslate"><span class="pre">ot.lp.barycenter</span></code> that rely on generic LP solvers. By default the
+solver <code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.lp.barycenter()</span></code> that relies on generic LP solvers. By default the
 function uses <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linprog.html#scipy.optimize.linprog" title="(in SciPy v1.5.4)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.optimize.linprog</span></code></a>, but more efficient LP solvers from
 cvxopt can be also used by changing parameter <code class="code docutils literal notranslate"><span class="pre">solver</span></code>. Note that this problem
 requires to solve a very large linear program and can be very slow in
 practice.</p>
 <p>Similarly to the OT problem, OT barycenters can be computed in the regularized
-case. When using entropic regularization is used, the problem can be solved with a
-generalization of the sinkhorn algorithm based on bregman projections <a class="footnote-reference brackets" href="#id52" id="id22">3</a>. This
+case. When entropic regularization is used, the problem can be solved with a
+generalization of the Sinkhorn algorithm based on Bregman projections <a class="footnote-reference brackets" href="#id54" id="id24">3</a>. This
 algorithm is provided in function <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.barycenter" title="ot.bregman.barycenter"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.barycenter</span></code></a> also available as
 <a class="reference internal" href="all.html#ot.barycenter" title="ot.barycenter"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.barycenter</span></code></a>. In this case, the algorithm scales better to large
-distributions and rely only on matrix multiplications that can be performed in
+distributions and relies only on matrix multiplications that can be performed in
 parallel.</p>
 <p>In addition to the speedup brought by regularization, one can also greatly
 accelerate the estimation of Wasserstein barycenter when the support has a
-separable structure <a class="footnote-reference brackets" href="#id70" id="id23">21</a>. In the case of 2D images for instance one can replace
+separable structure <a class="footnote-reference brackets" href="#id71" id="id25">21</a>. In the case of 2D images for instance one can replace
 the matrix vector production in the Bregman projections by convolution
 operators. We provide an implementation of this algorithm in function
 <a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.convolutional_barycenter2d" title="ot.bregman.convolutional_barycenter2d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.convolutional_barycenter2d</span></code></a>.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
-<p>Examples of Wasserstein (<code class="xref any docutils literal notranslate"><span class="pre">ot.lp.barycenter</span></code>) and regularized Wasserstein
+<p>Examples of Wasserstein (<code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.lp.barycenter()</span></code>) and regularized Wasserstein
 barycenter (<a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.barycenter" title="ot.bregman.barycenter"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.barycenter</span></code></a>) computation are available in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_barycenter_1D</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_barycenter_lp_vs_entropic</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/barycenters/plot_barycenter_1D.html"><span class="doc">1D Wasserstein barycenter demo</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/barycenters/plot_barycenter_lp_vs_entropic.html"><span class="doc">1D Wasserstein barycenter comparison between exact LP and entropic regularization</span></a></p></li>
 </ul>
 <p>An example of convolutional barycenter
 (<a class="reference internal" href="gen_modules/ot.bregman.html#ot.bregman.convolutional_barycenter2d" title="ot.bregman.convolutional_barycenter2d"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.bregman.convolutional_barycenter2d</span></code></a>) computation
 for 2D images is available
 in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_convolutional_barycenter</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/barycenters/plot_convolutional_barycenter.html"><span class="doc">Convolutional Wasserstein Barycenter example</span></a></p></li>
 </ul>
 </div>
 </div>
 <div class="section" id="barycenters-with-free-support">
 <h3>Barycenters with free support<a class="headerlink" href="#barycenters-with-free-support" title="Permalink to this headline">¶</a></h3>
 <p>Estimating the Wasserstein barycenter with free support but fixed weights
-corresponds to  solving the following optimization problem:</p>
+corresponds to solving the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\min_{\{x_i\}} \quad \sum_{k} w_kW(\mu,\mu_k)\\s.t. \quad \mu=\sum_{i=1}^n a_i\delta_{x_i}\end{aligned}\end{align} \]</div>
-<p>We provide a solver based on <a class="footnote-reference brackets" href="#id69" id="id24">20</a> in
+<p>We provide a solver based on <a class="footnote-reference brackets" href="#id70" id="id26">20</a> in
 <a class="reference internal" href="gen_modules/ot.lp.html#ot.lp.free_support_barycenter" title="ot.lp.free_support_barycenter"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.lp.free_support_barycenter</span></code></a>. This function minimize the problem and
 return a locally optimal support <span class="math notranslate nohighlight">\(\{x_i\}\)</span> for uniform or given weights
 <span class="math notranslate nohighlight">\(a\)</span>.</p>
@@ -562,7 +704,7 @@ return a locally optimal support <span class="math notranslate nohighlight">\(\{
 <p>An example of the free support barycenter estimation is available
 in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_free_support_barycenter</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/barycenters/plot_free_support_barycenter.html"><span class="doc">2D free support Wasserstein barycenters of distributions</span></a></p></li>
 </ul>
 </div>
 </div></blockquote>
@@ -570,7 +712,7 @@ in :</p>
 </div>
 <div class="section" id="monge-mapping-and-domain-adaptation">
 <h2>Monge mapping and Domain adaptation<a class="headerlink" href="#monge-mapping-and-domain-adaptation" title="Permalink to this headline">¶</a></h2>
-<p>The original transport problem investigated by Gaspard Monge  was seeking for a
+<p>The original transport problem investigated by Gaspard Monge was seeking for a
 mapping function that maps (or transports) between a source and target
 distribution but that minimizes the transport loss. The existence and uniqueness of this
 optimal mapping is still an open problem in the general case but has been proven
@@ -583,49 +725,45 @@ adaptation from discrete distributions.</p>
 approximate a Monge mapping from finite distributions.</p>
 <p>First note that when the source and target distributions are supposed to be Gaussian
 distributions, there exists a close form solution for the mapping and its an
-affine function <a class="footnote-reference brackets" href="#id63" id="id25">14</a> of the form <span class="math notranslate nohighlight">\(T(x)=Ax+b\)</span> . In this case we provide the function
-<a class="reference internal" href="gen_modules/ot.da.html#ot.da.OT_mapping_linear" title="ot.da.OT_mapping_linear"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.OT_mapping_linear</span></code></a> that return the operator <span class="math notranslate nohighlight">\(A\)</span> and vector
+affine function <a class="footnote-reference brackets" href="#id64" id="id27">14</a> of the form <span class="math notranslate nohighlight">\(T(x)=Ax+b\)</span> . In this case we provide the function
+<a class="reference internal" href="gen_modules/ot.da.html#ot.da.OT_mapping_linear" title="ot.da.OT_mapping_linear"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.OT_mapping_linear</span></code></a> that returns the operator <span class="math notranslate nohighlight">\(A\)</span> and vector
 <span class="math notranslate nohighlight">\(b\)</span>. Note that if the number of samples is too small there is a parameter
-<code class="code docutils literal notranslate"><span class="pre">reg</span></code> that provide a regularization for the covariance matrix estimation.</p>
+<code class="code docutils literal notranslate"><span class="pre">reg</span></code> that provides a regularization for the covariance matrix estimation.</p>
 <p>For a more general mapping estimation we also provide the barycentric mapping
-proposed in <a class="footnote-reference brackets" href="#id55" id="id26">6</a> . It is implemented in the class <a class="reference internal" href="gen_modules/ot.da.html#ot.da.EMDTransport" title="ot.da.EMDTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.EMDTransport</span></code></a> and
-other transport based classes in <a class="reference internal" href="gen_modules/ot.da.html#module-ot.da" title="ot.da"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.da</span></code></a> . Those classes are discussed more
-in the following but follow an interface similar to sklearn classes. Finally a
-method proposed in <a class="footnote-reference brackets" href="#id57" id="id27">8</a> that estimates a continuous mapping approximating the
+proposed in <a class="footnote-reference brackets" href="#id56" id="id28">6</a>. It is implemented in the class <a class="reference internal" href="gen_modules/ot.da.html#ot.da.EMDTransport" title="ot.da.EMDTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.EMDTransport</span></code></a> and
+other transport-based classes in <a class="reference internal" href="gen_modules/ot.da.html#module-ot.da" title="ot.da"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.da</span></code></a> . Those classes are discussed more
+in the following but follow an interface similar to scikit-learn classes. Finally a
+method proposed in <a class="footnote-reference brackets" href="#id58" id="id29">8</a> that estimates a continuous mapping approximating the
 barycentric mapping is provided in <a class="reference internal" href="gen_modules/ot.da.html#ot.da.joint_OT_mapping_linear" title="ot.da.joint_OT_mapping_linear"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.joint_OT_mapping_linear</span></code></a> for
-linear mapping and <a class="reference internal" href="gen_modules/ot.da.html#ot.da.joint_OT_mapping_kernel" title="ot.da.joint_OT_mapping_kernel"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.joint_OT_mapping_kernel</span></code></a> for non linear mapping.</p>
+linear mapping and <a class="reference internal" href="gen_modules/ot.da.html#ot.da.joint_OT_mapping_kernel" title="ot.da.joint_OT_mapping_kernel"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.da.joint_OT_mapping_kernel</span></code></a> for non-linear mapping.</p>
 <blockquote>
 <div><div class="admonition hint">
 <p class="admonition-title">Hint</p>
 <p>An example of the linear Monge mapping estimation is available
 in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_linear_mapping</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_linear_mapping.html"><span class="doc">Linear OT mapping estimation</span></a></p></li>
 </ul>
 </div>
 </div></blockquote>
 </div>
 <div class="section" id="domain-adaptation-classes">
 <h3>Domain adaptation classes<a class="headerlink" href="#domain-adaptation-classes" title="Permalink to this headline">¶</a></h3>
-<p>The use of OT for domain adaptation (OTDA) has been first proposed in <a class="footnote-reference brackets" href="#id54" id="id28">5</a> that also
+<p>The use of OT for domain adaptation (OTDA) has been first proposed in <a class="footnote-reference brackets" href="#id55" id="id30">5</a> that also
 introduced the group Lasso regularization. The main idea of OTDA is to estimate
 a mapping of the samples between source and target distributions which allows to
 transport labeled source samples onto the target distribution with no labels.</p>
 <p>We provide several classes based on <a class="reference internal" href="gen_modules/ot.da.html#ot.da.BaseTransport" title="ot.da.BaseTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.BaseTransport</span></code></a> that provide
 several OT and mapping estimations. The interface of those classes is similar to
-classifiers in sklearn toolbox. At initialization, several parameters such as</p>
-<blockquote>
-<div><p>regularization parameter value can be set. Then one needs to estimate the</p>
-</div></blockquote>
-<p>mapping with function <a class="reference internal" href="gen_modules/ot.da.html#ot.da.BaseTransport.fit" title="ot.da.BaseTransport.fit"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">ot.da.BaseTransport.fit</span></code></a>. Finally one can map the
+classifiers in scikit-learn. At initialization, several parameters such as
+regularization parameter value can be set. Then one needs to estimate the
+mapping with function <a class="reference internal" href="gen_modules/ot.da.html#ot.da.BaseTransport.fit" title="ot.da.BaseTransport.fit"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">ot.da.BaseTransport.fit</span></code></a>. Finally one can map the
 samples from source to target with  <a class="reference internal" href="gen_modules/ot.da.html#ot.da.BaseTransport.transform" title="ot.da.BaseTransport.transform"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">ot.da.BaseTransport.transform</span></code></a> and
 from target to source with <a class="reference internal" href="gen_modules/ot.da.html#ot.da.BaseTransport.inverse_transform" title="ot.da.BaseTransport.inverse_transform"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">ot.da.BaseTransport.inverse_transform</span></code></a>.</p>
-<p>Here is
-an example for class <a class="reference internal" href="gen_modules/ot.da.html#ot.da.EMDTransport" title="ot.da.EMDTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.EMDTransport</span></code></a> :</p>
+<p>Here is an example for class <a class="reference internal" href="gen_modules/ot.da.html#ot.da.EMDTransport" title="ot.da.EMDTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.EMDTransport</span></code></a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ot_emd</span> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">da</span><span class="o">.</span><span class="n">EMDTransport</span><span class="p">()</span>
 <span class="n">ot_emd</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">)</span>
-
-<span class="n">Mapped_Xs</span><span class="o">=</span> <span class="n">ot_emd</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">)</span>
+<span class="n">Xs_mapped</span> <span class="o">=</span> <span class="n">ot_emd</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>A list of the provided implementation is given in the following note.</p>
@@ -634,25 +772,25 @@ an example for class <a class="reference internal" href="gen_modules/ot.da.html#
 <p>Here is a list of the OT mapping classes inheriting from
 <a class="reference internal" href="gen_modules/ot.da.html#ot.da.BaseTransport" title="ot.da.BaseTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.BaseTransport</span></code></a></p>
 <ul class="simple">
-<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.EMDTransport" title="ot.da.EMDTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.EMDTransport</span></code></a> : Barycentric mapping with EMD transport</p></li>
-<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.SinkhornTransport" title="ot.da.SinkhornTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.SinkhornTransport</span></code></a> : Barycentric mapping with Sinkhorn transport</p></li>
-<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.SinkhornL1l2Transport" title="ot.da.SinkhornL1l2Transport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.SinkhornL1l2Transport</span></code></a> : Barycentric mapping with Sinkhorn +
-group Lasso regularization <a class="footnote-reference brackets" href="#id54" id="id29">5</a></p></li>
-<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.SinkhornLpl1Transport" title="ot.da.SinkhornLpl1Transport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.SinkhornLpl1Transport</span></code></a> : Barycentric mapping with Sinkhorn +
-non convex group Lasso regularization <a class="footnote-reference brackets" href="#id54" id="id30">5</a></p></li>
-<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.LinearTransport" title="ot.da.LinearTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.LinearTransport</span></code></a> : Linear mapping estimation  between Gaussians
-<a class="footnote-reference brackets" href="#id63" id="id31">14</a></p></li>
-<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.MappingTransport" title="ot.da.MappingTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.MappingTransport</span></code></a> : Nonlinear mapping estimation <a class="footnote-reference brackets" href="#id57" id="id32">8</a></p></li>
+<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.EMDTransport" title="ot.da.EMDTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.EMDTransport</span></code></a>: Barycentric mapping with EMD transport</p></li>
+<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.SinkhornTransport" title="ot.da.SinkhornTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.SinkhornTransport</span></code></a>: Barycentric mapping with Sinkhorn transport</p></li>
+<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.SinkhornL1l2Transport" title="ot.da.SinkhornL1l2Transport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.SinkhornL1l2Transport</span></code></a>: Barycentric mapping with Sinkhorn +
+group Lasso regularization <a class="footnote-reference brackets" href="#id55" id="id31">5</a></p></li>
+<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.SinkhornLpl1Transport" title="ot.da.SinkhornLpl1Transport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.SinkhornLpl1Transport</span></code></a>: Barycentric mapping with Sinkhorn +
+non convex group Lasso regularization <a class="footnote-reference brackets" href="#id55" id="id32">5</a></p></li>
+<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.LinearTransport" title="ot.da.LinearTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.LinearTransport</span></code></a>: Linear mapping estimation  between Gaussians
+<a class="footnote-reference brackets" href="#id64" id="id33">14</a></p></li>
+<li><p><a class="reference internal" href="gen_modules/ot.da.html#ot.da.MappingTransport" title="ot.da.MappingTransport"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ot.da.MappingTransport</span></code></a>: Nonlinear mapping estimation <a class="footnote-reference brackets" href="#id58" id="id34">8</a></p></li>
 </ul>
 </div>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
-<p>Example of the use of OTDA classes are available in :</p>
+<p>Examples of the use of OTDA classes are available in:</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_color_images</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_mapping</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_mapping_colors_images</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_otda_semi_supervised</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_color_images.html"><span class="doc">OT for image color adaptation</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_mapping.html"><span class="doc">OT mapping estimation for domain adaptation</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_mapping_colors_images.html"><span class="doc">OT for image color adaptation with mapping estimation</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/domain-adaptation/plot_otda_semi_supervised.html"><span class="doc">OTDA unsupervised vs semi-supervised setting</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -663,15 +801,15 @@ non convex group Lasso regularization <a class="footnote-reference brackets" hre
 proposed in the OT and machine learning community.</p>
 <div class="section" id="wasserstein-discriminant-analysis">
 <h3>Wasserstein Discriminant Analysis<a class="headerlink" href="#wasserstein-discriminant-analysis" title="Permalink to this headline">¶</a></h3>
-<p>Wasserstein Discriminant Analysis <a class="footnote-reference brackets" href="#id60" id="id33">11</a> is a generalization of <a class="reference external" href="https://en.wikipedia.org/wiki/Linear_discriminant_analysis">Fisher Linear Discriminant
+<p>Wasserstein Discriminant Analysis <a class="footnote-reference brackets" href="#id61" id="id35">11</a> is a generalization of <a class="reference external" href="https://en.wikipedia.org/wiki/Linear_discriminant_analysis">Fisher Linear Discriminant
 Analysis</a> that
 allows discrimination between classes that are not linearly separable. It
-consist in finding a linear projector optimizing the following criterion</p>
+consists in finding a linear projector optimizing the following criterion</p>
 <div class="math notranslate nohighlight">
 \[P = \text{arg}\min_P \frac{\sum_i OT_e(\mu_i\#P,\mu_i\#P)}{\sum_{i,j\neq i}
 OT_e(\mu_i\#P,\mu_j\#P)}\]</div>
 <p>where <span class="math notranslate nohighlight">\(\#\)</span> is the push-forward operator, <span class="math notranslate nohighlight">\(OT_e\)</span> is the entropic OT
-loss  and <span class="math notranslate nohighlight">\(\mu_i\)</span> is the
+loss and <span class="math notranslate nohighlight">\(\mu_i\)</span> is the
 distribution of samples from class <span class="math notranslate nohighlight">\(i\)</span>.  <span class="math notranslate nohighlight">\(P\)</span> is also constrained to
 be in the Stiefel manifold. WDA can be solved in POT using function
 <a class="reference internal" href="gen_modules/ot.dr.html#ot.dr.wda" title="ot.dr.wda"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.dr.wda</span></code></a>. It requires to have installed <code class="code docutils literal notranslate"><span class="pre">pymanopt</span></code> and
@@ -688,7 +826,7 @@ use it you have to specifically import it with <code class="code docutils litera
 <p class="admonition-title">Hint</p>
 <p>An example of the use of WDA is available in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_WDA</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/others/plot_WDA.html"><span class="doc">Wasserstein Discriminant Analysis</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -696,13 +834,13 @@ use it you have to specifically import it with <code class="code docutils litera
 <h3>Unbalanced optimal transport<a class="headerlink" href="#unbalanced-optimal-transport" title="Permalink to this headline">¶</a></h3>
 <p>Unbalanced OT is a relaxation of the entropy regularized OT problem where the violation of
 the constraint on the marginals is added to the objective of the optimization
-problem. The unbalanced OT metric between two unbalanced histograms a and b is defined as <a class="footnote-reference brackets" href="#id74" id="id34">25</a> <a class="footnote-reference brackets" href="#id59" id="id35">10</a>:</p>
+problem. The unbalanced OT metric between two unbalanced histograms a and b is defined as <a class="footnote-reference brackets" href="#id75" id="id36">25</a> <a class="footnote-reference brackets" href="#id60" id="id37">10</a>:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}W_u(a, b) = \min_\gamma \quad \sum_{i,j}\gamma_{i,j}M_{i,j} + reg\cdot\Omega(\gamma) + reg_m KL(\gamma 1, a) + reg_m KL(\gamma^T 1, b)\\s.t. \quad  \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>where KL is the Kullback-Leibler divergence. This formulation allows for
 computing approximate mapping between distributions that do not have the same
 amount of mass. Interestingly the problem can be solved with a generalization of
-the Bregman projections algorithm <a class="footnote-reference brackets" href="#id59" id="id36">10</a>. We provide a solver for unbalanced OT
+the Bregman projections algorithm <a class="footnote-reference brackets" href="#id60" id="id38">10</a>. We provide a solver for unbalanced OT
 in <a class="reference internal" href="gen_modules/ot.unbalanced.html#module-ot.unbalanced" title="ot.unbalanced"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.unbalanced</span></code></a>. Computing the optimal transport
 plan or the transport cost is similar to the balanced case. The Sinkhorn-Knopp
 algorithm is implemented in <a class="reference internal" href="all.html#ot.sinkhorn_unbalanced" title="ot.sinkhorn_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn_unbalanced</span></code></a> and <a class="reference internal" href="all.html#ot.sinkhorn_unbalanced2" title="ot.sinkhorn_unbalanced2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn_unbalanced2</span></code></a>
@@ -715,16 +853,16 @@ This function is a wrapper and the parameter <code class="code docutils literal 
 the actual algorithm used to solve the problem:</p>
 <ul class="simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn'</span></code> calls <a class="reference internal" href="gen_modules/ot.unbalanced.html#ot.unbalanced.sinkhorn_knopp_unbalanced" title="ot.unbalanced.sinkhorn_knopp_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.unbalanced.sinkhorn_knopp_unbalanced</span></code></a>
-the generalized Sinkhorn algorithm <a class="footnote-reference brackets" href="#id74" id="id37">25</a> <a class="footnote-reference brackets" href="#id59" id="id38">10</a>.</p></li>
+the generalized Sinkhorn algorithm <a class="footnote-reference brackets" href="#id75" id="id39">25</a> <a class="footnote-reference brackets" href="#id60" id="id40">10</a>.</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn_stabilized'</span></code> calls <a class="reference internal" href="gen_modules/ot.unbalanced.html#ot.unbalanced.sinkhorn_stabilized_unbalanced" title="ot.unbalanced.sinkhorn_stabilized_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.unbalanced.sinkhorn_stabilized_unbalanced</span></code></a>
-the log stabilized version of the algorithm <a class="footnote-reference brackets" href="#id59" id="id39">10</a>.</p></li>
+the log stabilized version of the algorithm <a class="footnote-reference brackets" href="#id60" id="id41">10</a>.</p></li>
 </ul>
 </div>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
 <p>Examples of the use of <a class="reference internal" href="all.html#ot.sinkhorn_unbalanced" title="ot.sinkhorn_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.sinkhorn_unbalanced</span></code></a> are available in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_UOT_1D</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/unbalanced-partial/plot_UOT_1D.html"><span class="doc">1D Unbalanced optimal transport</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -736,33 +874,33 @@ histograms with different masses as a Fréchet Mean:</p>
 <div><div class="math notranslate nohighlight">
 \[\min_{\mu} \quad \sum_{k} w_kW_u(\mu,\mu_k)\]</div>
 </div></blockquote>
-<p>Where <span class="math notranslate nohighlight">\(W_u\)</span> is the unbalanced Wasserstein metric defined above. This problem
+<p>where <span class="math notranslate nohighlight">\(W_u\)</span> is the unbalanced Wasserstein metric defined above. This problem
 can also be solved using generalized version of Sinkhorn’s algorithm and it is
 implemented the main function <a class="reference internal" href="all.html#ot.barycenter_unbalanced" title="ot.barycenter_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.barycenter_unbalanced</span></code></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The main function to compute UOT barycenters is <a class="reference internal" href="all.html#ot.barycenter_unbalanced" title="ot.barycenter_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.barycenter_unbalanced</span></code></a>.
-This function is a wrapper and the parameter <code class="code docutils literal notranslate"><span class="pre">method</span></code> help you select
+This function is a wrapper and the parameter <code class="code docutils literal notranslate"><span class="pre">method</span></code> helps you select
 the actual algorithm used to solve the problem:</p>
 <ul class="simple">
-<li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn'</span></code> calls <code class="xref any docutils literal notranslate"><span class="pre">ot.unbalanced.barycenter_unbalanced_sinkhorn_unbalanced</span></code>
-the generalized Sinkhorn algorithm <a class="footnote-reference brackets" href="#id59" id="id40">10</a>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn'</span></code> calls <code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.unbalanced.barycenter_unbalanced_sinkhorn_unbalanced()</span></code>
+the generalized Sinkhorn algorithm <a class="footnote-reference brackets" href="#id60" id="id42">10</a>.</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">method='sinkhorn_stabilized'</span></code> calls <a class="reference internal" href="gen_modules/ot.unbalanced.html#ot.unbalanced.barycenter_unbalanced_stabilized" title="ot.unbalanced.barycenter_unbalanced_stabilized"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.unbalanced.barycenter_unbalanced_stabilized</span></code></a>
-the log stabilized version of the algorithm <a class="footnote-reference brackets" href="#id59" id="id41">10</a>.</p></li>
+the log stabilized version of the algorithm <a class="footnote-reference brackets" href="#id60" id="id43">10</a>.</p></li>
 </ul>
 </div>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
 <p>Examples of the use of <a class="reference internal" href="all.html#ot.barycenter_unbalanced" title="ot.barycenter_unbalanced"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.barycenter_unbalanced</span></code></a> are available in :</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_UOT_barycenter_1D</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/unbalanced-partial/plot_UOT_barycenter_1D.html"><span class="doc">1D Wasserstein barycenter demo for Unbalanced distributions</span></a></p></li>
 </ul>
 </div>
 </div>
 <div class="section" id="partial-optimal-transport">
 <h3>Partial optimal transport<a class="headerlink" href="#partial-optimal-transport" title="Permalink to this headline">¶</a></h3>
 <p>Partial OT is a variant of the optimal transport problem when only a fixed amount of mass m
-is to be transported. The partial OT metric between two histograms a and b is defined as <a class="footnote-reference brackets" href="#id77" id="id42">28</a>:</p>
+is to be transported. The partial OT metric between two histograms a and b is defined as <a class="footnote-reference brackets" href="#id77" id="id44">28</a>:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\gamma = \arg\min_\gamma &lt;\gamma,M&gt;_F\\\begin{split}s.t.
     \gamma\geq 0 \\
@@ -770,11 +908,11 @@ is to be transported. The partial OT metric between two histograms a and b is de
     \gamma^T 1 \leq b\\
     1^T \gamma^T 1 = m \leq \min\{\|a\|_1, \|b\|_1\}\end{split}\end{aligned}\end{align} \]</div>
 <p>Interestingly the problem can be casted into a regular OT problem by adding reservoir points
-in which the surplus mass is sent <a class="footnote-reference brackets" href="#id78" id="id43">29</a>. We provide a solver for partial OT
+in which the surplus mass is sent <a class="footnote-reference brackets" href="#id78" id="id45">29</a>. We provide a solver for partial OT
 in <a class="reference internal" href="gen_modules/ot.partial.html#module-ot.partial" title="ot.partial"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.partial</span></code></a>. The exact resolution of the problem is computed in <a class="reference internal" href="gen_modules/ot.partial.html#ot.partial.partial_wasserstein" title="ot.partial.partial_wasserstein"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.partial.partial_wasserstein</span></code></a>
 and <a class="reference internal" href="gen_modules/ot.partial.html#ot.partial.partial_wasserstein2" title="ot.partial.partial_wasserstein2"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.partial.partial_wasserstein2</span></code></a> that return respectively the OT matrix and the value of the
 linear term. The entropic solution of the problem is computed in <a class="reference internal" href="gen_modules/ot.partial.html#ot.partial.entropic_partial_wasserstein" title="ot.partial.entropic_partial_wasserstein"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.partial.entropic_partial_wasserstein</span></code></a>
-(see <a class="footnote-reference brackets" href="#id52" id="id44">3</a>).</p>
+(see <a class="footnote-reference brackets" href="#id54" id="id46">3</a>).</p>
 <p>The partial Gromov-Wasserstein formulation of the problem</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}GW = \min_\gamma \sum_{i,j,k,l} L(C1_{i,k},C2_{j,l})*\gamma_{i,j}*\gamma_{k,l}\\\begin{split}s.t.
@@ -787,19 +925,19 @@ linear term. The entropic solution of the problem is computed in <a class="refer
 regularization of the problem.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
-<p>Examples of the use of <a class="reference internal" href="gen_modules/ot.partial.html#module-ot.partial" title="ot.partial"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.partial</span></code></a> are available in :</p>
+<p>Examples of the use of <a class="reference internal" href="gen_modules/ot.partial.html#module-ot.partial" title="ot.partial"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.partial</span></code></a> are available in:</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_partial</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/unbalanced-partial/plot_partial_wass_and_gromov.html"><span class="doc">Partial Wasserstein and Gromov-Wasserstein example</span></a></p></li>
 </ul>
 </div>
 </div>
 <div class="section" id="gromov-wasserstein">
 <h3>Gromov-Wasserstein<a class="headerlink" href="#gromov-wasserstein" title="Permalink to this headline">¶</a></h3>
 <p>Gromov Wasserstein (GW) is a generalization of OT to distributions that do not lie in
-the same space <a class="footnote-reference brackets" href="#id62" id="id45">13</a>. In this case one cannot compute distance between samples
-from the two distributions. <a class="footnote-reference brackets" href="#id62" id="id46">13</a> proposed instead to realign the metric spaces
+the same space <a class="footnote-reference brackets" href="#id63" id="id47">13</a>. In this case one cannot compute distance between samples
+from the two distributions. <a class="footnote-reference brackets" href="#id63" id="id48">13</a> proposed instead to realign the metric spaces
 by computing a transport between distance matrices. The Gromow Wasserstein
-alignement between two distributions can be expressed as the one minimizing:</p>
+alignment between two distributions can be expressed as the one minimizing:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}GW = \min_\gamma \sum_{i,j,k,l} L(C1_{i,k},C2_{j,l})*\gamma_{i,j}*\gamma_{k,l}\\s.t. \gamma 1 = a; \gamma^T 1= b; \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>where :<span class="math notranslate nohighlight">\(C1\)</span> is the distance matrix between samples in the source
@@ -810,7 +948,7 @@ distribution and <span class="math notranslate nohighlight">\(C2\)</span> the on
 above is a non-convex quadratic program but we provide a solver that finds a
 local minimum using conditional gradient in <a class="reference internal" href="gen_modules/ot.gromov.html#ot.gromov.gromov_wasserstein" title="ot.gromov.gromov_wasserstein"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.gromov.gromov_wasserstein</span></code></a>.
 There also exists an entropic regularized variant of GW that has been proposed in
-<a class="footnote-reference brackets" href="#id61" id="id47">12</a> and we provide an implementation of their algorithm in
+<a class="footnote-reference brackets" href="#id62" id="id49">12</a> and we provide an implementation of their algorithm in
 <a class="reference internal" href="gen_modules/ot.gromov.html#ot.gromov.entropic_gromov_wasserstein" title="ot.gromov.entropic_gromov_wasserstein"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.gromov.entropic_gromov_wasserstein</span></code></a>.</p>
 <p>Note that similarly to Wasserstein distance GW allows for the definition of GW
 barycenters that can be expressed as</p>
@@ -823,23 +961,23 @@ positive matrix. We provide a block coordinate optimization procedure in
 <a class="reference internal" href="gen_modules/ot.gromov.html#ot.gromov.entropic_gromov_barycenters" title="ot.gromov.entropic_gromov_barycenters"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.gromov.entropic_gromov_barycenters</span></code></a> for non-regularized and regularized
 barycenters respectively.</p>
 <p>Finally note that recently a fusion between Wasserstein and GW, coined Fused
-Gromov-Wasserstein (FGW) has been proposed
-in <a class="footnote-reference brackets" href="#id73" id="id48">24</a>. It allows to compute a similarity between objects that are only partly in
+Gromov-Wasserstein (FGW) has been proposed <a class="footnote-reference brackets" href="#id74" id="id50">24</a>.
+It allows to compute a similarity between objects that are only partly in
 the same space. As such it can be used to measure similarity between labeled
 graphs for instance and also provide computable barycenters.
 The implementations of FGW and FGW barycenter is provided in functions
 <a class="reference internal" href="gen_modules/ot.gromov.html#ot.gromov.fused_gromov_wasserstein" title="ot.gromov.fused_gromov_wasserstein"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.gromov.fused_gromov_wasserstein</span></code></a> and <a class="reference internal" href="gen_modules/ot.gromov.html#ot.gromov.fgw_barycenters" title="ot.gromov.fgw_barycenters"><code class="xref any py py-func docutils literal notranslate"><span class="pre">ot.gromov.fgw_barycenters</span></code></a>.</p>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
-<p>Examples of computation of GW, regularized G and FGW are available in :</p>
+<p>Examples of computation of GW, regularized G and FGW are available in:</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_gromov</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_fgw</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/gromov/plot_gromov.html"><span class="doc">Gromov-Wasserstein example</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/gromov/plot_fgw.html"><span class="doc">Plot Fused-gromov-Wasserstein</span></a></p></li>
 </ul>
-<p>Examples of GW, regularized GW and FGW barycenters are available in :</p>
+<p>Examples of GW, regularized GW and FGW barycenters are available in:</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_gromov_barycenter</span></code></p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">auto_examples/plot_barycenter_fgw</span></code></p></li>
+<li><p><a class="reference internal" href="auto_examples/gromov/plot_gromov_barycenter.html"><span class="doc">Gromov-Wasserstein Barycenter example</span></a></p></li>
+<li><p><a class="reference internal" href="auto_examples/gromov/plot_barycenter_fgw.html"><span class="doc">Plot graphs barycenter using FGW</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -853,20 +991,20 @@ implementations use the <code class="code docutils literal notranslate"><span cl
 algebra) have been implemented in <a class="reference internal" href="gen_modules/ot.gpu.html#module-ot.gpu" title="ot.gpu"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.gpu</span></code></a>. Here is a short list on the
 main entries:</p>
 <ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">ot.gpu.dist</span></code> : computation of distance matrix</p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">ot.gpu.sinkhorn</span></code> : computation of sinkhorn</p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">ot.gpu.sinkhorn_lpl1_mm</span></code> : computation of sinkhorn + group lasso</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.gpu.dist()</span></code>: computation of distance matrix</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.gpu.sinkhorn()</span></code>: computation of sinkhorn</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.gpu.sinkhorn_lpl1_mm()</span></code>: computation of sinkhorn + group lasso</p></li>
 </ul>
 </div>
 <p>Note that while the <a class="reference internal" href="gen_modules/ot.gpu.html#module-ot.gpu" title="ot.gpu"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.gpu</span></code></a> module has been designed to be compatible with
-POT,  calling its function with <a class="reference external" href="https://numpy.org/doc/stable/reference/index.html#module-numpy" title="(in NumPy v1.19)"><code class="xref any docutils literal notranslate"><span class="pre">numpy</span></code></a>  arrays will incur a large overhead due to
+POT, calling its function with <a class="reference external" href="https://numpy.org/doc/stable/reference/index.html#module-numpy" title="(in NumPy v1.19)"><code class="xref any docutils literal notranslate"><span class="pre">numpy</span></code></a>  arrays will incur a large overhead due to
 the memory copy of the array on GPU prior to computation and conversion of the
 array after computation. To avoid this overhead, we provide functions
-<code class="xref any docutils literal notranslate"><span class="pre">ot.gpu.to_gpu</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">ot.gpu.to_np</span></code> that perform the conversion
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.gpu.to_gpu()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">ot.gpu.to_np()</span></code> that perform the conversion
 explicitly.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Note that due to the hard dependency on  <code class="code docutils literal notranslate"><span class="pre">cupy</span></code>, <a class="reference internal" href="gen_modules/ot.gpu.html#module-ot.gpu" title="ot.gpu"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.gpu</span></code></a> is not
+<p>Note that due to the hard dependency on <code class="code docutils literal notranslate"><span class="pre">cupy</span></code>, <a class="reference internal" href="gen_modules/ot.gpu.html#module-ot.gpu" title="ot.gpu"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">ot.gpu</span></code></a> is not
 imported by default. If you want to
 use it you have to specifically import it with <code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">ot.gpu</span></code> .</p>
 </div>
@@ -881,10 +1019,10 @@ use it you have to specifically import it with <code class="code docutils litera
 the OT transport matrix. If you want to solve a regularized OT you can
 use <a class="reference internal" href="all.html#ot.sinkhorn" title="ot.sinkhorn"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ot.sinkhorn</span></code></a>.</p>
 <p>Here is a simple use case:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># a,b are 1D histograms (sum to 1 and positive)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># a and b are 1D histograms (sum to 1 and positive)</span>
 <span class="c1"># M is the ground cost matrix</span>
-<span class="n">T</span><span class="o">=</span><span class="n">ot</span><span class="o">.</span><span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">M</span><span class="p">)</span> <span class="c1"># exact linear program</span>
-<span class="n">T_reg</span><span class="o">=</span><span class="n">ot</span><span class="o">.</span><span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">M</span><span class="p">,</span><span class="n">reg</span><span class="p">)</span> <span class="c1"># entropic regularized OT</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>  <span class="c1"># exact linear program</span>
+<span class="n">T_reg</span> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>  <span class="c1"># entropic regularized OT</span>
 </pre></div>
 </div>
 <p>More detailed examples can be seen on this example:
@@ -906,14 +1044,14 @@ details.</p>
 <li><p><strong>Why is Sinkhorn slower than EMD ?</strong></p>
 <blockquote>
 <div><p>This might come from the choice of the regularization term. The speed of
-convergence of sinkhorn depends directly on this term <a class="footnote-reference brackets" href="#id71" id="id49">22</a> and when the
-regularization gets very small the problem try and approximate the exact OT
+convergence of Sinkhorn depends directly on this term <a class="footnote-reference brackets" href="#id72" id="id51">22</a>. When the
+regularization gets very small the problem tries to approximate the exact OT
 which leads to slow convergence in addition to numerical problems. In other
-words, for large regularization sinkhorn will be very fast to converge, for
+words, for large regularization Sinkhorn will be very fast to converge, for
 small regularization (when you need an OT matrix close to the true OT), it
 might be quicker to use the EMD solver.</p>
-<p>Also note that the numpy implementation of the sinkhorn can use parallel
-computation depending on the configuration of your system but very important
+<p>Also note that the numpy implementation of Sinkhorn can use parallel
+computation depending on the configuration of your system, yet very important
 speedup can be obtained by using a GPU implementation since all operations
 are matrix/vector products.</p>
 </div></blockquote>
@@ -933,170 +1071,162 @@ for more details.</p>
 <div class="section" id="references">
 <h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
 <dl class="footnote brackets">
-<dt class="label" id="id50"><span class="brackets"><a class="fn-backref" href="#id2">1</a></span></dt>
+<dt class="label" id="id52"><span class="brackets"><a class="fn-backref" href="#id3">1</a></span></dt>
 <dd><p>Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W. (2011,
 December). <a class="reference external" href="https://people.csail.mit.edu/sparis/publi/2011/sigasia/Bonneel_11_Displacement_Interpolation.pdf">Displacement  nterpolation using Lagrangian mass transport</a>.
 In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p. 158). ACM.</p>
 </dd>
-<dt class="label" id="id51"><span class="brackets">2</span><span class="fn-backref">(<a href="#id4">1</a>,<a href="#id5">2</a>,<a href="#id6">3</a>)</span></dt>
+<dt class="label" id="id53"><span class="brackets">2</span><span class="fn-backref">(<a href="#id5">1</a>,<a href="#id6">2</a>,<a href="#id7">3</a>)</span></dt>
 <dd><p>Cuturi, M. (2013). <a class="reference external" href="https://arxiv.org/pdf/1306.0895.pdf">Sinkhorn distances: Lightspeed computation of
 optimal transport</a>. In Advances
 in Neural Information Processing Systems (pp. 2292-2300).</p>
 </dd>
-<dt class="label" id="id52"><span class="brackets">3</span><span class="fn-backref">(<a href="#id22">1</a>,<a href="#id44">2</a>)</span></dt>
+<dt class="label" id="id54"><span class="brackets">3</span><span class="fn-backref">(<a href="#id24">1</a>,<a href="#id46">2</a>)</span></dt>
 <dd><p>Benamou, J. D., Carlier, G., Cuturi, M., Nenna, L., &amp; Peyré, G.
 (2015). <a class="reference external" href="https://arxiv.org/pdf/1412.5154.pdf">Iterative Bregman projections for regularized transportation
 problems</a>. SIAM Journal on
 Scientific Computing, 37(2), A1111-A1138.</p>
 </dd>
-<dt class="label" id="id53"><span class="brackets">4</span></dt>
-<dd><p>S. Nakhostin, N. Courty, R. Flamary, D. Tuia, T. Corpetti,
-<a class="reference external" href="https://hal.archives-ouvertes.fr/hal-01377236/document">Supervised planetary unmixing with optimal
-transport</a>,
-Whorkshop on Hyperspectral Image and Signal Processing : Evolution in
-Remote Sensing (WHISPERS), 2016.</p>
-</dd>
-<dt class="label" id="id54"><span class="brackets">5</span><span class="fn-backref">(<a href="#id16">1</a>,<a href="#id17">2</a>,<a href="#id28">3</a>,<a href="#id29">4</a>,<a href="#id30">5</a>)</span></dt>
+<dt class="label" id="id55"><span class="brackets">5</span><span class="fn-backref">(<a href="#id18">1</a>,<a href="#id19">2</a>,<a href="#id30">3</a>,<a href="#id31">4</a>,<a href="#id32">5</a>)</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy, <a class="reference external" href="https://arxiv.org/pdf/1507.00504.pdf">Optimal Transport
 for Domain Adaptation</a>, in IEEE
 Transactions on Pattern Analysis and Machine Intelligence , vol.PP,
 no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id55"><span class="brackets">6</span><span class="fn-backref">(<a href="#id19">1</a>,<a href="#id26">2</a>)</span></dt>
+<dt class="label" id="id56"><span class="brackets">6</span><span class="fn-backref">(<a href="#id21">1</a>,<a href="#id28">2</a>)</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 <a class="reference external" href="https://arxiv.org/pdf/1307.5551.pdf">Regularized discrete optimal
 transport</a>. SIAM Journal on
 Imaging Sciences, 7(3), 1853-1882.</p>
 </dd>
-<dt class="label" id="id56"><span class="brackets">7</span><span class="fn-backref">(<a href="#id18">1</a>,<a href="#id20">2</a>)</span></dt>
+<dt class="label" id="id57"><span class="brackets">7</span><span class="fn-backref">(<a href="#id20">1</a>,<a href="#id22">2</a>)</span></dt>
 <dd><p>Rakotomamonjy, A., Flamary, R., &amp; Courty, N. (2015). <a class="reference external" href="https://arxiv.org/pdf/1510.06567.pdf">Generalized
 conditional gradient: analysis of convergence and
 applications</a>. arXiv preprint
 arXiv:1510.06567.</p>
 </dd>
-<dt class="label" id="id57"><span class="brackets">8</span><span class="fn-backref">(<a href="#id27">1</a>,<a href="#id32">2</a>)</span></dt>
+<dt class="label" id="id58"><span class="brackets">8</span><span class="fn-backref">(<a href="#id29">1</a>,<a href="#id34">2</a>)</span></dt>
 <dd><p>M. Perrot, N. Courty, R. Flamary, A. Habrard (2016), <a class="reference external" href="http://remi.flamary.com/biblio/perrot2016mapping.pdf">Mapping
 estimation for discrete optimal
 transport</a>,
 Neural Information Processing Systems (NIPS).</p>
 </dd>
-<dt class="label" id="id58"><span class="brackets">9</span><span class="fn-backref">(<a href="#id7">1</a>,<a href="#id8">2</a>)</span></dt>
+<dt class="label" id="id59"><span class="brackets">9</span><span class="fn-backref">(<a href="#id8">1</a>,<a href="#id9">2</a>)</span></dt>
 <dd><p>Schmitzer, B. (2016). <a class="reference external" href="https://arxiv.org/pdf/1610.06519.pdf">Stabilized Sparse Scaling Algorithms for
 Entropy Regularized Transport
 Problems</a>. arXiv preprint
 arXiv:1610.06519.</p>
 </dd>
-<dt class="label" id="id59"><span class="brackets">10</span><span class="fn-backref">(<a href="#id35">1</a>,<a href="#id36">2</a>,<a href="#id38">3</a>,<a href="#id39">4</a>,<a href="#id40">5</a>,<a href="#id41">6</a>)</span></dt>
+<dt class="label" id="id60"><span class="brackets">10</span><span class="fn-backref">(<a href="#id37">1</a>,<a href="#id38">2</a>,<a href="#id40">3</a>,<a href="#id41">4</a>,<a href="#id42">5</a>,<a href="#id43">6</a>)</span></dt>
 <dd><p>Chizat, L., Peyré, G., Schmitzer, B., &amp; Vialard, F. X. (2016).
 <a class="reference external" href="https://arxiv.org/pdf/1607.05816.pdf">Scaling algorithms for unbalanced transport
 problems</a>. arXiv preprint
 arXiv:1607.05816.</p>
 </dd>
-<dt class="label" id="id60"><span class="brackets"><a class="fn-backref" href="#id33">11</a></span></dt>
+<dt class="label" id="id61"><span class="brackets"><a class="fn-backref" href="#id35">11</a></span></dt>
 <dd><p>Flamary, R., Cuturi, M., Courty, N., &amp; Rakotomamonjy, A. (2016).
 <a class="reference external" href="https://arxiv.org/pdf/1608.08063.pdf">Wasserstein Discriminant
 Analysis</a>. arXiv preprint
 arXiv:1608.08063.</p>
 </dd>
-<dt class="label" id="id61"><span class="brackets"><a class="fn-backref" href="#id47">12</a></span></dt>
+<dt class="label" id="id62"><span class="brackets"><a class="fn-backref" href="#id49">12</a></span></dt>
 <dd><p>Gabriel Peyré, Marco Cuturi, and Justin Solomon (2016),
 <a class="reference external" href="http://proceedings.mlr.press/v48/peyre16.html">Gromov-Wasserstein averaging of kernel and distance
 matrices</a>
 International Conference on Machine Learning (ICML).</p>
 </dd>
-<dt class="label" id="id62"><span class="brackets">13</span><span class="fn-backref">(<a href="#id45">1</a>,<a href="#id46">2</a>)</span></dt>
+<dt class="label" id="id63"><span class="brackets">13</span><span class="fn-backref">(<a href="#id47">1</a>,<a href="#id48">2</a>)</span></dt>
 <dd><p>Mémoli, Facundo (2011). <a class="reference external" href="https://media.adelaide.edu.au/acvt/Publications/2011/2011-Gromov%E2%80%93Wasserstein%20Distances%20and%20the%20Metric%20Approach%20to%20Object%20Matching.pdf">Gromov–Wasserstein distances and the
 metric approach to object
 matching</a>.
 Foundations of computational mathematics 11.4 : 417-487.</p>
 </dd>
-<dt class="label" id="id63"><span class="brackets">14</span><span class="fn-backref">(<a href="#id25">1</a>,<a href="#id31">2</a>)</span></dt>
+<dt class="label" id="id64"><span class="brackets">14</span><span class="fn-backref">(<a href="#id27">1</a>,<a href="#id33">2</a>)</span></dt>
 <dd><p>Knott, M. and Smith, C. S. (1984). <a class="reference external" href="https://link.springer.com/article/10.1007/BF00934745">On the optimal mapping of
 distributions</a>,
 Journal of Optimization Theory and Applications Vol 43.</p>
 </dd>
-<dt class="label" id="id64"><span class="brackets">15</span><span class="fn-backref">(<a href="#id1">1</a>,<a href="#id3">2</a>)</span></dt>
+<dt class="label" id="id65"><span class="brackets">15</span><span class="fn-backref">(<a href="#id1">1</a>,<a href="#id4">2</a>)</span></dt>
 <dd><p>Peyré, G., &amp; Cuturi, M. (2018). <a class="reference external" href="https://arxiv.org/pdf/1803.00567.pdf">Computational Optimal
 Transport</a> .</p>
 </dd>
-<dt class="label" id="id65"><span class="brackets"><a class="fn-backref" href="#id21">16</a></span></dt>
+<dt class="label" id="id66"><span class="brackets"><a class="fn-backref" href="#id23">16</a></span></dt>
 <dd><p>Agueh, M., &amp; Carlier, G. (2011). <a class="reference external" href="https://hal.archives-ouvertes.fr/hal-00637399/document">Barycenters in the Wasserstein
 space</a>. SIAM
 Journal on Mathematical Analysis, 43(2), 904-924.</p>
 </dd>
-<dt class="label" id="id66"><span class="brackets"><a class="fn-backref" href="#id15">17</a></span></dt>
+<dt class="label" id="id67"><span class="brackets"><a class="fn-backref" href="#id17">17</a></span></dt>
 <dd><p>Blondel, M., Seguy, V., &amp; Rolet, A. (2018). <a class="reference external" href="https://arxiv.org/abs/1710.06276">Smooth and Sparse
 Optimal Transport</a>. Proceedings of
 the Twenty-First International Conference on Artificial Intelligence and
 Statistics (AISTATS).</p>
 </dd>
-<dt class="label" id="id67"><span class="brackets">18</span><span class="fn-backref">(<a href="#id11">1</a>,<a href="#id13">2</a>)</span></dt>
+<dt class="label" id="id68"><span class="brackets">18</span><span class="fn-backref">(<a href="#id13">1</a>,<a href="#id15">2</a>)</span></dt>
 <dd><p>Genevay, A., Cuturi, M., Peyré, G. &amp; Bach, F. (2016) <a class="reference external" href="https://arxiv.org/abs/1605.08527">Stochastic
 Optimization for Large-scale Optimal
 Transport</a>. Advances in Neural
 Information Processing Systems (2016).</p>
 </dd>
-<dt class="label" id="id68"><span class="brackets">19</span><span class="fn-backref">(<a href="#id12">1</a>,<a href="#id14">2</a>)</span></dt>
+<dt class="label" id="id69"><span class="brackets">19</span><span class="fn-backref">(<a href="#id14">1</a>,<a href="#id16">2</a>)</span></dt>
 <dd><p>Seguy, V., Bhushan Damodaran, B., Flamary, R., Courty, N., Rolet,
 A.&amp; Blondel, M. <a class="reference external" href="https://arxiv.org/pdf/1711.02283.pdf">Large-scale Optimal Transport and Mapping
 Estimation</a>. International
 Conference on Learning Representation (2018)</p>
 </dd>
-<dt class="label" id="id69"><span class="brackets"><a class="fn-backref" href="#id24">20</a></span></dt>
+<dt class="label" id="id70"><span class="brackets"><a class="fn-backref" href="#id26">20</a></span></dt>
 <dd><p>Cuturi, M. and Doucet, A. (2014) <a class="reference external" href="http://proceedings.mlr.press/v32/cuturi14.html">Fast Computation of Wasserstein
 Barycenters</a>.
 International Conference in Machine Learning</p>
 </dd>
-<dt class="label" id="id70"><span class="brackets"><a class="fn-backref" href="#id23">21</a></span></dt>
+<dt class="label" id="id71"><span class="brackets"><a class="fn-backref" href="#id25">21</a></span></dt>
 <dd><p>Solomon, J., De Goes, F., Peyré, G., Cuturi, M., Butscher, A.,
 Nguyen, A. &amp; Guibas, L. (2015). <a class="reference external" href="https://dl.acm.org/citation.cfm?id=2766963">Convolutional wasserstein distances:
 Efficient optimal transportation on geometric
 domains</a>. ACM
 Transactions on Graphics (TOG), 34(4), 66.</p>
 </dd>
-<dt class="label" id="id71"><span class="brackets">22</span><span class="fn-backref">(<a href="#id9">1</a>,<a href="#id49">2</a>)</span></dt>
+<dt class="label" id="id72"><span class="brackets">22</span><span class="fn-backref">(<a href="#id10">1</a>,<a href="#id51">2</a>)</span></dt>
 <dd><p>J. Altschuler, J.Weed, P. Rigollet, (2017) <a class="reference external" href="https://papers.nips.cc/paper/6792-near-linear-time-approximation-algorithms-for-optimal-transport-via-sinkhorn-iteration.pdf">Near-linear time
 approximation algorithms for optimal transport via Sinkhorn
 iteration</a>,
 Advances in Neural Information Processing Systems (NIPS) 31</p>
 </dd>
-<dt class="label" id="id72"><span class="brackets"><a class="fn-backref" href="#id10">23</a></span></dt>
-<dd><p>Aude, G., Peyré, G., Cuturi, M., <a class="reference external" href="https://arxiv.org/abs/1706.00292">Learning Generative Models with
+<dt class="label" id="id73"><span class="brackets"><a class="fn-backref" href="#id12">23</a></span></dt>
+<dd><p>Genevay, A., Peyré, G., Cuturi, M., <a class="reference external" href="https://arxiv.org/abs/1706.00292">Learning Generative Models with
 Sinkhorn Divergences</a>, Proceedings
 of the Twenty-First International Conference on Artficial Intelligence
 and Statistics, (AISTATS) 21, 2018</p>
 </dd>
-<dt class="label" id="id73"><span class="brackets"><a class="fn-backref" href="#id48">24</a></span></dt>
+<dt class="label" id="id74"><span class="brackets"><a class="fn-backref" href="#id50">24</a></span></dt>
 <dd><p>Vayer, T., Chapel, L., Flamary, R., Tavenard, R. and Courty, N.
 (2019). <a class="reference external" href="http://proceedings.mlr.press/v97/titouan19a.html">Optimal Transport for structured data with application on
 graphs</a> Proceedings
 of the 36th International Conference on Machine Learning (ICML).</p>
 </dd>
-<dt class="label" id="id74"><span class="brackets">25</span><span class="fn-backref">(<a href="#id34">1</a>,<a href="#id37">2</a>)</span></dt>
+<dt class="label" id="id75"><span class="brackets">25</span><span class="fn-backref">(<a href="#id36">1</a>,<a href="#id39">2</a>)</span></dt>
 <dd><p>Frogner C., Zhang C., Mobahi H., Araya-Polo M., Poggio T. :
 Learning with a Wasserstein Loss,  Advances in Neural Information
 Processing Systems (NIPS) 2015</p>
 </dd>
-<dt class="label" id="id75"><span class="brackets">26</span></dt>
+<dt class="label" id="id76"><span class="brackets"><a class="fn-backref" href="#id11">26</a></span></dt>
 <dd><p>Alaya M. Z., Bérar M., Gasso G., Rakotomamonjy A. (2019). Screening Sinkhorn
 Algorithm for Regularized Optimal Transport &lt;<a class="reference external" href="https://papers.nips.cc/paper/9386-screening-sinkhorn-algorithm-for-regularized-optimal-transport">https://papers.nips.cc/paper/9386-screening-sinkhorn-algorithm-for-regularized-optimal-transport</a>&gt;,
 Advances in Neural Information Processing Systems 33 (NeurIPS).</p>
 </dd>
-<dt class="label" id="id76"><span class="brackets">27</span></dt>
-<dd><p>Redko I., Courty N., Flamary R., Tuia D. (2019). Optimal Transport for Multi-source
-Domain Adaptation under Target Shift &lt;<a class="reference external" href="http://proceedings.mlr.press/v89/redko19a.html">http://proceedings.mlr.press/v89/redko19a.html</a>&gt;,
-Proceedings of the Twenty-Second International Conference on Artificial Intelligence
-and Statistics (AISTATS) 22, 2019.</p>
-</dd>
-<dt class="label" id="id77"><span class="brackets"><a class="fn-backref" href="#id42">28</a></span></dt>
+<dt class="label" id="id77"><span class="brackets"><a class="fn-backref" href="#id44">28</a></span></dt>
 <dd><p>Caffarelli, L. A., McCann, R. J. (2020). Free boundaries in optimal transport and
 Monge-Ampere obstacle problems &lt;<a class="reference external" href="http://www.math.toronto.edu/~mccann/papers/annals2010.pdf">http://www.math.toronto.edu/~mccann/papers/annals2010.pdf</a>&gt;,
 Annals of mathematics, 673-730.</p>
 </dd>
-<dt class="label" id="id78"><span class="brackets"><a class="fn-backref" href="#id43">29</a></span></dt>
+<dt class="label" id="id78"><span class="brackets"><a class="fn-backref" href="#id45">29</a></span></dt>
 <dd><p>Chapel, L., Alaya, M., Gasso, G. (2019). Partial Gromov-Wasserstein with
 Applications on Positive-Unlabeled Learning &lt;<a class="reference external" href="https://arxiv.org/abs/2002.08276">https://arxiv.org/abs/2002.08276</a>&gt;,
 arXiv preprint arXiv:2002.08276.</p>
+</dd>
+<dt class="label" id="id79"><span class="brackets"><a class="fn-backref" href="#id2">30</a></span></dt>
+<dd><p>Flamary, Rémi, et al. “Optimal transport with Laplacian regularization:
+Applications to domain adaptation and shape matching.” NIPS Workshop on Optimal
+Transport and Machine Learning OTML. 2014.</p>
 </dd>
 </dl>
 </div>
