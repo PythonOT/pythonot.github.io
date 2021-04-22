@@ -1,0 +1,1071 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ot.lp &mdash; POT Python Optimal Transport 0.8.0dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/gallery-rendered-html.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.8.0dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ot.lp</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ot.lp</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Solvers for the original linear program OT problem</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">coo_matrix</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cvx</span>
+<span class="kn">from</span> <span class="nn">.cvx</span> <span class="kn">import</span> <span class="n">barycenter</span>
+<span class="c1"># import compiled emd</span>
+<span class="kn">from</span> <span class="nn">.emd_wrap</span> <span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">check_result</span><span class="p">,</span> <span class="n">emd_1d_sorted</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">parmap</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;emd&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2&#39;</span><span class="p">,</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;free_support_barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;cvx&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;emd_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;wasserstein_1d&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="center_ot_dual"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.center_ot_dual">[docs]</a><span class="k">def</span> <span class="nf">center_ot_dual</span><span class="p">(</span><span class="n">alpha0</span><span class="p">,</span> <span class="n">beta0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Center dual OT potentials w.r.t. theirs weights</span>
+
+<span class="sd">    The main idea of this function is to find unique dual potentials</span>
+<span class="sd">    that ensure some kind of centering/fairness. The main idea is to find dual potentials that lead to the same final objective value for both source and targets (see below for more details). It will help having</span>
+<span class="sd">    stability when multiple calling of the OT solver with small changes.</span>
+
+<span class="sd">    Basically we add another constraint to the potential that will not</span>
+<span class="sd">    change the objective value but will ensure unicity. The constraint</span>
+<span class="sd">    is the following:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \alpha^T a= \beta^T b</span>
+
+<span class="sd">    in addition to the OT problem constraints.</span>
+
+<span class="sd">    since :math:`\sum_i a_i=\sum_j b_j` this can be solved by adding/removing</span>
+<span class="sd">    a constant from both  :math:`\alpha_0` and :math:`\beta_0`.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        c=\frac{\beta0^T b-\alpha_0^T a}{1^Tb+1^Ta}</span>
+
+<span class="sd">        \alpha=\alpha_0+c</span>
+
+<span class="sd">        \beta=\beta0+c</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alpha0 : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    beta0 : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    a : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source histogram (uniform weight if empty list)</span>
+<span class="sd">    b : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target histogram (uniform weight if empty list)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    alpha : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source centered dual potential</span>
+<span class="sd">    beta : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target centered dual potential</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># if no weights are provided, use uniform</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">alpha0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">alpha0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">beta0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">beta0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># compute constant that balances the weighted sums of the duals</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">beta0</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">alpha0</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+
+    <span class="c1"># update duals</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha0</span> <span class="o">+</span> <span class="n">c</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">beta0</span> <span class="o">-</span> <span class="n">c</span>
+
+    <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span></div>
+
+
+<div class="viewcode-block" id="estimate_dual_null_weights"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.estimate_dual_null_weights">[docs]</a><span class="k">def</span> <span class="nf">estimate_dual_null_weights</span><span class="p">(</span><span class="n">alpha0</span><span class="p">,</span> <span class="n">beta0</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Estimate feasible values for 0-weighted dual potentials</span>
+
+<span class="sd">    The feasible values are computed efficiently but rather coarsely.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        This function is necessary because the C++ solver in emd_c</span>
+<span class="sd">        discards all samples in the distributions with </span>
+<span class="sd">        zeros weights. This means that while the primal variable (transport </span>
+<span class="sd">        matrix) is exact, the solver only returns feasible dual potentials</span>
+<span class="sd">        on the samples with weights different from zero. </span>
+
+<span class="sd">    First we compute the constraints violations:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        V=\alpha+\beta^T-M</span>
+
+<span class="sd">    Next we compute the max amount of violation per row (alpha) and</span>
+<span class="sd">    columns (beta)</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        v^a_i=\max_j V_{i,j}</span>
+
+<span class="sd">        v^b_j=\max_i V_{i,j}</span>
+
+<span class="sd">    Finally we update the dual potential with 0 weights if a</span>
+<span class="sd">    constraint is violated</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \alpha_i = \alpha_i -v^a_i \quad \text{ if } a_i=0 \text{ and } v^a_i&gt;0</span>
+
+<span class="sd">        \beta_j = \beta_j -v^b_j \quad \text{ if } b_j=0 \text{ and } v^b_j&gt;0</span>
+
+<span class="sd">    In the end the dual potentials are centered using function</span>
+<span class="sd">    :ref:`center_ot_dual`.</span>
+
+<span class="sd">    Note that all those updates do not change the objective value of the</span>
+<span class="sd">    solution but provide dual potentials that do not violate the constraints.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alpha0 : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    beta0 : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    alpha0 : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    beta0 : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    a : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source distribution (uniform weights if empty list)</span>
+<span class="sd">    b : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target distribution (uniform weights if empty list)</span>
+<span class="sd">    M : (ns,nt) numpy.ndarray, float64</span>
+<span class="sd">        Loss matrix (c-order array with type float64)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    alpha : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source corrected dual potential</span>
+<span class="sd">    beta : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target corrected dual potential</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># binary indexing of non-zeros weights</span>
+    <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
+
+    <span class="c1"># compute dual constraints violation</span>
+    <span class="n">constraint_violation</span> <span class="o">=</span> <span class="n">alpha0</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">beta0</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span>
+
+    <span class="c1"># Compute largest violation per line and columns</span>
+    <span class="n">aviol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">constraint_violation</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">bviol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">constraint_violation</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># update corrects violation of</span>
+    <span class="n">alpha_up</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="o">~</span><span class="n">asel</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">aviol</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">beta_up</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="o">~</span><span class="n">bsel</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">bviol</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha0</span> <span class="o">+</span> <span class="n">alpha_up</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">beta0</span> <span class="o">+</span> <span class="n">beta_up</span>
+
+    <span class="k">return</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="emd"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd">[docs]</a><span class="k">def</span> <span class="nf">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the OT matrix</span>
+
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma &lt;\gamma,M&gt;_F</span>
+
+<span class="sd">        s.t. \gamma 1 = a</span>
+
+<span class="sd">             \gamma^T 1= b</span>
+
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - M is the metric cost matrix</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        Note that the M matrix needs to be a C-order numpy.array in float64</span>
+<span class="sd">        format.</span>
+
+<span class="sd">    Uses the algorithm proposed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source histogram (uniform weight if empty list)</span>
+<span class="sd">    b : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target histogram (uniform weight if empty list)</span>
+<span class="sd">    M : (ns,nt) numpy.ndarray, float64</span>
+<span class="sd">        Loss matrix (c-order array with type float64)</span>
+<span class="sd">    numItermax : int, optional (default=100000)</span>
+<span class="sd">        The maximum number of iterations before stopping the optimization</span>
+<span class="sd">        algorithm if it has not converged.</span>
+<span class="sd">    log: bool, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the cost and dual</span>
+<span class="sd">        variables. Otherwise returns only the optimal transportation matrix.</span>
+<span class="sd">    center_dual: boolean, optional (default=True)</span>
+<span class="sd">        If True, centers the dual potential using function</span>
+<span class="sd">        :ref:`center_ot_dual`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma: (ns x nt) numpy.ndarray</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If input log is true, a dictionary containing the cost and dual</span>
+<span class="sd">        variables and exit status</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function emd accepts lists and</span>
+<span class="sd">    perform automatic conversion to numpy arrays</span>
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5,.5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5,.5]</span>
+<span class="sd">    &gt;&gt;&gt; M=[[0.,1.],[1.,0.]]</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd(a,b,M)</span>
+<span class="sd">    array([[0.5, 0. ],</span>
+<span class="sd">           [0. , 0.5]])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1] Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W.</span>
+<span class="sd">        (2011, December).  Displacement interpolation using Lagrangian mass</span>
+<span class="sd">        transport. In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p.</span>
+<span class="sd">        158). ACM.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT</span>
+<span class="sd">    ot.optim.cg : General regularized OT&quot;&quot;&quot;</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="c1"># if empty array given then use uniform distributions</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> \
+        <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
+
+    <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
+
+    <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cost</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="emd2"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a><span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span>
+         <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+         <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the loss</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\gamma &lt;\gamma,M&gt;_F</span>
+
+<span class="sd">        s.t. \gamma 1 = a</span>
+
+<span class="sd">             \gamma^T 1= b</span>
+
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - M is the metric cost matrix</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        Note that the M matrix needs to be a C-order numpy.array in float64</span>
+<span class="sd">        format.</span>
+
+<span class="sd">    Uses the algorithm proposed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : (ns,) numpy.ndarray, float64</span>
+<span class="sd">        Source histogram (uniform weight if empty list)</span>
+<span class="sd">    b : (nt,) numpy.ndarray, float64</span>
+<span class="sd">        Target histogram (uniform weight if empty list)</span>
+<span class="sd">    M : (ns,nt) numpy.ndarray, float64</span>
+<span class="sd">        Loss matrix (c-order array with type float64)</span>
+<span class="sd">    processes : int, optional (default=nb cpu)</span>
+<span class="sd">        Nb of processes used for multiple emd computation (not used on windows)</span>
+<span class="sd">    numItermax : int, optional (default=100000)</span>
+<span class="sd">        The maximum number of iterations before stopping the optimization</span>
+<span class="sd">        algorithm if it has not converged.</span>
+<span class="sd">    log: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the cost and dual</span>
+<span class="sd">        variables. Otherwise returns only the optimal transportation cost.</span>
+<span class="sd">    return_matrix: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns the optimal transportation matrix in the log.</span>
+<span class="sd">    center_dual: boolean, optional (default=True)</span>
+<span class="sd">        If True, centers the dual potential using function</span>
+<span class="sd">        :ref:`center_ot_dual`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma: (ns x nt) ndarray</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    log: dictnp</span>
+<span class="sd">        If input log is true, a dictionary containing the cost and dual</span>
+<span class="sd">        variables and exit status</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function emd accepts lists and</span>
+<span class="sd">    perform automatic conversion to numpy arrays</span>
+
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5,.5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5,.5]</span>
+<span class="sd">    &gt;&gt;&gt; M=[[0.,1.],[1.,0.]]</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd2(a,b,M)</span>
+<span class="sd">    0.0</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1] Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W.</span>
+<span class="sd">        (2011, December).  Displacement interpolation using Lagrangian mass</span>
+<span class="sd">        transport. In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p.</span>
+<span class="sd">        158). ACM.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT</span>
+<span class="sd">    ot.optim.cg : General regularized OT&quot;&quot;&quot;</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="c1"># problem with pikling Forks</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;win32&#39;</span><span class="p">):</span>
+        <span class="n">processes</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># if empty array given then use uniform distributions</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> \
+        <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
+
+    <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
+
+            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
+                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
+                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+            <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+            <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">cost</span><span class="p">,</span> <span class="n">log</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
+                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
+                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+            <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">cost</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">nb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">processes</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">parmap</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb</span><span class="p">)],</span> <span class="n">processes</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb</span><span class="p">)]))</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="free_support_barycenter"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.free_support_barycenter">[docs]</a><span class="k">def</span> <span class="nf">free_support_barycenter</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                            <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Wasserstein distance), formally:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_X \sum_{i=1}^N w_i W_2^2(b, X, a_i, X_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`w \in \mathbb{(0, 1)}^{N}`&#39;s are the barycenter weights and sum to one</span>
+<span class="sd">    - the :math:`a_i \in \mathbb{R}^{k_i}` are the empirical measures weights and sum to one for each :math:`i`</span>
+<span class="sd">    - the :math:`X_i \in \mathbb{R}^{k_i, d}` are the empirical measures atoms locations</span>
+<span class="sd">    - :math:`b \in \mathbb{R}^{k}` is the desired weights vector of the barycenter</span>
+
+<span class="sd">    This problem is considered in [1] (Algorithm 2). There are two differences with the following codes:</span>
+
+<span class="sd">    - we do not optimize over the weights</span>
+<span class="sd">    - we do not do line search for the locations updates, we use i.e. theta = 1 in [1] (Algorithm 2). This can be seen as a discrete implementation of the fixed-point algorithm of [2] proposed in the continuous setting.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    measures_locations : list of N (k_i,d) numpy.ndarray</span>
+<span class="sd">        The discrete support of a measure supported on k_i locations of a d-dimensional space (k_i can be different for each element of the list)</span>
+<span class="sd">    measures_weights : list of N (k_i,) numpy.ndarray</span>
+<span class="sd">        Numpy arrays where each numpy array has k_i non-negatives values summing to one representing the weights of each discrete input measure</span>
+
+<span class="sd">    X_init : (k,d) np.ndarray</span>
+<span class="sd">        Initialization of the support locations (on k atoms) of the barycenter</span>
+<span class="sd">    b : (k,) np.ndarray</span>
+<span class="sd">        Initialization of the weights of the barycenter (non-negatives, sum to 1)</span>
+<span class="sd">    weights : (N,) np.ndarray</span>
+<span class="sd">        Initialization of the coefficients of the barycenter (non-negatives, sum to 1)</span>
+
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : (k,d) np.ndarray</span>
+<span class="sd">        Support locations (on k atoms) of the barycenter</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1] Cuturi, Marco, and Arnaud Doucet. &quot;Fast computation of Wasserstein barycenters.&quot; International Conference on Machine Learning. 2014.</span>
+
+<span class="sd">    .. [2]  Álvarez-Esteban, Pedro C., et al. &quot;A fixed-point approach to barycenters in Wasserstein space.&quot; Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">iter_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">X_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">k</span><span class="p">,))</span> <span class="o">/</span> <span class="n">k</span>
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">,))</span> <span class="o">/</span> <span class="n">N</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">X_init</span>
+
+    <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">displacement_square_norms</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">stopThr</span> <span class="o">+</span> <span class="mf">1.</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">displacement_square_norm</span> <span class="o">&gt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">iter_count</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">):</span>
+
+        <span class="n">T_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">measure_locations_i</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">weight_i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span>
+                                                                      <span class="n">weights</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
+            <span class="n">M_i</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+            <span class="n">T_i</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">M_i</span><span class="p">)</span>
+            <span class="n">T_sum</span> <span class="o">=</span> <span class="n">T_sum</span> <span class="o">+</span> <span class="n">weight_i</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">T_i</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+
+        <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">T_sum</span> <span class="o">-</span> <span class="n">X</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">displacement_square_norms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">displacement_square_norm</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">T_sum</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;iteration </span><span class="si">%d</span><span class="s1">, displacement_square_norm=</span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">iter_count</span><span class="p">,</span> <span class="n">displacement_square_norm</span><span class="p">)</span>
+
+        <span class="n">iter_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;displacement_square_norms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">displacement_square_norms</span>
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">log_dict</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="emd_1d"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd_1d">[docs]</a><span class="k">def</span> <span class="nf">emd_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+           <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem between 1d measures and returns</span>
+<span class="sd">    the OT matrix</span>
+
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma \sum_i \sum_j \gamma_{ij} d(x_a[i], x_b[j])</span>
+
+<span class="sd">        s.t. \gamma 1 = a,</span>
+<span class="sd">             \gamma^T 1= b,</span>
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - d is the metric</span>
+<span class="sd">    - x_a and x_b are the samples</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    When &#39;minkowski&#39; is used as a metric, :math:`d(x, y) = |x - y|^p`.</span>
+
+<span class="sd">    Uses the algorithm detailed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_a : (ns,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Source dirac locations (on the real line)</span>
+<span class="sd">    x_b : (nt,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Target dirac locations (on the real line)</span>
+<span class="sd">    a : (ns,) ndarray, float64, optional</span>
+<span class="sd">        Source histogram (default is uniform weight)</span>
+<span class="sd">    b : (nt,) ndarray, float64, optional</span>
+<span class="sd">        Target histogram (default is uniform weight)</span>
+<span class="sd">    metric: str, optional (default=&#39;sqeuclidean&#39;)</span>
+<span class="sd">        Metric to be used. Only strings listed in :func:`ot.dist` are accepted.</span>
+<span class="sd">        Due to implementation details, this function runs faster when</span>
+<span class="sd">        `&#39;sqeuclidean&#39;`, `&#39;cityblock&#39;`,  or `&#39;euclidean&#39;` metrics are used.</span>
+<span class="sd">    p: float, optional (default=1.0)</span>
+<span class="sd">         The p-norm to apply for if metric=&#39;minkowski&#39;</span>
+<span class="sd">    dense: boolean, optional (default=True)</span>
+<span class="sd">        If True, returns math:`\gamma` as a dense ndarray of shape (ns, nt).</span>
+<span class="sd">        Otherwise returns a sparse representation using scipy&#39;s `coo_matrix`</span>
+<span class="sd">        format. Due to implementation details, this function runs faster when</span>
+<span class="sd">        `&#39;sqeuclidean&#39;`, `&#39;minkowski&#39;`, `&#39;cityblock&#39;`,  or `&#39;euclidean&#39;` metrics</span>
+<span class="sd">        are used.</span>
+<span class="sd">    log: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the cost.</span>
+<span class="sd">        Otherwise returns only the optimal transportation matrix.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma: (ns, nt) ndarray</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If input log is True, a dictionary containing the cost</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function emd_1d accepts lists and</span>
+<span class="sd">    performs automatic conversion to numpy arrays</span>
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; x_a = [2., 0.]</span>
+<span class="sd">    &gt;&gt;&gt; x_b = [0., 3.]</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd_1d(x_a, x_b, a, b)</span>
+<span class="sd">    array([[0. , 0.5],</span>
+<span class="sd">           [0.5, 0. ]])</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd_1d(x_a, x_b)</span>
+<span class="sd">    array([[0. , 0.5],</span>
+<span class="sd">           [0.5, 0. ]])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1]  Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd : EMD for multidimensional distributions</span>
+<span class="sd">    ot.lp.emd2_1d : EMD for 1d distributions (returns cost instead of the</span>
+<span class="sd">        transportation matrix)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">x_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">x_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="p">(</span><span class="n">x_a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">x_a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span> \
+        <span class="s2">&quot;emd_1d should only be used with monodimensional data&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">x_b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">x_b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span> \
+        <span class="s2">&quot;emd_1d should only be used with monodimensional data&quot;</span>
+
+    <span class="c1"># if empty array given then use uniform distributions</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">x_a_1d</span> <span class="o">=</span> <span class="n">x_a</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+    <span class="n">x_b_1d</span> <span class="o">=</span> <span class="n">x_b</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+    <span class="n">perm_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">x_a_1d</span><span class="p">)</span>
+    <span class="n">perm_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">x_b_1d</span><span class="p">)</span>
+
+    <span class="n">G_sorted</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">cost</span> <span class="o">=</span> <span class="n">emd_1d_sorted</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">perm_a</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="n">perm_b</span><span class="p">],</span>
+                                            <span class="n">x_a_1d</span><span class="p">[</span><span class="n">perm_a</span><span class="p">],</span> <span class="n">x_b_1d</span><span class="p">[</span><span class="n">perm_b</span><span class="p">],</span>
+                                            <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">coo_matrix</span><span class="p">((</span><span class="n">G_sorted</span><span class="p">,</span> <span class="p">(</span><span class="n">perm_a</span><span class="p">[</span><span class="n">indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">perm_b</span><span class="p">[</span><span class="n">indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])),</span>
+                   <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">dense</span><span class="p">:</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;cost&#39;</span><span class="p">:</span> <span class="n">cost</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="emd2_1d"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2_1d">[docs]</a><span class="k">def</span> <span class="nf">emd2_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem between 1d measures and returns</span>
+<span class="sd">    the loss</span>
+
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma \sum_i \sum_j \gamma_{ij} d(x_a[i], x_b[j])</span>
+
+<span class="sd">        s.t. \gamma 1 = a,</span>
+<span class="sd">             \gamma^T 1= b,</span>
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - d is the metric</span>
+<span class="sd">    - x_a and x_b are the samples</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    When &#39;minkowski&#39; is used as a metric, :math:`d(x, y) = |x - y|^p`.</span>
+
+<span class="sd">    Uses the algorithm detailed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_a : (ns,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Source dirac locations (on the real line)</span>
+<span class="sd">    x_b : (nt,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Target dirac locations (on the real line)</span>
+<span class="sd">    a : (ns,) ndarray, float64, optional</span>
+<span class="sd">        Source histogram (default is uniform weight)</span>
+<span class="sd">    b : (nt,) ndarray, float64, optional</span>
+<span class="sd">        Target histogram (default is uniform weight)</span>
+<span class="sd">    metric: str, optional (default=&#39;sqeuclidean&#39;)</span>
+<span class="sd">        Metric to be used. Only strings listed in :func:`ot.dist` are accepted.</span>
+<span class="sd">        Due to implementation details, this function runs faster when</span>
+<span class="sd">        `&#39;sqeuclidean&#39;`, `&#39;minkowski&#39;`, `&#39;cityblock&#39;`,  or `&#39;euclidean&#39;` metrics</span>
+<span class="sd">        are used.</span>
+<span class="sd">    p: float, optional (default=1.0)</span>
+<span class="sd">         The p-norm to apply for if metric=&#39;minkowski&#39;</span>
+<span class="sd">    dense: boolean, optional (default=True)</span>
+<span class="sd">        If True, returns math:`\gamma` as a dense ndarray of shape (ns, nt).</span>
+<span class="sd">        Otherwise returns a sparse representation using scipy&#39;s `coo_matrix`</span>
+<span class="sd">        format. Only used if log is set to True. Due to implementation details,</span>
+<span class="sd">        this function runs faster when dense is set to False.</span>
+<span class="sd">    log: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the transportation matrix.</span>
+<span class="sd">        Otherwise returns only the loss.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float</span>
+<span class="sd">        Cost associated to the optimal transportation</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If input log is True, a dictionary containing the Optimal transportation</span>
+<span class="sd">        matrix for the given parameters</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function emd2_1d accepts lists and</span>
+<span class="sd">    performs automatic conversion to numpy arrays</span>
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; x_a = [2., 0.]</span>
+<span class="sd">    &gt;&gt;&gt; x_b = [0., 3.]</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd2_1d(x_a, x_b, a, b)</span>
+<span class="sd">    0.5</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd2_1d(x_a, x_b)</span>
+<span class="sd">    0.5</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1]  Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd2 : EMD for multidimensional distributions</span>
+<span class="sd">    ot.lp.emd_1d : EMD for 1d distributions (returns the transportation matrix</span>
+<span class="sd">        instead of the cost)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If we do not return G (log==False), then we should not to cast it to dense</span>
+    <span class="c1"># (useless overhead)</span>
+    <span class="n">G</span><span class="p">,</span> <span class="n">log_emd</span> <span class="o">=</span> <span class="n">emd_1d</span><span class="p">(</span><span class="n">x_a</span><span class="o">=</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="o">=</span><span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+                        <span class="n">dense</span><span class="o">=</span><span class="n">dense</span> <span class="ow">and</span> <span class="n">log</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">log_emd</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_emd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;G&#39;</span><span class="p">:</span> <span class="n">G</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">log_emd</span>
+    <span class="k">return</span> <span class="n">cost</span></div>
+
+
+<div class="viewcode-block" id="wasserstein_1d"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.wasserstein_1d">[docs]</a><span class="k">def</span> <span class="nf">wasserstein_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the p-Wasserstein distance problem between 1d measures and returns</span>
+<span class="sd">    the distance</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\gamma \left( \sum_i \sum_j \gamma_{ij} \|x_a[i] - x_b[j]\|^p \right)^{1/p}</span>
+
+<span class="sd">        s.t. \gamma 1 = a,</span>
+<span class="sd">             \gamma^T 1= b,</span>
+<span class="sd">             \gamma\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - x_a and x_b are the samples</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    Uses the algorithm detailed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_a : (ns,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Source dirac locations (on the real line)</span>
+<span class="sd">    x_b : (nt,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Target dirac locations (on the real line)</span>
+<span class="sd">    a : (ns,) ndarray, float64, optional</span>
+<span class="sd">        Source histogram (default is uniform weight)</span>
+<span class="sd">    b : (nt,) ndarray, float64, optional</span>
+<span class="sd">        Target histogram (default is uniform weight)</span>
+<span class="sd">    p: float, optional (default=1.0)</span>
+<span class="sd">         The order of the p-Wasserstein distance to be computed</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dist: float</span>
+<span class="sd">        p-Wasserstein distance</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function wasserstein_1d accepts</span>
+<span class="sd">    lists and performs automatic conversion to numpy arrays</span>
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; x_a = [2., 0.]</span>
+<span class="sd">    &gt;&gt;&gt; x_b = [0., 3.]</span>
+<span class="sd">    &gt;&gt;&gt; ot.wasserstein_1d(x_a, x_b, a, b)</span>
+<span class="sd">    0.5</span>
+<span class="sd">    &gt;&gt;&gt; ot.wasserstein_1d(x_a, x_b)</span>
+<span class="sd">    0.5</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1]  Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd_1d : EMD for 1d distributions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cost_emd</span> <span class="o">=</span> <span class="n">emd2_1d</span><span class="p">(</span><span class="n">x_a</span><span class="o">=</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="o">=</span><span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;minkowski&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+                       <span class="n">dense</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">cost_emd</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  <div class="rst-versions shift-up" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      versions
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+        <dd><a href="https://pythonot.github.io/master">latest</a></dd>
+       
+        <dd><a href="https://pythonot.github.io/">stable</a></dd>
+        
+      </dl>
+      
+
+    
+      
+      <dl>
+        <dt>On GitHub</dt>
+        <dd>
+          <a href="https://github.com/PythonOT/POT">Code on Github</a>
+        </dd>
+        
+      </dl>
+      
+    
+      
+      
+
+      <hr>
+      
+
+
+</div>
+</div>
+  </div>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
