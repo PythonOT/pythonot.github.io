@@ -185,8 +185,9 @@
 <span class="kn">from</span> <span class="nn">.cvx</span> <span class="kn">import</span> <span class="n">barycenter</span>
 <span class="c1"># import compiled emd</span>
 <span class="kn">from</span> <span class="nn">.emd_wrap</span> <span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">check_result</span><span class="p">,</span> <span class="n">emd_1d_sorted</span>
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span>
 <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">parmap</span>
+<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;emd&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2&#39;</span><span class="p">,</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;free_support_barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;cvx&#39;</span><span class="p">,</span>
            <span class="s1">&#39;emd_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;wasserstein_1d&#39;</span><span class="p">]</span>
@@ -343,8 +344,7 @@
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the OT matrix</span>
 
 
-<span class="sd">    .. math::</span>
-<span class="sd">        \gamma = arg\min_\gamma &lt;\gamma,M&gt;_F</span>
+<span class="sd">    .. math:: \gamma = arg\min_\gamma &lt;\gamma,M&gt;_F</span>
 
 <span class="sd">        s.t. \gamma 1 = a</span>
 
@@ -356,37 +356,41 @@
 <span class="sd">    - M is the metric cost matrix</span>
 <span class="sd">    - a and b are the sample weights</span>
 
-<span class="sd">    .. warning::</span>
-<span class="sd">        Note that the M matrix needs to be a C-order numpy.array in float64</span>
-<span class="sd">        format.</span>
+<span class="sd">    .. warning:: Note that the M matrix in numpy needs to be a C-order</span>
+<span class="sd">        numpy.array in float64 format. It will be converted if not in this</span>
+<span class="sd">        format</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. </span>
 
 <span class="sd">    Uses the algorithm proposed in [1]_</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : (ns,) numpy.ndarray, float64</span>
+<span class="sd">    a : (ns,) array-like, float </span>
 <span class="sd">        Source histogram (uniform weight if empty list)</span>
-<span class="sd">    b : (nt,) numpy.ndarray, float64</span>
-<span class="sd">        Target histogram (uniform weight if empty list)</span>
-<span class="sd">    M : (ns,nt) numpy.ndarray, float64</span>
-<span class="sd">        Loss matrix (c-order array with type float64)</span>
-<span class="sd">    numItermax : int, optional (default=100000)</span>
+<span class="sd">    b : (nt,) array-like, float </span>
+<span class="sd">        Target histogram (uniform weight if empty list) </span>
+<span class="sd">    M : (ns,nt) array-like, float </span>
+<span class="sd">        Loss matrix (c-order array in numpy with type float64) </span>
+<span class="sd">    numItermax : int, optional (default=100000) </span>
 <span class="sd">        The maximum number of iterations before stopping the optimization</span>
-<span class="sd">        algorithm if it has not converged.</span>
-<span class="sd">    log: bool, optional (default=False)</span>
-<span class="sd">        If True, returns a dictionary containing the cost and dual</span>
-<span class="sd">        variables. Otherwise returns only the optimal transportation matrix.</span>
+<span class="sd">        algorithm if it has not converged. </span>
+<span class="sd">    log: bool, optional (default=False) </span>
+<span class="sd">        If True, returns a dictionary containing the cost and dual variables. </span>
+<span class="sd">        Otherwise returns only the optimal transportation matrix. </span>
 <span class="sd">    center_dual: boolean, optional (default=True)</span>
-<span class="sd">        If True, centers the dual potential using function</span>
+<span class="sd">        If True, centers the dual potential using function </span>
 <span class="sd">        :ref:`center_ot_dual`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma: (ns x nt) numpy.ndarray</span>
-<span class="sd">        Optimal transportation matrix for the given parameters</span>
-<span class="sd">    log: dict</span>
-<span class="sd">        If input log is true, a dictionary containing the cost and dual</span>
-<span class="sd">        variables and exit status</span>
+<span class="sd">    gamma: array-like, shape (ns, nt) </span>
+<span class="sd">        Optimal transportation matrix for the given</span>
+<span class="sd">        parameters </span>
+<span class="sd">    log: dict, optional</span>
+<span class="sd">        If input log is true, a dictionary containing the</span>
+<span class="sd">        cost and dual variables and exit status</span>
 
 
 <span class="sd">    Examples</span>
@@ -399,26 +403,37 @@
 <span class="sd">    &gt;&gt;&gt; a=[.5,.5]</span>
 <span class="sd">    &gt;&gt;&gt; b=[.5,.5]</span>
 <span class="sd">    &gt;&gt;&gt; M=[[0.,1.],[1.,0.]]</span>
-<span class="sd">    &gt;&gt;&gt; ot.emd(a,b,M)</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd(a, b, M)</span>
 <span class="sd">    array([[0.5, 0. ],</span>
 <span class="sd">           [0. , 0.5]])</span>
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
 
-<span class="sd">    .. [1] Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W.</span>
-<span class="sd">        (2011, December).  Displacement interpolation using Lagrangian mass</span>
-<span class="sd">        transport. In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p.</span>
-<span class="sd">        158). ACM.</span>
+<span class="sd">    .. [1] Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W. (2011,</span>
+<span class="sd">        December).  Displacement interpolation using Lagrangian mass transport.</span>
+<span class="sd">        In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p. 158). ACM.</span>
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
-<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT</span>
-<span class="sd">    ot.optim.cg : General regularized OT&quot;&quot;&quot;</span>
+<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT ot.optim.cg : General</span>
+<span class="sd">    regularized OT&quot;&quot;&quot;</span>
 
+    <span class="c1"># convert to numpy if list</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>  <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
+    <span class="n">nx</span> <span class="o">=</span>  <span class="n">get_backend</span><span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">)</span>
+    
+    <span class="c1"># convert to numpy</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    
+    <span class="c1"># ensure float64</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
 
     <span class="c1"># if empty array given then use uniform distributions</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -428,6 +443,11 @@
 
     <span class="k">assert</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> \
         <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
+
+    <span class="c1"># ensure that same mass</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> 
+        <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">)</span>
+    <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="o">*</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">/</span><span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
     <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
@@ -444,12 +464,12 @@
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cost</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">)</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
-        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
-    <span class="k">return</span> <span class="n">G</span></div>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="emd2"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a><span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span>
@@ -470,20 +490,19 @@
 <span class="sd">    - M is the metric cost matrix</span>
 <span class="sd">    - a and b are the sample weights</span>
 
-<span class="sd">    .. warning::</span>
-<span class="sd">        Note that the M matrix needs to be a C-order numpy.array in float64</span>
-<span class="sd">        format.</span>
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
 
 <span class="sd">    Uses the algorithm proposed in [1]_</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : (ns,) numpy.ndarray, float64</span>
+<span class="sd">    a : (ns,) array-like, float64</span>
 <span class="sd">        Source histogram (uniform weight if empty list)</span>
-<span class="sd">    b : (nt,) numpy.ndarray, float64</span>
+<span class="sd">    b : (nt,) array-like, float64</span>
 <span class="sd">        Target histogram (uniform weight if empty list)</span>
-<span class="sd">    M : (ns,nt) numpy.ndarray, float64</span>
-<span class="sd">        Loss matrix (c-order array with type float64)</span>
+<span class="sd">    M : (ns,nt) array-like, float64</span>
+<span class="sd">        Loss matrix (for numpy c-order array with type float64)</span>
 <span class="sd">    processes : int, optional (default=nb cpu)</span>
 <span class="sd">        Nb of processes used for multiple emd computation (not used on windows)</span>
 <span class="sd">    numItermax : int, optional (default=100000)</span>
@@ -500,9 +519,9 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    W: float</span>
+<span class="sd">    W: float, array-like</span>
 <span class="sd">        Optimal transportation loss for the given parameters</span>
-<span class="sd">    log: dictnp</span>
+<span class="sd">    log: dict</span>
 <span class="sd">        If input log is true, a dictionary containing dual</span>
 <span class="sd">        variables and exit status</span>
 
@@ -534,12 +553,22 @@
 <span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT</span>
 <span class="sd">    ot.optim.cg : General regularized OT&quot;&quot;&quot;</span>
 
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>  <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
+    <span class="n">nx</span> <span class="o">=</span>  <span class="n">get_backend</span><span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">)</span>
+    
+    <span class="c1"># convert to numpy</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">)</span>
 
     <span class="c1"># problem with pikling Forks</span>
-    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;win32&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;win32&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
         <span class="n">processes</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="c1"># if empty array given then use uniform distributions</span>
@@ -567,12 +596,15 @@
 
             <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
             <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">)</span>
             <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
             <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span> 
+                   <span class="p">(</span><span class="n">a0</span><span class="p">,</span><span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">G</span><span class="p">))</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">cost</span><span class="p">,</span> <span class="n">log</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
@@ -584,6 +616,11 @@
 
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
                 <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span>
+                   <span class="p">(</span><span class="n">a0</span><span class="p">,</span><span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">),</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">),</span><span class="n">G</span><span class="p">))</span>
 
             <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">cost</span>
@@ -803,6 +840,10 @@
         <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># ensure that same mass</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">)</span>
+    <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="o">*</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">/</span><span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="n">x_a_1d</span> <span class="o">=</span> <span class="n">x_a</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
     <span class="n">x_b_1d</span> <span class="o">=</span> <span class="n">x_b</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>

@@ -183,6 +183,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 <span class="n">__time_tic_toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
@@ -208,8 +209,11 @@
 
 <div class="viewcode-block" id="kernel"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.kernel">[docs]</a><span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute kernel matrix&quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;gauss&#39;</span><span class="p">,</span> <span class="s1">&#39;rbf&#39;</span><span class="p">]:</span>
-        <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">dist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">dist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">K</span></div>
 
 
@@ -217,6 +221,66 @@
     <span class="sd">&quot;&quot;&quot;Compute Laplacian matrix&quot;&quot;&quot;</span>
     <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">-</span> <span class="n">x</span>
     <span class="k">return</span> <span class="n">L</span></div>
+
+
+<div class="viewcode-block" id="list_to_array"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.list_to_array">[docs]</a><span class="k">def</span> <span class="nf">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">lst</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Convert a list if in numpy format &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="proj_simplex"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.proj_simplex">[docs]</a><span class="k">def</span> <span class="nf">proj_simplex</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot; compute the closest point (orthogonal projection) on the</span>
+<span class="sd">    generalized (n-1)-simplex of a vector v wrt. to the Euclidean</span>
+<span class="sd">    distance, thus solving:</span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathcal{P}(w) \in arg\min_\gamma || \gamma - v ||_2</span>
+
+<span class="sd">        s.t. \gamma^T 1= z</span>
+
+<span class="sd">             \gamma\geq 0</span>
+
+<span class="sd">    If v is a 2d array, compute all the projections wrt. axis 0</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    v : {array-like}, shape (n, d)</span>
+<span class="sd">    z : int, optional</span>
+<span class="sd">        &#39;size&#39; of the simplex (each vectors sum to z, 1 by default)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    h : ndarray, shape (n,d)</span>
+<span class="sd">        Array of projections on the simplex</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># sort u in ascending order</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># take the descending order</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">cssv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">z</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">v</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">cond</span> <span class="o">=</span> <span class="n">u</span> <span class="o">-</span> <span class="n">cssv</span> <span class="o">/</span> <span class="n">ind</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">cssv</span><span class="p">[</span><span class="n">rho</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span><span class="p">)]</span> <span class="o">/</span> <span class="n">rho</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">theta</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">d1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">w</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">w</span></div>
 
 
 <div class="viewcode-block" id="unif"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.unif">[docs]</a><span class="k">def</span> <span class="nf">unif</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
@@ -251,52 +315,68 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Considering the rows of X (and Y=X) as vectors, compute the</span>
 <span class="sd">    distance matrix between each pair of vectors.</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    X : {array-like}, shape (n_samples_1, n_features)</span>
 <span class="sd">    Y : {array-like}, shape (n_samples_2, n_features)</span>
 <span class="sd">    squared : boolean, optional</span>
 <span class="sd">        Return squared Euclidean distances.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    distances : {array}, shape (n_samples_1, n_samples_2)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">XX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-    <span class="n">YY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Y</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
-    <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-    <span class="n">distances</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">2</span>
-    <span class="n">distances</span> <span class="o">+=</span> <span class="n">XX</span>
-    <span class="n">distances</span> <span class="o">+=</span> <span class="n">YY</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">distances</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">a2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+    <span class="n">b2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">+=</span> <span class="n">a2</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">c</span> <span class="o">+=</span> <span class="n">b2</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">squared</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="n">Y</span><span class="p">:</span>
-        <span class="c1"># Ensure that distances between vectors and themselves are set to 0.0.</span>
-        <span class="c1"># This may not be the case due to floating point rounding errors.</span>
-        <span class="n">distances</span><span class="o">.</span><span class="n">flat</span><span class="p">[::</span><span class="n">distances</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="k">return</span> <span class="n">distances</span> <span class="k">if</span> <span class="n">squared</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">distances</span><span class="p">)</span></div>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">c</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">c</span></div>
 
 
 <div class="viewcode-block" id="dist"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.dist">[docs]</a><span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute distance between samples in x1 and x2 using function scipy.spatial.distance.cdist</span>
+    <span class="sd">&quot;&quot;&quot;Compute distance between samples in x1 and x2</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 
-<span class="sd">    x1 : ndarray, shape (n1,d)</span>
+<span class="sd">    x1 : array-like, shape (n1,d)</span>
 <span class="sd">        matrix with n1 samples of size d</span>
-<span class="sd">    x2 : array, shape (n2,d), optional</span>
+<span class="sd">    x2 : array-like, shape (n2,d), optional</span>
 <span class="sd">        matrix with n2 samples of size d (if None then x2=x1)</span>
 <span class="sd">    metric : str | callable, optional</span>
-<span class="sd">        Name of the metric to be computed (full list in the doc of scipy),  If a string,</span>
-<span class="sd">        the distance function can be &#39;braycurtis&#39;, &#39;canberra&#39;, &#39;chebyshev&#39;, &#39;cityblock&#39;,</span>
-<span class="sd">        &#39;correlation&#39;, &#39;cosine&#39;, &#39;dice&#39;, &#39;euclidean&#39;, &#39;hamming&#39;, &#39;jaccard&#39;, &#39;kulsinski&#39;,</span>
-<span class="sd">        &#39;mahalanobis&#39;, &#39;matching&#39;, &#39;minkowski&#39;, &#39;rogerstanimoto&#39;, &#39;russellrao&#39;, &#39;seuclidean&#39;,</span>
+<span class="sd">        &#39;sqeuclidean&#39; or &#39;euclidean&#39; on all backends. On numpy the function also</span>
+<span class="sd">        accepts  from the scipy.spatial.distance.cdist function : &#39;braycurtis&#39;,</span>
+<span class="sd">        &#39;canberra&#39;, &#39;chebyshev&#39;, &#39;cityblock&#39;, &#39;correlation&#39;, &#39;cosine&#39;, &#39;dice&#39;,</span>
+<span class="sd">        &#39;euclidean&#39;, &#39;hamming&#39;, &#39;jaccard&#39;, &#39;kulsinski&#39;, &#39;mahalanobis&#39;,</span>
+<span class="sd">        &#39;matching&#39;, &#39;minkowski&#39;, &#39;rogerstanimoto&#39;, &#39;russellrao&#39;, &#39;seuclidean&#39;,</span>
 <span class="sd">        &#39;sokalmichener&#39;, &#39;sokalsneath&#39;, &#39;sqeuclidean&#39;, &#39;wminkowski&#39;, &#39;yule&#39;.</span>
 
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 
-<span class="sd">    M : np.array (n1,n2)</span>
+<span class="sd">    M : array-like, shape (n1, n2)</span>
 <span class="sd">        distance matrix computed with given metric</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -304,7 +384,13 @@
         <span class="n">x2</span> <span class="o">=</span> <span class="n">x1</span>
     <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">euclidean_distances</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cdist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span></div>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">euclidean_distances</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cdist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="dist0"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.dist0">[docs]</a><span class="k">def</span> <span class="nf">dist0</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;lin_square&#39;</span><span class="p">):</span>

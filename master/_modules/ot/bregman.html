@@ -186,7 +186,8 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">fmin_l_bfgs_b</span>
 
-<span class="kn">from</span> <span class="nn">ot.utils</span> <span class="kn">import</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span>
+<span class="kn">from</span> <span class="nn">ot.utils</span> <span class="kn">import</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 
 <div class="viewcode-block" id="sinkhorn"><a class="viewcode-back" href="../../gen_modules/ot.bregman.html#ot.sinkhorn">[docs]</a><span class="k">def</span> <span class="nf">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;sinkhorn&#39;</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
@@ -210,17 +211,36 @@
 <span class="sd">    - :math:`\Omega` is the entropic regularization term :math:`\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
 <span class="sd">    - a and b are source and target weights (histograms, both sum to 1)</span>
 
-<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix scaling algorithm as proposed in [2]_</span>
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix</span>
+<span class="sd">    scaling algorithm as proposed in [2]_</span>
+
+<span class="sd">    **Choosing a Sinkhorn solver**</span>
+
+<span class="sd">    By default and when using a regularization parameter that is not too small</span>
+<span class="sd">    the default sinkhorn solver should be enough. If you need to use a small</span>
+<span class="sd">    regularization to get sharper OT matrices, you should use the</span>
+<span class="sd">    :any:`ot.bregman.sinkhorn_stabilized` solver that will avoid numerical</span>
+<span class="sd">    errors. This last solver can be very slow in practice and might not even</span>
+<span class="sd">    converge to a reasonable OT matrix in a finite time. This is why</span>
+<span class="sd">    :any:`ot.bregman.sinkhorn_epsilon_scaling` that relies on iterating the value</span>
+<span class="sd">    of the regularization (and using warm start) sometimes leads to better</span>
+<span class="sd">    solutions. Note that the greedy version of the sinkhorn</span>
+<span class="sd">    :any:`ot.bregman.greenkhorn` can also lead to a speedup and the screening</span>
+<span class="sd">    version of the sinkhorn :any:`ot.bregman.screenkhorn` aim a providing  a</span>
+<span class="sd">    fast approximation of the Sinkhorn problem.</span>
 
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : ndarray, shape (dim_a,)</span>
+<span class="sd">    a : array-like, shape (dim_a,)</span>
 <span class="sd">        samples weights in the source domain</span>
-<span class="sd">    b : ndarray, shape (dim_b,) or ndarray, shape (dim_b, n_hists)</span>
+<span class="sd">    b : array-like, shape (dim_b,) or ndarray, shape (dim_b, n_hists)</span>
 <span class="sd">        samples in the target domain, compute sinkhorn with multiple targets</span>
 <span class="sd">        and fixed M if b is a matrix (return OT loss + dual variables in log)</span>
-<span class="sd">    M : ndarray, shape (dim_a, dim_b)</span>
+<span class="sd">    M : array-like, shape (dim_a, dim_b)</span>
 <span class="sd">        loss matrix</span>
 <span class="sd">    reg : float</span>
 <span class="sd">        Regularization term &gt;0</span>
@@ -236,25 +256,9 @@
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
 
-<span class="sd">    **Choosing a Sinkhorn solver**</span>
-
-<span class="sd">    By default and when using a regularization parameter that is not too small</span>
-<span class="sd">    the default sinkhorn solver should be enough. If you need to use a small</span>
-<span class="sd">    regularization to get sharper OT matrices, you should use the</span>
-<span class="sd">    :any:`ot.bregman.sinkhorn_stabilized` solver that will avoid numerical</span>
-<span class="sd">    errors. This last solver can be very slow in practice and might not even</span>
-<span class="sd">    converge to a reasonable OT matrix in a finite time. This is why</span>
-<span class="sd">    :any:`ot.bregman.sinkhorn_epsilon_scaling` that relie on iterating the value</span>
-<span class="sd">    of the regularization (and using warm start) sometimes leads to better</span>
-<span class="sd">    solutions. Note that the greedy version of the sinkhorn</span>
-<span class="sd">    :any:`ot.bregman.greenkhorn` can also lead to a speedup and the screening</span>
-<span class="sd">    version of the sinkhorn :any:`ot.bregman.screenkhorn` aim a providing  a</span>
-<span class="sd">    fast approximation of the Sinkhorn problem.</span>
-
-
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma : ndarray, shape (dim_a, dim_b)</span>
+<span class="sd">    gamma : array-like, shape (dim_a, dim_b)</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -333,17 +337,35 @@
 <span class="sd">    - :math:`\Omega` is the entropic regularization term :math:`\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
 <span class="sd">    - a and b are source and target weights (histograms, both sum to 1)</span>
 
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
+
 <span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix scaling algorithm as proposed in [2]_</span>
 
 
+<span class="sd">    **Choosing a Sinkhorn solver**</span>
+
+<span class="sd">    By default and when using a regularization parameter that is not too small</span>
+<span class="sd">    the default sinkhorn solver should be enough. If you need to use a small</span>
+<span class="sd">    regularization to get sharper OT matrices, you should use the</span>
+<span class="sd">    :any:`ot.bregman.sinkhorn_stabilized` solver that will avoid numerical</span>
+<span class="sd">    errors. This last solver can be very slow in practice and might not even</span>
+<span class="sd">    converge to a reasonable OT matrix in a finite time. This is why</span>
+<span class="sd">    :any:`ot.bregman.sinkhorn_epsilon_scaling` that relies on iterating the value</span>
+<span class="sd">    of the regularization (and using warm start) sometimes leads to better</span>
+<span class="sd">    solutions. Note that the greedy version of the sinkhorn</span>
+<span class="sd">    :any:`ot.bregman.greenkhorn` can also lead to a speedup and the screening</span>
+<span class="sd">    version of the sinkhorn :any:`ot.bregman.screenkhorn` aim a providing  a</span>
+<span class="sd">    fast approximation of the Sinkhorn problem.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : ndarray, shape (dim_a,)</span>
+<span class="sd">    a : array-like, shape (dim_a,)</span>
 <span class="sd">        samples weights in the source domain</span>
-<span class="sd">    b : ndarray, shape (dim_b,) or ndarray, shape (dim_b, n_hists)</span>
+<span class="sd">    b : array-like, shape (dim_b,) or ndarray, shape (dim_b, n_hists)</span>
 <span class="sd">        samples in the target domain, compute sinkhorn with multiple targets</span>
 <span class="sd">        and fixed M if b is a matrix (return OT loss + dual variables in log)</span>
-<span class="sd">    M : ndarray, shape (dim_a, dim_b)</span>
+<span class="sd">    M : array-like, shape (dim_a, dim_b)</span>
 <span class="sd">        loss matrix</span>
 <span class="sd">    reg : float</span>
 <span class="sd">        Regularization term &gt;0</span>
@@ -358,27 +380,13 @@
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
 
-<span class="sd">    **Choosing a Sinkhorn solver**</span>
-
-<span class="sd">    By default and when using a regularization parameter that is not too small</span>
-<span class="sd">    the default sinkhorn solver should be enough. If you need to use a small</span>
-<span class="sd">    regularization to get sharper OT matrices, you should use the</span>
-<span class="sd">    :any:`ot.bregman.sinkhorn_stabilized` solver that will avoid numerical</span>
-<span class="sd">    errors. This last solver can be very slow in practice and might not even</span>
-<span class="sd">    converge to a reasonable OT matrix in a finite time. This is why</span>
-<span class="sd">    :any:`ot.bregman.sinkhorn_epsilon_scaling` that relie on iterating the value</span>
-<span class="sd">    of the regularization (and using warm start) sometimes leads to better</span>
-<span class="sd">    solutions. Note that the greedy version of the sinkhorn</span>
-<span class="sd">    :any:`ot.bregman.greenkhorn` can also lead to a speedup and the screening</span>
-<span class="sd">    version of the sinkhorn :any:`ot.bregman.screenkhorn` aim a providing  a</span>
-<span class="sd">    fast approximation of the Sinkhorn problem.</span>
-
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    W : (n_hists) ndarray</span>
+<span class="sd">    W : (n_hists) float/array-like</span>
 <span class="sd">        Optimal transportation loss for the given parameters</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
+
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -414,7 +422,8 @@
 <span class="sd">    ot.bregman.sinkhorn_stabilized: Stabilized sinkhorn [9][10]</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="n">b</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
 
@@ -506,14 +515,14 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
 
     <span class="c1"># init data</span>
     <span class="n">dim_a</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
@@ -530,21 +539,13 @@
     <span class="c1"># we assume that no distances are null except those of the diagonal of</span>
     <span class="c1"># distances</span>
     <span class="k">if</span> <span class="n">n_hists</span><span class="p">:</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">n_hists</span><span class="p">))</span> <span class="o">/</span> <span class="n">dim_a</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_b</span><span class="p">,</span> <span class="n">n_hists</span><span class="p">))</span> <span class="o">/</span> <span class="n">dim_b</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">n_hists</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_a</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_b</span><span class="p">,</span> <span class="n">n_hists</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_b</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_a</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_b</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_b</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_a</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_b</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_b</span>
 
-    <span class="c1"># print(reg)</span>
-
-    <span class="c1"># Next 3 lines equivalent to K= np.exp(-M/reg), but faster to compute</span>
-    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">M</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="o">-</span><span class="n">reg</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">K</span><span class="p">)</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">K</span><span class="p">)</span>
-
-    <span class="c1"># print(np.min(K))</span>
-    <span class="n">tmp2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">M</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">M</span> <span class="o">/</span> <span class="p">(</span><span class="o">-</span><span class="n">reg</span><span class="p">))</span>
 
     <span class="n">Kp</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">K</span>
     <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
@@ -553,13 +554,13 @@
         <span class="n">uprev</span> <span class="o">=</span> <span class="n">u</span>
         <span class="n">vprev</span> <span class="o">=</span> <span class="n">v</span>
 
-        <span class="n">KtransposeU</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">KtransposeU</span><span class="p">)</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kp</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">KtransposeU</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">b</span> <span class="o">/</span> <span class="n">KtransposeU</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kp</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">KtransposeU</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-                <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-                <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">v</span><span class="p">))):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">KtransposeU</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">v</span><span class="p">))):</span>
             <span class="c1"># we have reached the machine precision</span>
             <span class="c1"># come back to previous solution and quit loop</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Warning: numerical errors at iteration&#39;</span><span class="p">,</span> <span class="n">cpt</span><span class="p">)</span>
@@ -570,11 +571,11 @@
             <span class="c1"># we can speed up the process by checking for the error only all</span>
             <span class="c1"># the 10th iterations</span>
             <span class="k">if</span> <span class="n">n_hists</span><span class="p">:</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ik,ij,jk-&gt;jk&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">tmp2</span><span class="p">)</span>
+                <span class="n">tmp2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ik,ij,jk-&gt;jk&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># compute right marginal tmp2= (diag(u)Kdiag(v))^T1</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij,j-&gt;j&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">tmp2</span><span class="p">)</span>
-            <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tmp2</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>  <span class="c1"># violation of marginal</span>
+                <span class="n">tmp2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij,j-&gt;j&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tmp2</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>  <span class="c1"># violation of marginal</span>
             <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
 
@@ -589,7 +590,7 @@
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
     <span class="k">if</span> <span class="n">n_hists</span><span class="p">:</span>  <span class="c1"># return only loss</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ik,ij,jk,ij-&gt;k&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ik,ij,jk,ij-&gt;k&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">log</span>
         <span class="k">else</span><span class="p">:</span>
