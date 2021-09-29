@@ -84,11 +84,13 @@
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">coo_matrix</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cvx</span>
 <span class="kn">from</span> <span class="nn">.cvx</span> <span class="kn">import</span> <span class="n">barycenter</span>
@@ -101,9 +103,28 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;emd&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2&#39;</span><span class="p">,</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;free_support_barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;cvx&#39;</span><span class="p">,</span>
            <span class="s1">&#39;emd_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;wasserstein_1d&#39;</span><span class="p">]</span>
 
+<div class="viewcode-block" id="check_number_threads"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.check_number_threads">[docs]</a><span class="k">def</span> <span class="nf">check_number_threads</span><span class="p">(</span><span class="n">numThreads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Checks whether or not the requested number of threads has a valid value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    numThreads : int or str</span>
+<span class="sd">        The requested number of threads, should either be a strictly positive integer or &quot;max&quot; or None</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numThreads : int</span>
+<span class="sd">        Corrected number of threads</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">numThreads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">numThreads</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">numThreads</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;max&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">numThreads</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span> <span class="ow">or</span> <span class="n">numThreads</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;numThreads should either be &quot;max&quot; or a strictly positive integer&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">numThreads</span></div>
+
 
 <div class="viewcode-block" id="center_ot_dual"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.center_ot_dual">[docs]</a><span class="k">def</span> <span class="nf">center_ot_dual</span><span class="p">(</span><span class="n">alpha0</span><span class="p">,</span> <span class="n">beta0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Center dual OT potentials w.r.t. theirs weights</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Center dual OT potentials w.r.t. their weights</span>
 
 <span class="sd">    The main idea of this function is to find unique dual potentials</span>
 <span class="sd">    that ensure some kind of centering/fairness. The main idea is to find dual potentials that lead to the same final objective value for both source and targets (see below for more details). It will help having</span>
@@ -249,7 +270,7 @@
     <span class="k">return</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="emd"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd">[docs]</a><span class="k">def</span> <span class="nf">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="emd"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd">[docs]</a><span class="k">def</span> <span class="nf">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the OT matrix</span>
 
 
@@ -291,6 +312,9 @@
 <span class="sd">    center_dual: boolean, optional (default=True)</span>
 <span class="sd">        If True, centers the dual potential using function </span>
 <span class="sd">        :ref:`center_ot_dual`.</span>
+<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
+<span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
+<span class="sd">        &quot;max&quot; selects the highest number possible.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -361,7 +385,9 @@
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
     <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
 
-    <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+    <span class="n">numThreads</span> <span class="o">=</span> <span class="n">check_number_threads</span><span class="p">(</span><span class="n">numThreads</span><span class="p">)</span>
+
+    <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
@@ -381,9 +407,9 @@
     <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="emd2"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a><span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span>
+<div class="viewcode-block" id="emd2"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a><span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
          <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-         <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+         <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the loss</span>
 
 <span class="sd">    .. math::</span>
@@ -412,8 +438,8 @@
 <span class="sd">        Target histogram (uniform weight if empty list)</span>
 <span class="sd">    M : (ns,nt) array-like, float64</span>
 <span class="sd">        Loss matrix (for numpy c-order array with type float64)</span>
-<span class="sd">    processes : int, optional (default=nb cpu)</span>
-<span class="sd">        Nb of processes used for multiple emd computation (not used on windows)</span>
+<span class="sd">    processes : int, optional (default=1)</span>
+<span class="sd">        Nb of processes used for multiple emd computation (deprecated)</span>
 <span class="sd">    numItermax : int, optional (default=100000)</span>
 <span class="sd">        The maximum number of iterations before stopping the optimization</span>
 <span class="sd">        algorithm if it has not converged.</span>
@@ -425,6 +451,9 @@
 <span class="sd">    center_dual: boolean, optional (default=True)</span>
 <span class="sd">        If True, centers the dual potential using function</span>
 <span class="sd">        :ref:`center_ot_dual`.</span>
+<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
+<span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
+<span class="sd">        &quot;max&quot; selects the highest number possible.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -466,7 +495,7 @@
 
     <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
     <span class="n">nx</span> <span class="o">=</span>  <span class="n">get_backend</span><span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">)</span>
-    
+
     <span class="c1"># convert to numpy</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
@@ -475,10 +504,6 @@
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">)</span>
-
-    <span class="c1"># problem with pikling Forks</span>
-    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;win32&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
-        <span class="n">processes</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="c1"># if empty array given then use uniform distributions</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -491,11 +516,13 @@
 
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
 
+    <span class="n">numThreads</span> <span class="o">=</span> <span class="n">check_number_threads</span><span class="p">(</span><span class="n">numThreads</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
             <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
 
-            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
                 <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
@@ -518,7 +545,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
             <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
-            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
                 <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
@@ -539,15 +566,17 @@
     <span class="n">nb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">processes</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">parmap</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb</span><span class="p">)],</span> <span class="n">processes</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb</span><span class="p">)]))</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;The &#39;processes&#39; parameter has been deprecated. &quot;</span>
+            <span class="s2">&quot;Multiprocessing should be done outside of POT.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb</span><span class="p">)]))</span>
 
     <span class="k">return</span> <span class="n">res</span></div>
 
 
 <div class="viewcode-block" id="free_support_barycenter"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.free_support_barycenter">[docs]</a><span class="k">def</span> <span class="nf">free_support_barycenter</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                            <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                            <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Wasserstein distance), formally:</span>
 
@@ -588,6 +617,10 @@
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
+<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
+<span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
+<span class="sd">        &quot;max&quot; selects the highest number possible.</span>
+
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -627,7 +660,7 @@
         <span class="k">for</span> <span class="p">(</span><span class="n">measure_locations_i</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">weight_i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span>
                                                                       <span class="n">weights</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
             <span class="n">M_i</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
-            <span class="n">T_i</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">M_i</span><span class="p">)</span>
+            <span class="n">T_i</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">M_i</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="n">numThreads</span><span class="p">)</span>
             <span class="n">T_sum</span> <span class="o">=</span> <span class="n">T_sum</span> <span class="o">+</span> <span class="n">weight_i</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">T_i</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
 
         <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">T_sum</span> <span class="o">-</span> <span class="n">X</span><span class="p">))</span>
