@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.lp.solver_1d &mdash; POT Python Optimal Transport 0.8.0dev documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> POT Python Optimal Transport
+          </a>
+              <div class="version">
+                0.8.0dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../lp.html">ot.lp</a> &raquo;</li>
+      <li>ot.lp.solver_1d</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.lp.solver_1d</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Exact solvers for the 1D Wasserstein distance using cvxopt</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1"># Author: Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">.emd_wrap</span> <span class="kn">import</span> <span class="n">emd_1d_sorted</span>
+<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
+
+
+<span class="k">def</span> <span class="nf">quantile_function</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">cws</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot; Computes the quantile function of an empirical distribution</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qs: array-like, shape (n,)</span>
+<span class="sd">        Quantiles at which the quantile function is evaluated</span>
+<span class="sd">    cws: array-like, shape (m, ...)</span>
+<span class="sd">        cumulative weights of the 1D empirical distribution, if batched, must be similar to xs</span>
+<span class="sd">    xs: array-like, shape (n, ...)</span>
+<span class="sd">        locations of the 1D empirical distribution, batched against the `xs.ndim - 1` first dimensions</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    q: array-like, shape (..., n)</span>
+<span class="sd">        The quantiles of the distribution</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">cws</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+        <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
+        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="n">cws</span> <span class="o">=</span> <span class="n">cws</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cws</span> <span class="o">=</span> <span class="n">cws</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">cws</span><span class="p">,</span> <span class="n">qs</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="wasserstein_1d"><a class="viewcode-back" href="../../../all.html#ot.wasserstein_1d">[docs]</a><span class="k">def</span> <span class="nf">wasserstein_1d</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">v_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the 1 dimensional OT loss [15] between two (batched) empirical</span>
+<span class="sd">    distributions</span>
+
+<span class="sd">    .. math:</span>
+<span class="sd">        OT_{loss} = \int_0^1 |cdf_u^{-1}(q)  cdf_v^{-1}(q)|^p dq</span>
+
+<span class="sd">    It is formally the p-Wasserstein distance raised to the power p.</span>
+<span class="sd">    We do so in a vectorized way by first building the individual quantile functions then integrating them.</span>
+
+<span class="sd">    This function should be preferred to `emd_1d` whenever the backend is</span>
+<span class="sd">    different to numpy, and when gradients over</span>
+<span class="sd">    either sample positions or weights are required.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u_values: array-like, shape (n, ...)</span>
+<span class="sd">        locations of the first empirical distribution</span>
+<span class="sd">    v_values: array-like, shape (m, ...)</span>
+<span class="sd">        locations of the second empirical distribution</span>
+<span class="sd">    u_weights: array-like, shape (n, ...), optional</span>
+<span class="sd">        weights of the first empirical distribution, if None then uniform weights are used</span>
+<span class="sd">    v_weights: array-like, shape (m, ...), optional</span>
+<span class="sd">        weights of the second empirical distribution, if None then uniform weights are used</span>
+<span class="sd">    p: int, optional</span>
+<span class="sd">        order of the ground metric used, should be at least 1 (see [2, Chap. 2], default is 1</span>
+<span class="sd">    require_sort: bool, optional</span>
+<span class="sd">        sort the distributions atoms locations, if False we will consider they have been sorted prior to being passed to</span>
+<span class="sd">        the function, default is True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cost: float/array-like, shape (...)</span>
+<span class="sd">        the batched EMD</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [15] Peyré, G., &amp; Cuturi, M. (2018). Computational Optimal Transport.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;The OT loss is only valid for p&gt;=1, </span><span class="si">{p}</span><span class="s2"> was given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">u_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">u_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">m</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">v_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">v_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">require_sort</span><span class="p">:</span>
+        <span class="n">u_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">v_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">u_cumweights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">v_cumweights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">qs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">u_cumweights</span><span class="p">,</span> <span class="n">v_cumweights</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">u_quantiles</span> <span class="o">=</span> <span class="n">quantile_function</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">u_cumweights</span><span class="p">,</span> <span class="n">u_values</span><span class="p">)</span>
+    <span class="n">v_quantiles</span> <span class="o">=</span> <span class="n">quantile_function</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">v_cumweights</span><span class="p">,</span> <span class="n">v_values</span><span class="p">)</span>
+    <span class="n">qs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span> <span class="o">+</span> <span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">qs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="o">...</span><span class="p">]</span> <span class="o">-</span> <span class="n">qs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">diff_quantiles</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_quantiles</span> <span class="o">-</span> <span class="n">v_quantiles</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diff_quantiles</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">diff_quantiles</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="emd_1d"><a class="viewcode-back" href="../../../all.html#ot.emd_1d">[docs]</a><span class="k">def</span> <span class="nf">emd_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+           <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem between 1d measures and returns</span>
+<span class="sd">    the OT matrix</span>
+
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma \sum_i \sum_j \gamma_{ij} d(x_a[i], x_b[j])</span>
+
+<span class="sd">        s.t. \gamma 1 = a,</span>
+<span class="sd">             \gamma^T 1= b,</span>
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - d is the metric</span>
+<span class="sd">    - x_a and x_b are the samples</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    When &#39;minkowski&#39; is used as a metric, :math:`d(x, y) = |x - y|^p`.</span>
+
+<span class="sd">    Uses the algorithm detailed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_a : (ns,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Source dirac locations (on the real line)</span>
+<span class="sd">    x_b : (nt,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Target dirac locations (on the real line)</span>
+<span class="sd">    a : (ns,) ndarray, float64, optional</span>
+<span class="sd">        Source histogram (default is uniform weight)</span>
+<span class="sd">    b : (nt,) ndarray, float64, optional</span>
+<span class="sd">        Target histogram (default is uniform weight)</span>
+<span class="sd">    metric: str, optional (default=&#39;sqeuclidean&#39;)</span>
+<span class="sd">        Metric to be used. Only strings listed in :func:`ot.dist` are accepted.</span>
+<span class="sd">        Due to implementation details, this function runs faster when</span>
+<span class="sd">        `&#39;sqeuclidean&#39;`, `&#39;cityblock&#39;`,  or `&#39;euclidean&#39;` metrics are used.</span>
+<span class="sd">    p: float, optional (default=1.0)</span>
+<span class="sd">         The p-norm to apply for if metric=&#39;minkowski&#39;</span>
+<span class="sd">    dense: boolean, optional (default=True)</span>
+<span class="sd">        If True, returns math:`\gamma` as a dense ndarray of shape (ns, nt).</span>
+<span class="sd">        Otherwise returns a sparse representation using scipy&#39;s `coo_matrix`</span>
+<span class="sd">        format. Due to implementation details, this function runs faster when</span>
+<span class="sd">        `&#39;sqeuclidean&#39;`, `&#39;minkowski&#39;`, `&#39;cityblock&#39;`,  or `&#39;euclidean&#39;` metrics</span>
+<span class="sd">        are used.</span>
+<span class="sd">    log: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the cost.</span>
+<span class="sd">        Otherwise returns only the optimal transportation matrix.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma: (ns, nt) ndarray</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If input log is True, a dictionary containing the cost</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function emd_1d accepts lists and</span>
+<span class="sd">    performs automatic conversion to numpy arrays</span>
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; x_a = [2., 0.]</span>
+<span class="sd">    &gt;&gt;&gt; x_b = [0., 3.]</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd_1d(x_a, x_b, a, b)</span>
+<span class="sd">    array([[0. , 0.5],</span>
+<span class="sd">           [0.5, 0. ]])</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd_1d(x_a, x_b)</span>
+<span class="sd">    array([[0. , 0.5],</span>
+<span class="sd">           [0.5, 0. ]])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1]  Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd : EMD for multidimensional distributions</span>
+<span class="sd">    ot.lp.emd2_1d : EMD for 1d distributions (returns cost instead of the</span>
+<span class="sd">        transportation matrix)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="p">(</span><span class="n">x_a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">x_a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span> \
+        <span class="s2">&quot;emd_1d should only be used with monodimensional data&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">x_b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">x_b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span> \
+        <span class="s2">&quot;emd_1d should only be used with monodimensional data&quot;</span>
+
+    <span class="c1"># if empty array given then use uniform distributions</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">b</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x_b</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># ensure that same mass</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span>
+    <span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="n">x_a_1d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+    <span class="n">x_b_1d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_b</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+    <span class="n">perm_a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">x_a_1d</span><span class="p">)</span>
+    <span class="n">perm_b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">x_b_1d</span><span class="p">)</span>
+
+    <span class="n">G_sorted</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">cost</span> <span class="o">=</span> <span class="n">emd_1d_sorted</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">perm_a</span><span class="p">]),</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="n">perm_b</span><span class="p">]),</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">x_a_1d</span><span class="p">[</span><span class="n">perm_a</span><span class="p">]),</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">x_b_1d</span><span class="p">[</span><span class="n">perm_b</span><span class="p">]),</span>
+        <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span>
+    <span class="p">)</span>
+
+    <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">(</span>
+        <span class="n">G_sorted</span><span class="p">,</span>
+        <span class="n">perm_a</span><span class="p">[</span><span class="n">indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">perm_b</span><span class="p">[</span><span class="n">indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">type_as</span><span class="o">=</span><span class="n">x_a</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">dense</span><span class="p">:</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">todense</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;jax&quot;</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;JAX does not support sparse matrices, converting to dense&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;cost&#39;</span><span class="p">:</span> <span class="n">cost</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="emd2_1d"><a class="viewcode-back" href="../../../all.html#ot.emd2_1d">[docs]</a><span class="k">def</span> <span class="nf">emd2_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem between 1d measures and returns</span>
+<span class="sd">    the loss</span>
+
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma \sum_i \sum_j \gamma_{ij} d(x_a[i], x_b[j])</span>
+
+<span class="sd">        s.t. \gamma 1 = a,</span>
+<span class="sd">             \gamma^T 1= b,</span>
+<span class="sd">             \gamma\geq 0</span>
+<span class="sd">    where :</span>
+
+<span class="sd">    - d is the metric</span>
+<span class="sd">    - x_a and x_b are the samples</span>
+<span class="sd">    - a and b are the sample weights</span>
+
+<span class="sd">    When &#39;minkowski&#39; is used as a metric, :math:`d(x, y) = |x - y|^p`.</span>
+
+<span class="sd">    Uses the algorithm detailed in [1]_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_a : (ns,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Source dirac locations (on the real line)</span>
+<span class="sd">    x_b : (nt,) or (ns, 1) ndarray, float64</span>
+<span class="sd">        Target dirac locations (on the real line)</span>
+<span class="sd">    a : (ns,) ndarray, float64, optional</span>
+<span class="sd">        Source histogram (default is uniform weight)</span>
+<span class="sd">    b : (nt,) ndarray, float64, optional</span>
+<span class="sd">        Target histogram (default is uniform weight)</span>
+<span class="sd">    metric: str, optional (default=&#39;sqeuclidean&#39;)</span>
+<span class="sd">        Metric to be used. Only strings listed in :func:`ot.dist` are accepted.</span>
+<span class="sd">        Due to implementation details, this function runs faster when</span>
+<span class="sd">        `&#39;sqeuclidean&#39;`, `&#39;minkowski&#39;`, `&#39;cityblock&#39;`,  or `&#39;euclidean&#39;` metrics</span>
+<span class="sd">        are used.</span>
+<span class="sd">    p: float, optional (default=1.0)</span>
+<span class="sd">         The p-norm to apply for if metric=&#39;minkowski&#39;</span>
+<span class="sd">    dense: boolean, optional (default=True)</span>
+<span class="sd">        If True, returns math:`\gamma` as a dense ndarray of shape (ns, nt).</span>
+<span class="sd">        Otherwise returns a sparse representation using scipy&#39;s `coo_matrix`</span>
+<span class="sd">        format. Only used if log is set to True. Due to implementation details,</span>
+<span class="sd">        this function runs faster when dense is set to False.</span>
+<span class="sd">    log: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the transportation matrix.</span>
+<span class="sd">        Otherwise returns only the loss.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float</span>
+<span class="sd">        Cost associated to the optimal transportation</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If input log is True, a dictionary containing the Optimal transportation</span>
+<span class="sd">        matrix for the given parameters</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Simple example with obvious solution. The function emd2_1d accepts lists and</span>
+<span class="sd">    performs automatic conversion to numpy arrays</span>
+
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; x_a = [2., 0.]</span>
+<span class="sd">    &gt;&gt;&gt; x_b = [0., 3.]</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd2_1d(x_a, x_b, a, b)</span>
+<span class="sd">    0.5</span>
+<span class="sd">    &gt;&gt;&gt; ot.emd2_1d(x_a, x_b)</span>
+<span class="sd">    0.5</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1]  Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd2 : EMD for multidimensional distributions</span>
+<span class="sd">    ot.lp.emd_1d : EMD for 1d distributions (returns the transportation matrix</span>
+<span class="sd">        instead of the cost)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If we do not return G (log==False), then we should not to cast it to dense</span>
+    <span class="c1"># (useless overhead)</span>
+    <span class="n">G</span><span class="p">,</span> <span class="n">log_emd</span> <span class="o">=</span> <span class="n">emd_1d</span><span class="p">(</span><span class="n">x_a</span><span class="o">=</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="o">=</span><span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+                        <span class="n">dense</span><span class="o">=</span><span class="n">dense</span> <span class="ow">and</span> <span class="n">log</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">log_emd</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_emd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;G&#39;</span><span class="p">:</span> <span class="n">G</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">log_emd</span>
+    <span class="k">return</span> <span class="n">cost</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions shift-up" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      versions
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+        <dd><a href="https://pythonot.github.io/master">latest</a></dd>
+       
+        <dd><a href="https://pythonot.github.io/">stable</a></dd>
+        
+      </dl>
+      
+
+    
+      
+      <dl>
+        <dt>On GitHub</dt>
+        <dd>
+          <a href="https://github.com/PythonOT/POT">Code on Github</a>
+        </dd>
+        
+      </dl>
+      
+    
+      
+      
+
+      <hr>
+      
+
+
+</div>
+</div>
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
