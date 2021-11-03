@@ -22,10 +22,10 @@
 Convolutional Wasserstein Barycenter example
 ============================================
 
-This example is designed to illustrate how the Convolutional Wasserstein Barycenter
-function of POT works.
+This example is designed to illustrate how the Convolutional Wasserstein
+Barycenter function of POT works.
 
-.. GENERATED FROM PYTHON SOURCE LINES 12-22
+.. GENERATED FROM PYTHON SOURCE LINES 12-23
 
 .. code-block:: default
 
@@ -33,10 +33,11 @@ function of POT works.
     # Author: Nicolas Courty <ncourty@irisa.fr>
     #
     # License: MIT License
-
+    import os
+    from pathlib import Path
 
     import numpy as np
-    import pylab as pl
+    import matplotlib.pyplot as plt
     import ot
 
 
@@ -46,34 +47,31 @@ function of POT works.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 23-27
+.. GENERATED FROM PYTHON SOURCE LINES 24-28
 
 Data preparation
 ----------------
 
 The four distributions are constructed from 4 simple images
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-55
+.. GENERATED FROM PYTHON SOURCE LINES 28-53
 
 .. code-block:: default
 
 
+    this_file = os.path.realpath('__file__')
+    data_path = os.path.join(Path(this_file).parent.parent.parent, 'data')
 
-    f1 = 1 - pl.imread('../../data/redcross.png')[:, :, 2]
-    f2 = 1 - pl.imread('../../data/duck.png')[:, :, 2]
-    f3 = 1 - pl.imread('../../data/heart.png')[:, :, 2]
-    f4 = 1 - pl.imread('../../data/tooth.png')[:, :, 2]
+    f1 = 1 - plt.imread(os.path.join(data_path, 'redcross.png'))[:, :, 2]
+    f2 = 1 - plt.imread(os.path.join(data_path, 'tooth.png'))[:, :, 2]
+    f3 = 1 - plt.imread(os.path.join(data_path, 'heart.png'))[:, :, 2]
+    f4 = 1 - plt.imread(os.path.join(data_path, 'duck.png'))[:, :, 2]
 
-    A = []
     f1 = f1 / np.sum(f1)
     f2 = f2 / np.sum(f2)
     f3 = f3 / np.sum(f3)
     f4 = f4 / np.sum(f4)
-    A.append(f1)
-    A.append(f2)
-    A.append(f3)
-    A.append(f4)
-    A = np.array(A)
+    A = np.array([f1, f2, f3, f4])
 
     nb_images = 5
 
@@ -92,25 +90,24 @@ The four distributions are constructed from 4 simple images
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 56-59
+.. GENERATED FROM PYTHON SOURCE LINES 54-57
 
 Barycenter computation and visualization
 ----------------------------------------
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 59-93
+.. GENERATED FROM PYTHON SOURCE LINES 57-90
 
 .. code-block:: default
 
 
-    pl.figure(figsize=(10, 10))
-    pl.title('Convolutional Wasserstein Barycenters in POT')
+    fig, axes = plt.subplots(nb_images, nb_images, figsize=(7, 7))
+    plt.suptitle('Convolutional Wasserstein Barycenters in POT')
     cm = 'Blues'
     # regularization parameter
     reg = 0.004
     for i in range(nb_images):
         for j in range(nb_images):
-            pl.subplot(nb_images, nb_images, i * nb_images + j + 1)
             tx = float(i) / (nb_images - 1)
             ty = float(j) / (nb_images - 1)
 
@@ -120,27 +117,27 @@ Barycenter computation and visualization
             weights = (1 - ty) * tmp1 + ty * tmp2
 
             if i == 0 and j == 0:
-                pl.imshow(f1, cmap=cm)
-                pl.axis('off')
+                axes[i, j].imshow(f1, cmap=cm)
             elif i == 0 and j == (nb_images - 1):
-                pl.imshow(f3, cmap=cm)
-                pl.axis('off')
+                axes[i, j].imshow(f3, cmap=cm)
             elif i == (nb_images - 1) and j == 0:
-                pl.imshow(f2, cmap=cm)
-                pl.axis('off')
+                axes[i, j].imshow(f2, cmap=cm)
             elif i == (nb_images - 1) and j == (nb_images - 1):
-                pl.imshow(f4, cmap=cm)
-                pl.axis('off')
+                axes[i, j].imshow(f4, cmap=cm)
             else:
                 # call to barycenter computation
-                pl.imshow(ot.bregman.convolutional_barycenter2d(A, reg, weights), cmap=cm)
-                pl.axis('off')
-    pl.show()
+                axes[i, j].imshow(
+                    ot.bregman.convolutional_barycenter2d(A, reg, weights),
+                    cmap=cm
+                )
+            axes[i, j].axis('off')
+    plt.tight_layout()
+    plt.show()
 
 
 
 .. image-sg:: /auto_examples/barycenters/images/sphx_glr_plot_convolutional_barycenter_001.png
-   :alt: plot convolutional barycenter
+   :alt: Convolutional Wasserstein Barycenters in POT
    :srcset: /auto_examples/barycenters/images/sphx_glr_plot_convolutional_barycenter_001.png
    :class: sphx-glr-single-img
 
@@ -151,7 +148,7 @@ Barycenter computation and visualization
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  23.975 seconds)
+   **Total running time of the script:** ( 2 minutes  9.403 seconds)
 
 
 .. _sphx_glr_download_auto_examples_barycenters_plot_convolutional_barycenter.py:
