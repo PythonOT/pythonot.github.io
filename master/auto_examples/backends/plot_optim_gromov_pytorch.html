@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Optimizing the Gromov-Wasserstein distance with PyTorch &mdash; POT Python Optimal Transport 0.8.0dev documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="2D free support Wasserstein barycenters of distributions" href="../barycenters/plot_free_support_barycenter.html" />
+    <link rel="prev" title="Sliced Wasserstein barycenter and gradient flow with PyTorch" href="plot_sliced_wass_grad_flow_pytorch.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
+          </a>
+              <div class="version">
+                0.8.0dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples gallery</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#ot-and-regularized-ot">OT and regularized OT</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#pot-backend-examples">POT backend examples</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="plot_unmix_optim_torch.html">Wasserstein unmixing with PyTorch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="plot_wass1d_torch.html">Wasserstein 1D with PyTorch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="plot_wass2_gan_torch.html">Wasserstein 2 Minibatch GAN with PyTorch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="plot_sliced_wass_grad_flow_pytorch.html">Sliced Wasserstein barycenter and gradient flow with PyTorch</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Optimizing the Gromov-Wasserstein distance with PyTorch</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#graph-generation">Graph generation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optimizing-the-weights-of-a-simple-template-c0-eye-3-to-fit-graph-1">Optimizing the weights of a simple template C0=eye(3) to fit Graph 1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#community-clustering-with-uniform-and-estimated-weights">Community clustering with uniform and estimated weights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#graph-compression-with-gw">Graph compression with GW</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#wasserstein-barycenters">Wasserstein barycenters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#domain-adaptation-examples">Domain adaptation examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#gromov-and-fused-gromov-wasserstein">Gromov and Fused-Gromov-Wasserstein</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#other-ot-problems">Other OT problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sliced-wasserstein-distance">Sliced Wasserstein Distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unbalanced-and-partial-ot">Unbalanced and Partial OT</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Examples gallery</a> &raquo;</li>
+      <li>Optimizing the Gromov-Wasserstein distance with PyTorch</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/backends/plot_optim_gromov_pytorch.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-backends-plot-optim-gromov-pytorch-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
+</div>
+<section class="sphx-glr-example-title" id="optimizing-the-gromov-wasserstein-distance-with-pytorch">
+<span id="sphx-glr-auto-examples-backends-plot-optim-gromov-pytorch-py"></span><h1>Optimizing the Gromov-Wasserstein distance with PyTorch<a class="headerlink" href="#optimizing-the-gromov-wasserstein-distance-with-pytorch" title="Permalink to this headline"></a></h1>
+<p>In this exemple we use the pytorch backend to optimize the  Gromov-Wasserstein
+(GW) loss between two graphs expressed as empirical distribution.</p>
+<p>In the first example we optimize the weights on the node of a simple template
+graph so that it minimizes the GW with a given Stochastic Block Model graph.
+We can see that this actually recovers the proportion of classes in the SBM
+and allows for an accurate clustering of the nodes using the GW optimal plan.</p>
+<p>In a second example we optimize simultaneously the weights and the sructure of
+the template graph which allows us to perform graph compression and to recover
+other properties of the SBM.</p>
+<p>The backend actually uses the gradients expressed in [38] to optimize the
+weights.</p>
+<p>[38] C. Vincent-Cuaz, T. Vayer, R. Flamary, M. Corneli, N. Courty, Online Graph
+Dictionary Learning, International Conference on Machine Learning (ICML), 2021.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Author: Rémi Flamary &lt;remi.flamary@polytechnique.edu&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="c1"># sphinx_gallery_thumbnail_number = 3</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.manifold</span> <span class="kn">import</span> <span class="n">MDS</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="k">as</span> <span class="nn">pl</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">import</span> <span class="nn">ot</span>
+<span class="kn">from</span> <span class="nn">ot.gromov</span> <span class="kn">import</span> <span class="n">gromov_wasserstein2</span>
+</pre></div>
+</div>
+<section id="graph-generation">
+<h2>Graph generation<a class="headerlink" href="#graph-generation" title="Permalink to this headline"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/random/legacy.html#numpy.random.RandomState" title="numpy.random.RandomState" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/legacy.html#numpy.random.RandomState" title="numpy.random.RandomState" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span></a><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_sbm</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nc</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ratio</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">P</span></a><span class="p">):</span>
+    <span class="n">nbpc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ratio</span></a><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="numpy.zeros" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">((</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">))</span>
+    <span class="k">for</span> <span class="n">c1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nc</span></a><span class="p">):</span>
+        <span class="k">for</span> <span class="n">c2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">c1</span> <span class="o">==</span> <span class="n">c2</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c1</span><span class="p">]),</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])):</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c2</span><span class="p">]),</span> <span class="n">i</span><span class="p">):</span>
+                        <span class="k">if</span> <a href="https://numpy.org/doc/stable/reference/random/legacy.html#numpy.random.RandomState" title="numpy.random.RandomState" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">P</span></a><span class="p">[</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">]:</span>
+                            <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c1</span><span class="p">]),</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])):</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c2</span><span class="p">]),</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="numpy.sum" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><span class="n">nbpc</span><span class="p">[:</span><span class="n">c2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])):</span>
+                        <span class="k">if</span> <a href="https://numpy.org/doc/stable/reference/random/legacy.html#numpy.random.RandomState" title="numpy.random.RandomState" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">P</span></a><span class="p">[</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">]:</span>
+                            <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">C</span> <span class="o">+</span> <span class="n">C</span><span class="o">.</span><span class="n">T</span>
+
+
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a> <span class="o">=</span> <span class="mi">100</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nc</span></a> <span class="o">=</span> <span class="mi">3</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ratio</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">([</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.3</span><span class="p">,</span> <span class="mf">.2</span><span class="p">])</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">P</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="mf">0.6</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.eye.html#numpy.eye" title="numpy.eye" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">eye</span></a><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.05</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ones.html#numpy.ones" title="numpy.ones" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">ones</span></a><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a> <span class="o">=</span> <span class="n">get_sbm</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nc</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ratio</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">P</span></a><span class="p">)</span>
+
+<span class="c1"># get 2d position for nodes</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x1</span></a> <span class="o">=</span> <span class="n">MDS</span><span class="p">(</span><span class="n">dissimilarity</span><span class="o">=</span><span class="s1">&#39;precomputed&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">plot_graph</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;tab10&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+
+
+<span class="n">pl</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plot_graph</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x1</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;SBM Graph&quot;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Adjacency matrix&quot;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_optim_gromov_pytorch_001.png" srcset="../../_images/sphx_glr_plot_optim_gromov_pytorch_001.png" alt="SBM Graph, Adjacency matrix" class = "sphx-glr-single-img"/><p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(-0.5, 99.5, 99.5, -0.5)
+</pre></div>
+</div>
+</section>
+<section id="optimizing-the-weights-of-a-simple-template-c0-eye-3-to-fit-graph-1">
+<h2>Optimizing the weights of a simple template C0=eye(3) to fit Graph 1<a class="headerlink" href="#optimizing-the-weights-of-a-simple-template-c0-eye-3-to-fit-graph-1" title="Permalink to this headline"></a></h2>
+<p>The adajacency matrix C1 is block diagonal with 3 blocks. We want to
+optimize the weights of a simple template C0=eye(3) and see if we can
+recover the proportion of classes from the SBM (up to a permutation).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.eye.html#numpy.eye" title="numpy.eye" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">eye</span></a><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">min_weight_gw</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">nb_iter_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; solve min_a GW(C1,C2,a, a2) by gradient descent&quot;&quot;&quot;</span>
+
+    <span class="c1"># use pyTorch for our data</span>
+    <span class="n">C1_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">)</span>
+    <span class="n">C2_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+
+    <span class="n">a0</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/legacy.html#numpy.random.RandomState" title="numpy.random.RandomState" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">.</span><span class="n">rand</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># random_init</span>
+    <span class="n">a0</span> <span class="o">/=</span> <span class="n">a0</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># on simplex</span>
+    <span class="n">a1_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><span class="n">a0</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">a2_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+
+    <span class="n">loss_iter</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb_iter_max</span><span class="p">):</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">gromov_wasserstein2</span><span class="p">(</span><span class="n">C1_torch</span><span class="p">,</span> <span class="n">C2_torch</span><span class="p">,</span> <span class="n">a1_torch</span><span class="p">,</span> <span class="n">a2_torch</span><span class="p">)</span>
+
+        <span class="n">loss_iter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+        <span class="c1">#print(&quot;{:03d} | {}&quot;.format(i, loss_iter[-1]))</span>
+
+        <span class="c1"># performs a step of projected gradient descent</span>
+        <span class="k">with</span> <a href="https://pytorch.org/docs/stable/generated/torch.no_grad.html#torch.no_grad" title="torch.no_grad" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span></a><span class="p">():</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">a1_torch</span><span class="o">.</span><span class="n">grad</span>
+            <span class="n">a1_torch</span> <span class="o">-=</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">lr</span>   <span class="c1"># step</span>
+            <span class="n">a1_torch</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="n">a1_torch</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <a href="../../gen_modules/ot.utils.html#ot.utils.proj_simplex" title="ot.utils.proj_simplex" class="sphx-glr-backref-module-ot-utils sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">proj_simplex</span></a><span class="p">(</span><span class="n">a1_torch</span><span class="p">)</span>
+
+    <span class="n">a1</span> <span class="o">=</span> <span class="n">a1_torch</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">a1</span><span class="p">,</span> <span class="n">loss_iter</span>
+
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a0_est</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_iter0</span></a> <span class="o">=</span> <span class="n">min_weight_gw</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <a href="../../all.html#ot.unif" title="ot.unif" class="sphx-glr-backref-module-ot sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">unif</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">),</span> <span class="n">nb_iter_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span>
+
+<span class="n">pl</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_iter0</span></a><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Loss along iterations&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Estimated weights : &quot;</span><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a0_est</span></a><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True proportions : &quot;</span><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ratio</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_optim_gromov_pytorch_002.png" srcset="../../_images/sphx_glr_plot_optim_gromov_pytorch_002.png" alt="Loss along iterations" class = "sphx-glr-single-img"/><p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Estimated weights :  [0.30280578 0.20249335 0.49470086]
+True proportions :  [0.5 0.3 0.2]
+</pre></div>
+</div>
+<p>It is clear that the optimization has converged and that we recover the
+ratio of the different classes in the SBM graph up to a permutation.</p>
+</section>
+<section id="community-clustering-with-uniform-and-estimated-weights">
+<h2>Community clustering with uniform and estimated weights<a class="headerlink" href="#community-clustering-with-uniform-and-estimated-weights" title="Permalink to this headline"></a></h2>
+<p>The GW OT  plan can be used to perform a clustering of the nodes of a graph
+when computing the GW with a simple template like C0 by labeling nodes in
+the original graph using by the index of the noe in the template receiving
+the most mass.</p>
+<p>We show here the result of such a clustering when using uniform weights on
+the template C0 and when using the optimal weights previously estimated.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">T_unif</span></a> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">gromov_wasserstein</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0</span></a><span class="p">,</span> <a href="../../all.html#ot.unif" title="ot.unif" class="sphx-glr-backref-module-ot sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">unif</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">),</span> <a href="../../all.html#ot.unif" title="ot.unif" class="sphx-glr-backref-module-ot sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">unif</span></a><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label_unif</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">T_unif</span></a><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">T_est</span></a> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">gromov_wasserstein</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0</span></a><span class="p">,</span> <a href="../../all.html#ot.unif" title="ot.unif" class="sphx-glr-backref-module-ot sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">unif</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">),</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a0_est</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label_est</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">T_est</span></a><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">pl</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plot_graph</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x1</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label_unif</span></a><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Graph clustering unif. weights&quot;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">plot_graph</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x1</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <span class="n">color</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">label_est</span></a><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Graph clustering est. weights&quot;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_optim_gromov_pytorch_003.png" srcset="../../_images/sphx_glr_plot_optim_gromov_pytorch_003.png" alt="Graph clustering unif. weights, Graph clustering est. weights" class = "sphx-glr-single-img"/><p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(-0.7760154087782825, 0.5785554952306556, -0.7708789474385304, 0.6510858680020543)
+</pre></div>
+</div>
+</section>
+<section id="graph-compression-with-gw">
+<h2>Graph compression with GW<a class="headerlink" href="#graph-compression-with-gw" title="Permalink to this headline"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Now we  optimize both the weights and structure of a small graph that</span>
+<span class="c1"># minimize the GW distance wrt our data graph. This can be seen as graph</span>
+<span class="c1"># compression but can also recover important properties of an SBM such</span>
+<span class="c1"># as its class proportion but also its matrix of probability of links between</span>
+<span class="c1"># classes</span>
+
+
+<span class="k">def</span> <span class="nf">graph_compession_gw</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nb_nodes</span></a><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">nb_iter_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; solve min_a GW(C1,C2,a, a2) by gradient descent&quot;&quot;&quot;</span>
+
+    <span class="c1"># use pyTorch for our data</span>
+
+    <span class="n">C2_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+    <span class="n">a2_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+
+    <span class="n">a0</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/legacy.html#numpy.random.RandomState" title="numpy.random.RandomState" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">.</span><span class="n">rand</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nb_nodes</span></a><span class="p">)</span>  <span class="c1"># random_init</span>
+    <span class="n">a0</span> <span class="o">/=</span> <span class="n">a0</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># on simplex</span>
+    <span class="n">a1_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><span class="n">a0</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.eye.html#numpy.eye" title="numpy.eye" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">eye</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nb_nodes</span></a><span class="p">)</span>
+    <span class="n">C1_torch</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0</span></a><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">loss_iter</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb_iter_max</span><span class="p">):</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">gromov_wasserstein2</span><span class="p">(</span><span class="n">C1_torch</span><span class="p">,</span> <span class="n">C2_torch</span><span class="p">,</span> <span class="n">a1_torch</span><span class="p">,</span> <span class="n">a2_torch</span><span class="p">)</span>
+
+        <span class="n">loss_iter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+        <span class="c1">#print(&quot;{:03d} | {}&quot;.format(i, loss_iter[-1]))</span>
+
+        <span class="c1"># performs a step of projected gradient descent</span>
+        <span class="k">with</span> <a href="https://pytorch.org/docs/stable/generated/torch.no_grad.html#torch.no_grad" title="torch.no_grad" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span></a><span class="p">():</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">a1_torch</span><span class="o">.</span><span class="n">grad</span>
+            <span class="n">a1_torch</span> <span class="o">-=</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">lr</span>   <span class="c1"># step</span>
+            <span class="n">a1_torch</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="n">a1_torch</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <a href="../../gen_modules/ot.utils.html#ot.utils.proj_simplex" title="ot.utils.proj_simplex" class="sphx-glr-backref-module-ot-utils sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">proj_simplex</span></a><span class="p">(</span><span class="n">a1_torch</span><span class="p">)</span>
+
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">C1_torch</span><span class="o">.</span><span class="n">grad</span>
+            <span class="n">C1_torch</span> <span class="o">-=</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">lr</span>   <span class="c1"># step</span>
+            <span class="n">C1_torch</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="n">C1_torch</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <a href="https://pytorch.org/docs/stable/generated/torch.clamp.html#torch.clamp" title="torch.clamp" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">clamp</span></a><span class="p">(</span><span class="n">C1_torch</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">a1</span> <span class="o">=</span> <span class="n">a1_torch</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a> <span class="o">=</span> <span class="n">C1_torch</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">a1</span><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <span class="n">loss_iter</span>
+
+
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nb_nodes</span></a> <span class="o">=</span> <span class="mi">3</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a0_est2</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0_est2</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_iter2</span></a> <span class="o">=</span> <span class="n">graph_compession_gw</span><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nb_nodes</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C1</span></a><span class="p">,</span> <a href="../../all.html#ot.unif" title="ot.unif" class="sphx-glr-backref-module-ot sphx-glr-backref-type-py-function"><span class="n">ot</span><span class="o">.</span><span class="n">unif</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n</span></a><span class="p">),</span>
+                                                   <span class="n">nb_iter_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">)</span>
+
+<span class="n">pl</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_iter2</span></a><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Loss along iterations&quot;</span><span class="p">)</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Estimated weights : &quot;</span><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">a0_est2</span></a><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True proportions : &quot;</span><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ratio</span></a><span class="p">)</span>
+
+<span class="n">pl</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">P</span></a><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;True SBM P matrix&#39;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">C0_est2</span></a><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Estimated C0 matrix&#39;</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img src="../../_images/sphx_glr_plot_optim_gromov_pytorch_004.png" srcset="../../_images/sphx_glr_plot_optim_gromov_pytorch_004.png" alt="Loss along iterations" class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_plot_optim_gromov_pytorch_005.png" srcset="../../_images/sphx_glr_plot_optim_gromov_pytorch_005.png" alt="True SBM P matrix, Estimated C0 matrix" class = "sphx-glr-multi-img"/></li>
+</ul>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Estimated weights :  [0.30269201 0.19966023 0.49764776]
+True proportions :  [0.5 0.3 0.2]
+
+&lt;matplotlib.colorbar.Colorbar object at 0x7fd2fb554a00&gt;
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  6.689 seconds)</p>
+<div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-backends-plot-optim-gromov-pytorch-py">
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/b13344600219003d9a932842d360b93b/plot_optim_gromov_pytorch.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_optim_gromov_pytorch.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/5a518a139e2e3b83cd4a0231d088d254/plot_optim_gromov_pytorch.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_optim_gromov_pytorch.ipynb</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="plot_sliced_wass_grad_flow_pytorch.html" class="btn btn-neutral float-left" title="Sliced Wasserstein barycenter and gradient flow with PyTorch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../barycenters/plot_free_support_barycenter.html" class="btn btn-neutral float-right" title="2D free support Wasserstein barycenters of distributions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions shift-up" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      versions
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+        <dd><a href="https://pythonot.github.io/master">latest</a></dd>
+       
+        <dd><a href="https://pythonot.github.io/">stable</a></dd>
+        
+      </dl>
+      
+
+    
+      
+      <dl>
+        <dt>On GitHub</dt>
+        <dd>
+          <a href="https://github.com/PythonOT/POT">Code on Github</a>
+        </dd>
+        
+      </dl>
+      
+    
+      
+      
+
+      <hr>
+      
+
+
+</div>
+</div>
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
