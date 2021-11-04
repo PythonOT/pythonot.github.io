@@ -178,6 +178,7 @@
 
     <span class="vm">__name__</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">__type__</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">__type_list__</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">rng_</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -739,6 +740,8 @@
 
     <span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;numpy&#39;</span>
     <span class="n">__type__</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">__type_list__</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                     <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)]</span>
 
     <span class="n">rng_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
 
@@ -964,11 +967,16 @@
 
     <span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;jax&#39;</span>
     <span class="n">__type__</span> <span class="o">=</span> <span class="n">jax_type</span>
+    <span class="n">__type_list__</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">rng_</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rng_</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">devices</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span> <span class="o">=</span> <span class="p">[</span><span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">d</span><span class="p">),</span>
+                                  <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">d</span><span class="p">)]</span>
 
 <div class="viewcode-block" id="JaxBackend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
@@ -977,7 +985,7 @@
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
+            <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">type_as</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="JaxBackend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">jax.flatten_util</span> <span class="kn">import</span> <span class="n">ravel_pytree</span>
@@ -1206,6 +1214,7 @@
 
     <span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;torch&#39;</span>
     <span class="n">__type__</span> <span class="o">=</span> <span class="n">torch_type</span>
+    <span class="n">__type_list__</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">rng_</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -1213,6 +1222,13 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">rng_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rng_</span><span class="o">.</span><span class="n">seed</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                              <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda&#39;</span><span class="p">))</span>
 
         <span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">Function</span>
 
@@ -1236,6 +1252,8 @@
         <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TorchBackend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
