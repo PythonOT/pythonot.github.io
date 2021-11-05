@@ -24,10 +24,9 @@ POT provides the following generic OT solvers (links to examples):
    for regularized OT [7].
 -  Entropic regularization OT solver with `Sinkhorn Knopp
    Algorithm <auto_examples/plot_OT_1D.html>`__
-   [2] , stabilized version [9] [10], greedy Sinkhorn [22] and
+   [2] , stabilized version [9] [10] [34], greedy Sinkhorn [22] and
    `Screening Sinkhorn
-   [26] <auto_examples/plot_screenkhorn_1D.html>`__
-   with optional GPU implementation (requires cupy).
+   [26] <auto_examples/plot_screenkhorn_1D.html>`__.
 -  Bregman projections for `Wasserstein
    barycenter <auto_examples/barycenters/plot_barycenter_lp_vs_entropic.html>`__
    [3], `convolutional
@@ -35,6 +34,9 @@ POT provides the following generic OT solvers (links to examples):
    [21] and unmixing [4].
 -  Sinkhorn divergence [23] and entropic regularization OT from
    empirical data.
+-  Debiased Sinkhorn barycenters `Sinkhorn divergence
+   barycenter <auto_examples/barycenters/plot_debiased_barycenter.html>`__
+   [37]
 -  `Smooth optimal transport
    solvers <auto_examples/plot_OT_1D_smooth.html>`__
    (dual and semi-dual) for KL and squared L2 regularizations [17].
@@ -45,7 +47,8 @@ POT provides the following generic OT solvers (links to examples):
    distances <auto_examples/gromov/plot_gromov.html>`__
    and `GW
    barycenters <auto_examples/gromov/plot_gromov_barycenter.html>`__
-   (exact [13] and regularized [12])
+   (exact [13] and regularized [12]), differentiable using gradients
+   from
 -  `Fused-Gromov-Wasserstein distances
    solver <auto_examples/gromov/plot_fgw.html#sphx-glr-auto-examples-plot-fgw-py>`__
    and `FGW
@@ -55,6 +58,9 @@ POT provides the following generic OT solvers (links to examples):
    solver <auto_examples/plot_stochastic.html>`__
    for Large-scale Optimal Transport (semi-dual problem [18] and dual
    problem [19])
+-  `Stochastic solver of Gromov
+   Wasserstein <auto_examples/gromov/plot_gromov.html>`__
+   for large-scale problem with any loss functions [33]
 -  Non regularized `free support Wasserstein
    barycenters <auto_examples/barycenters/plot_free_support_barycenter.html>`__
    [20].
@@ -68,7 +74,13 @@ POT provides the following generic OT solvers (links to examples):
    (exact [29] and entropic [3] formulations).
 -  `Sliced
    Wasserstein <auto_examples/sliced-wasserstein/plot_variance.html>`__
-   [31, 32].
+   [31, 32] and Max-sliced Wasserstein [35] that can be used for
+   gradient flows [36].
+-  `Several
+   backends <https://pythonot.github.io/quickstart.html#solving-ot-with-multiple-backends>`__
+   for easy use of POT with
+   `Pytorch <https://pytorch.org/>`__/`jax <https://github.com/google/jax>`__/`Numpy <https://numpy.org/>`__
+   arrays.
 
 POT provides the following Machine Learning related solvers:
 
@@ -104,12 +116,14 @@ paper <https://jmlr.org/papers/v22/20-451.html>`__:
 
 ::
 
-    Rémi Flamary, Nicolas Courty, Alexandre Gramfort, Mokhtar Z. Alaya, Aurélie Boisbunon, Stanislas Chambon, Laetitia Chapel, Adrien Corenflos, Kilian Fatras, Nemo Fournier, Léo Gautheron, Nathalie T.H. Gayraud, Hicham Janati, Alain Rakotomamonjy, Ievgen Redko, Antoine Rolet, Antony Schutz, Vivien Seguy, Danica J. Sutherland, Romain Tavenard, Alexander Tong, Titouan Vayer;, POT Python Optimal Transport library, Journal of Machine Learning Research, 22(78):1−8, 2021.
+    Rémi Flamary, Nicolas Courty, Alexandre Gramfort, Mokhtar Z. Alaya, Aurélie Boisbunon, Stanislas Chambon, Laetitia Chapel, Adrien Corenflos, Kilian Fatras, Nemo Fournier, Léo Gautheron, Nathalie T.H. Gayraud, Hicham Janati, Alain Rakotomamonjy, Ievgen Redko, Antoine Rolet, Antony Schutz, Vivien Seguy, Danica J. Sutherland, Romain Tavenard, Alexander Tong, Titouan Vayer,
+    POT Python Optimal Transport library,
+    Journal of Machine Learning Research, 22(78):1−8, 2021.
     Website: https://pythonot.github.io/
 
 In Bibtex format:
 
-::
+.. code:: bibtex
 
     @article{flamary2021pot,
       author  = {R{\'e}mi Flamary and Nicolas Courty and Alexandre Gramfort and Mokhtar Z. Alaya and Aur{\'e}lie Boisbunon and Stanislas Chambon and Laetitia Chapel and Adrien Corenflos and Kilian Fatras and Nemo Fournier and L{\'e}o Gautheron and Nathalie T.H. Gayraud and Hicham Janati and Alain Rakotomamonjy and Ievgen Redko and Antoine Rolet and Antony Schutz and Vivien Seguy and Danica J. Sutherland and Romain Tavenard and Alexander Tong and Titouan Vayer},
@@ -131,28 +145,21 @@ following Python modules:
 
 -  Numpy (>=1.16)
 -  Scipy (>=1.0)
--  Cython (>=0.23)
--  Matplotlib (>=1.5)
+-  Cython (>=0.23) (build only, not necessary when installing from pip
+   or conda)
 
 Pip installation
 ^^^^^^^^^^^^^^^^
 
-Note that due to a limitation of pip, ``cython`` and ``numpy`` need to
-be installed prior to installing POT. This can be done easily with
-
-::
-
-    pip install numpy cython
-
 You can install the toolbox through PyPI with:
 
-::
+.. code:: console
 
     pip install POT
 
 or get the very latest version by running:
 
-::
+.. code:: console
 
     pip install -U https://github.com/PythonOT/POT/archive/master.zip # with --user for user install (no root)
 
@@ -163,7 +170,7 @@ If you use the Anaconda python distribution, POT is available in
 `conda-forge <https://conda-forge.org>`__. To install it and the
 required dependencies:
 
-::
+.. code:: console
 
     conda install -c conda-forge pot
 
@@ -177,7 +184,8 @@ without errors:
 
     import ot
 
-Note that for easier access the module is name ot instead of pot.
+Note that for easier access the module is named ``ot`` instead of
+``pot``.
 
 Dependencies
 ~~~~~~~~~~~~
@@ -188,15 +196,17 @@ below
 -  **ot.dr** (Wasserstein dimensionality reduction) depends on autograd
    and pymanopt that can be installed with:
 
-   ::
+.. code:: shell
 
-       pip install pymanopt autograd
+    pip install pymanopt autograd
 
 -  **ot.gpu** (GPU accelerated OT) depends on cupy that have to be
    installed following instructions on `this
    page <https://docs-cupy.chainer.org/en/stable/install.html>`__.
-
-obviously you need CUDA installed and a compatible GPU.
+   Obviously you will need CUDA installed and a compatible GPU. Note
+   that this module is deprecated since version 0.8 and will be deleted
+   in the future. GPU is now handled automatically through the backends
+   and several solver already can run on GPU using the Pytorch backend.
 
 Examples
 --------
@@ -206,36 +216,36 @@ Short examples
 
 -  Import the toolbox
 
-   .. code:: python
+.. code:: python
 
-       import ot
+    import ot
 
 -  Compute Wasserstein distances
 
-   .. code:: python
+.. code:: python
 
-       # a,b are 1D histograms (sum to 1 and positive)
-       # M is the ground cost matrix
-       Wd=ot.emd2(a,b,M) # exact linear program
-       Wd_reg=ot.sinkhorn2(a,b,M,reg) # entropic regularized OT
-       # if b is a matrix compute all distances to a and return a vector
+    # a,b are 1D histograms (sum to 1 and positive)
+    # M is the ground cost matrix
+    Wd = ot.emd2(a, b, M) # exact linear program
+    Wd_reg = ot.sinkhorn2(a, b, M, reg) # entropic regularized OT
+    # if b is a matrix compute all distances to a and return a vector
 
 -  Compute OT matrix
 
-   .. code:: python
+.. code:: python
 
-       # a,b are 1D histograms (sum to 1 and positive)
-       # M is the ground cost matrix
-       T=ot.emd(a,b,M) # exact linear program
-       T_reg=ot.sinkhorn(a,b,M,reg) # entropic regularized OT
+    # a,b are 1D histograms (sum to 1 and positive)
+    # M is the ground cost matrix
+    T = ot.emd(a, b, M) # exact linear program
+    T_reg = ot.sinkhorn(a, b, M, reg) # entropic regularized OT
 
 -  Compute Wasserstein barycenter
 
-   .. code:: python
+.. code:: python
 
-       # A is a n*d matrix containing d  1D histograms
-       # M is the ground cost matrix
-       ba=ot.barycenter(A,M,reg) # reg is regularization parameter
+    # A is a n*d matrix containing d  1D histograms
+    # M is the ground cost matrix
+    ba = ot.barycenter(A, M, reg) # reg is regularization parameter
 
 Examples and Notebooks
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -273,11 +283,16 @@ The contributors to this library are
    Rakotomamonjy <https://sites.google.com/site/alainrakotomamonjy/home>`__
 -  `Vayer Titouan <https://tvayer.github.io/>`__ (Gromov-Wasserstein -,
    Fused-Gromov-Wasserstein)
--  `Hicham Janati <https://hichamjanati.github.io/>`__ (Unbalanced OT)
+-  `Hicham Janati <https://hichamjanati.github.io/>`__ (Unbalanced OT,
+   Debiased barycenters)
 -  `Romain Tavenard <https://rtavenar.github.io/>`__ (1d Wasserstein)
 -  `Mokhtar Z. Alaya <http://mzalaya.github.io/>`__ (Screenkhorn)
 -  `Ievgen Redko <https://ievred.github.io/>`__ (Laplacian DA, JCPOT)
 -  `Adrien Corenflos <https://adriencorenflos.github.io/>`__ (Sliced
+   Wasserstein Distance)
+-  `Tanguy Kerdoncuff <https://hv0nnus.github.io/>`__ (Sampled Gromov
+   Wasserstein)
+-  `Minhui Huang <https://mhhuang95.github.io>`__ (Projection Robust
    Wasserstein Distance)
 
 This toolbox benefit a lot from open source research and we would like
@@ -467,6 +482,46 @@ NIPS Workshop on Optimal Transport and Machine Learning OTML, 2014.
 of
 measures <https://perso.liris.cnrs.fr/nicolas.bonneel/WassersteinSliced-JMIV.pdf>`__,
 Journal of Mathematical Imaging and Vision 51.1 (2015): 22-45
+
+[32] Huang, M., Ma S., Lai, L. (2021). `A Riemannian Block Coordinate
+Descent Method for Computing the Projection Robust Wasserstein
+Distance <http://proceedings.mlr.press/v139/huang21e.html>`__,
+Proceedings of the 38th International Conference on Machine Learning
+(ICML).
+
+[33] Kerdoncuff T., Emonet R., Marc S. `Sampled Gromov
+Wasserstein <https://hal.archives-ouvertes.fr/hal-03232509/document>`__,
+Machine Learning Journal (MJL), 2021
+
+[34] Feydy, J., Séjourné, T., Vialard, F. X., Amari, S. I., Trouvé, A.,
+& Peyré, G. (2019, April). `Interpolating between optimal transport and
+MMD using Sinkhorn
+divergences <http://proceedings.mlr.press/v89/feydy19a/feydy19a.pdf>`__.
+In The 22nd International Conference on Artificial Intelligence and
+Statistics (pp. 2681-2690). PMLR.
+
+[35] Deshpande, I., Hu, Y. T., Sun, R., Pyrros, A., Siddiqui, N.,
+Koyejo, S., ... & Schwing, A. G. (2019). `Max-sliced wasserstein
+distance and its use for
+gans <https://openaccess.thecvf.com/content_CVPR_2019/papers/Deshpande_Max-Sliced_Wasserstein_Distance_and_Its_Use_for_GANs_CVPR_2019_paper.pdf>`__.
+In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (pp. 10648-10656).
+
+[36] Liutkus, A., Simsekli, U., Majewski, S., Durmus, A., & Stöter, F.
+R. (2019, May). `Sliced-Wasserstein flows: Nonparametric generative
+modeling via optimal transport and
+diffusions <http://proceedings.mlr.press/v97/liutkus19a/liutkus19a.pdf>`__.
+In International Conference on Machine Learning (pp. 4104-4113). PMLR.
+
+[37] Janati, H., Cuturi, M., Gramfort, A. `Debiased sinkhorn
+barycenters <http://proceedings.mlr.press/v119/janati20a/janati20a.pdf>`__
+Proceedings of the 37th International Conference on Machine Learning,
+PMLR 119:4692-4701, 2020
+
+[38] C. Vincent-Cuaz, T. Vayer, R. Flamary, M. Corneli, N. Courty,
+`Online Graph Dictionary
+Learning <https://arxiv.org/pdf/2102.06555.pdf>`__, International
+Conference on Machine Learning (ICML), 2021.
 
 .. |PyPI version| image:: https://badge.fury.io/py/POT.svg
    :target: https://badge.fury.io/py/POT
