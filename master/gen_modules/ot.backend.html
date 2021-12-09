@@ -50,6 +50,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../all.html">API and modules</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="ot.lp.html">ot.lp</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ot.backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#performance">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
@@ -72,8 +73,8 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../releases.html">Releases</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing to POT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../.github/CONTRIBUTING.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../.github/CODE_OF_CONDUCT.html">Code of Conduct</a></li>
 </ul>
 
         </div>
@@ -105,7 +106,7 @@
 <span id="ot-backend"></span><h1>ot.backend<a class="headerlink" href="#module-ot.backend" title="Permalink to this headline"></a></h1>
 <p>Multi-lib backend for POT</p>
 <p>The goal is to write backend-agnostic code. Whether you’re using Numpy, PyTorch,
-Jax, or Cupy, POT code should work nonetheless.
+Jax, Cupy, or Tensorflow, POT code should work nonetheless.
 To achieve that, POT provides backend classes which implements functions in their respective backend
 imitating Numpy API. As a convention, we use nx instead of np to refer to the backend.</p>
 <p class="rubric">Examples</p>
@@ -118,6 +119,65 @@ imitating Numpy API. As a convention, we use nx instead of np to refer to the ba
 <span class="gp">... </span>    <span class="k">return</span> <span class="n">c</span>
 </pre></div>
 </div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Tensorflow only works with the Numpy API. To activate it, please run the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.python.ops.numpy_ops</span> <span class="kn">import</span> <span class="n">np_config</span>
+<span class="n">np_config</span><span class="o">.</span><span class="n">enable_numpy_behavior</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<section id="performance">
+<h2>Performance<a class="headerlink" href="#performance" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>CPU: Intel(R) Xeon(R) Gold 6248 CPU &#64; 2.50GHz</p></li>
+<li><p>GPU: Tesla V100-SXM2-32GB</p></li>
+<li><p>Date of the benchmark: December 8th, 2021</p></li>
+<li><p>Commit of benchmark: PR #316, <a class="reference external" href="https://github.com/PythonOT/POT/pull/316">https://github.com/PythonOT/POT/pull/316</a></p></li>
+</ul>
+<style>
+#perftable {
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+#perftable table{
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+}
+
+#perftable th, #perftable td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    font-size: smaller;
+}
+</style>
+
+<div id="perftable">
+<table>
+<tr><th align="center" colspan="8">Sinkhorn Knopp - Averaged on 100 runs</th></tr>
+<tr><th align="center">Bitsize</th><th align="center" colspan="7">32 bits</th></tr>
+<tr><th align="center">Device</th><th align="center" colspan="3.0"">CPU</th><th align="center" colspan="4.0">GPU</tr>
+<tr><th align="center">Sample size</th><th align="center">Numpy</th><th align="center">Pytorch</th><th align="center">Tensorflow</th><th align="center">Cupy</th><th align="center">Jax</th><th align="center">Pytorch</th><th align="center">Tensorflow</th></tr>
+<tr><td align="center">50</td><td align="center">0.0008</td><td align="center">0.0022</td><td align="center">0.0151</td><td align="center">0.0095</td><td align="center">0.0193</td><td align="center">0.0051</td><td align="center">0.0293</td></tr>
+<tr><td align="center">100</td><td align="center">0.0005</td><td align="center">0.0013</td><td align="center">0.0097</td><td align="center">0.0057</td><td align="center">0.0115</td><td align="center">0.0029</td><td align="center">0.0173</td></tr>
+<tr><td align="center">500</td><td align="center">0.0009</td><td align="center">0.0016</td><td align="center">0.0110</td><td align="center">0.0058</td><td align="center">0.0115</td><td align="center">0.0029</td><td align="center">0.0166</td></tr>
+<tr><td align="center">1000</td><td align="center">0.0021</td><td align="center">0.0021</td><td align="center">0.0145</td><td align="center">0.0056</td><td align="center">0.0118</td><td align="center">0.0029</td><td align="center">0.0168</td></tr>
+<tr><td align="center">2000</td><td align="center">0.0069</td><td align="center">0.0043</td><td align="center">0.0278</td><td align="center">0.0059</td><td align="center">0.0118</td><td align="center">0.0030</td><td align="center">0.0165</td></tr>
+<tr><td align="center">5000</td><td align="center">0.0707</td><td align="center">0.0314</td><td align="center">0.1395</td><td align="center">0.0074</td><td align="center">0.0125</td><td align="center">0.0035</td><td align="center">0.0198</td></tr>
+<tr><td colspan="8">&nbsp;</td></tr>
+<tr><th align="center">Bitsize</th><th align="center" colspan="7">64 bits</th></tr>
+<tr><th align="center">Device</th><th align="center" colspan="3.0"">CPU</th><th align="center" colspan="4.0">GPU</tr>
+<tr><th align="center">Sample size</th><th align="center">Numpy</th><th align="center">Pytorch</th><th align="center">Tensorflow</th><th align="center">Cupy</th><th align="center">Jax</th><th align="center">Pytorch</th><th align="center">Tensorflow</th></tr>
+<tr><td align="center">50</td><td align="center">0.0008</td><td align="center">0.0020</td><td align="center">0.0154</td><td align="center">0.0093</td><td align="center">0.0191</td><td align="center">0.0051</td><td align="center">0.0328</td></tr>
+<tr><td align="center">100</td><td align="center">0.0005</td><td align="center">0.0013</td><td align="center">0.0094</td><td align="center">0.0056</td><td align="center">0.0114</td><td align="center">0.0029</td><td align="center">0.0169</td></tr>
+<tr><td align="center">500</td><td align="center">0.0013</td><td align="center">0.0017</td><td align="center">0.0120</td><td align="center">0.0059</td><td align="center">0.0116</td><td align="center">0.0029</td><td align="center">0.0168</td></tr>
+<tr><td align="center">1000</td><td align="center">0.0034</td><td align="center">0.0027</td><td align="center">0.0177</td><td align="center">0.0058</td><td align="center">0.0118</td><td align="center">0.0029</td><td align="center">0.0167</td></tr>
+<tr><td align="center">2000</td><td align="center">0.0146</td><td align="center">0.0075</td><td align="center">0.0436</td><td align="center">0.0059</td><td align="center">0.0120</td><td align="center">0.0029</td><td align="center">0.0165</td></tr>
+<tr><td align="center">5000</td><td align="center">0.1467</td><td align="center">0.0568</td><td align="center">0.2468</td><td align="center">0.0077</td><td align="center">0.0146</td><td align="center">0.0045</td><td align="center">0.0204</td></tr>
+</table>
+</div></section>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline"></a></h2>
 <dl class="py function">
@@ -147,7 +207,7 @@ imitating Numpy API. As a convention, we use nx instead of np to refer to the ba
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ot.backend.</span></span><span class="sig-name descname"><span class="pre">Backend</span></span><a class="reference internal" href="../_modules/ot/backend.html#Backend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.Backend" title="Permalink to this definition"></a></dt>
 <dd><p>Backend abstract class.
 Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" title="ot.backend.JaxBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">JaxBackend</span></code></a>, <a class="reference internal" href="#ot.backend.NumpyBackend" title="ot.backend.NumpyBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">NumpyBackend</span></code></a>, <a class="reference internal" href="#ot.backend.TorchBackend" title="ot.backend.TorchBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchBackend</span></code></a>,
-<a class="reference internal" href="#ot.backend.CupyBackend" title="ot.backend.CupyBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">CupyBackend</span></code></a></p>
+<a class="reference internal" href="#ot.backend.CupyBackend" title="ot.backend.CupyBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">CupyBackend</span></code></a>, <a class="reference internal" href="#ot.backend.TensorflowBackend" title="ot.backend.TensorflowBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">TensorflowBackend</span></code></a></p>
 <ul class="simple">
 <li><p>The <cite>__name__</cite> class attribute refers to the name of the backend.</p></li>
 <li><p>The <cite>__type__</cite> class attribute refers to the data structure used by the backend.</p></li>
@@ -207,6 +267,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.Backend.bitsize">
+<span class="sig-name descname"><span class="pre">bitsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#Backend.bitsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.Backend.bitsize" title="Permalink to this definition"></a></dt>
+<dd><p>Gives the number of bits used by the data type of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.Backend.clip">
 <span class="sig-name descname"><span class="pre">clip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#Backend.clip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.Backend.clip" title="Permalink to this definition"></a></dt>
 <dd><p>Limits the values in a tensor.</p>
@@ -244,6 +310,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 <dd><p>Returns the cumulative sum of tensor elements over given dimensions.</p>
 <p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html#numpy.cumsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.cumsum</span></code></a></p>
 <p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html">https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.Backend.device_type">
+<span class="sig-name descname"><span class="pre">device_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#Backend.device_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.Backend.device_type" title="Permalink to this definition"></a></dt>
+<dd><p>Returns CPU or GPU depending on the device where the given tensor is located.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -521,6 +593,14 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.Backend.squeeze">
+<span class="sig-name descname"><span class="pre">squeeze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#Backend.squeeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.Backend.squeeze" title="Permalink to this definition"></a></dt>
+<dd><p>Remove axes of length one from a.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html#numpy.squeeze" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.squeeze</span></code></a>.</p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html</a></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.Backend.stack">
 <span class="sig-name descname"><span class="pre">stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#Backend.stack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.Backend.stack" title="Permalink to this definition"></a></dt>
 <dd><p>Joins a sequence of tensors along a new dimension.</p>
@@ -671,6 +751,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.CupyBackend.bitsize">
+<span class="sig-name descname"><span class="pre">bitsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#CupyBackend.bitsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.CupyBackend.bitsize" title="Permalink to this definition"></a></dt>
+<dd><p>Gives the number of bits used by the data type of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.CupyBackend.clip">
 <span class="sig-name descname"><span class="pre">clip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#CupyBackend.clip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.CupyBackend.clip" title="Permalink to this definition"></a></dt>
 <dd><p>Limits the values in a tensor.</p>
@@ -708,6 +794,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 <dd><p>Returns the cumulative sum of tensor elements over given dimensions.</p>
 <p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html#numpy.cumsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.cumsum</span></code></a></p>
 <p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html">https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.CupyBackend.device_type">
+<span class="sig-name descname"><span class="pre">device_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#CupyBackend.device_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.CupyBackend.device_type" title="Permalink to this definition"></a></dt>
+<dd><p>Returns CPU or GPU depending on the device where the given tensor is located.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -985,6 +1077,14 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.CupyBackend.squeeze">
+<span class="sig-name descname"><span class="pre">squeeze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#CupyBackend.squeeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.CupyBackend.squeeze" title="Permalink to this definition"></a></dt>
+<dd><p>Remove axes of length one from a.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html#numpy.squeeze" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.squeeze</span></code></a>.</p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html</a></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.CupyBackend.stack">
 <span class="sig-name descname"><span class="pre">stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#CupyBackend.stack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.CupyBackend.stack" title="Permalink to this definition"></a></dt>
 <dd><p>Joins a sequence of tensors along a new dimension.</p>
@@ -1135,6 +1235,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.JaxBackend.bitsize">
+<span class="sig-name descname"><span class="pre">bitsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#JaxBackend.bitsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.JaxBackend.bitsize" title="Permalink to this definition"></a></dt>
+<dd><p>Gives the number of bits used by the data type of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.JaxBackend.clip">
 <span class="sig-name descname"><span class="pre">clip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#JaxBackend.clip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.JaxBackend.clip" title="Permalink to this definition"></a></dt>
 <dd><p>Limits the values in a tensor.</p>
@@ -1172,6 +1278,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 <dd><p>Returns the cumulative sum of tensor elements over given dimensions.</p>
 <p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html#numpy.cumsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.cumsum</span></code></a></p>
 <p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html">https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.JaxBackend.device_type">
+<span class="sig-name descname"><span class="pre">device_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#JaxBackend.device_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.JaxBackend.device_type" title="Permalink to this definition"></a></dt>
+<dd><p>Returns CPU or GPU depending on the device where the given tensor is located.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1449,6 +1561,14 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.JaxBackend.squeeze">
+<span class="sig-name descname"><span class="pre">squeeze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#JaxBackend.squeeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.JaxBackend.squeeze" title="Permalink to this definition"></a></dt>
+<dd><p>Remove axes of length one from a.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html#numpy.squeeze" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.squeeze</span></code></a>.</p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html</a></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.JaxBackend.stack">
 <span class="sig-name descname"><span class="pre">stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#JaxBackend.stack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.JaxBackend.stack" title="Permalink to this definition"></a></dt>
 <dd><p>Joins a sequence of tensors along a new dimension.</p>
@@ -1599,6 +1719,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.NumpyBackend.bitsize">
+<span class="sig-name descname"><span class="pre">bitsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#NumpyBackend.bitsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.NumpyBackend.bitsize" title="Permalink to this definition"></a></dt>
+<dd><p>Gives the number of bits used by the data type of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.NumpyBackend.clip">
 <span class="sig-name descname"><span class="pre">clip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#NumpyBackend.clip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.NumpyBackend.clip" title="Permalink to this definition"></a></dt>
 <dd><p>Limits the values in a tensor.</p>
@@ -1636,6 +1762,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 <dd><p>Returns the cumulative sum of tensor elements over given dimensions.</p>
 <p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html#numpy.cumsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.cumsum</span></code></a></p>
 <p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html">https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.NumpyBackend.device_type">
+<span class="sig-name descname"><span class="pre">device_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#NumpyBackend.device_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.NumpyBackend.device_type" title="Permalink to this definition"></a></dt>
+<dd><p>Returns CPU or GPU depending on the device where the given tensor is located.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1913,6 +2045,14 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.NumpyBackend.squeeze">
+<span class="sig-name descname"><span class="pre">squeeze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#NumpyBackend.squeeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.NumpyBackend.squeeze" title="Permalink to this definition"></a></dt>
+<dd><p>Remove axes of length one from a.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html#numpy.squeeze" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.squeeze</span></code></a>.</p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html</a></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.NumpyBackend.stack">
 <span class="sig-name descname"><span class="pre">stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#NumpyBackend.stack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.NumpyBackend.stack" title="Permalink to this definition"></a></dt>
 <dd><p>Joins a sequence of tensors along a new dimension.</p>
@@ -2001,6 +2141,485 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <div class="sphx-glr-clear"></div><dl class="py class">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ot.backend.</span></span><span class="sig-name descname"><span class="pre">TensorflowBackend</span></span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend" title="Permalink to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.abs">
+<span class="sig-name descname"><span class="pre">abs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.abs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.abs" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the absolute value element-wise.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.absolute.html#numpy.absolute" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.absolute</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.absolute.html">https://numpy.org/doc/stable/reference/generated/numpy.absolute.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.allclose">
+<span class="sig-name descname"><span class="pre">allclose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equal_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.allclose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.allclose" title="Permalink to this definition"></a></dt>
+<dd><p>Returns True if two arrays are element-wise equal within a tolerance.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.allclose.html#numpy.allclose" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.allclose</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.allclose.html">https://numpy.org/doc/stable/reference/generated/numpy.allclose.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.any">
+<span class="sig-name descname"><span class="pre">any</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.any"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.any" title="Permalink to this definition"></a></dt>
+<dd><p>Tests whether any tensor element along given dimensions evaluates to True.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.any.html#numpy.any" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.any</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.any.html">https://numpy.org/doc/stable/reference/generated/numpy.any.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.arange">
+<span class="sig-name descname"><span class="pre">arange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.arange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.arange" title="Permalink to this definition"></a></dt>
+<dd><p>Returns evenly spaced values within a given interval.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.arange</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html">https://numpy.org/doc/stable/reference/generated/numpy.arange.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.argmax">
+<span class="sig-name descname"><span class="pre">argmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.argmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.argmax" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the indices of the maximum values of a tensor along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.argmax.html#numpy.argmax" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.argmax</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.argmax.html">https://numpy.org/doc/stable/reference/generated/numpy.argmax.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.argsort">
+<span class="sig-name descname"><span class="pre">argsort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.argsort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.argsort" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the indices that would sort a tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.argsort.html#numpy.argsort" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.argsort</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.argsort.html">https://numpy.org/doc/stable/reference/generated/numpy.argsort.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.assert_same_dtype_device">
+<span class="sig-name descname"><span class="pre">assert_same_dtype_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.assert_same_dtype_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.assert_same_dtype_device" title="Permalink to this definition"></a></dt>
+<dd><p>Checks whether or not the two given inputs have the same dtype as well as the same device</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.bitsize">
+<span class="sig-name descname"><span class="pre">bitsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.bitsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.bitsize" title="Permalink to this definition"></a></dt>
+<dd><p>Gives the number of bits used by the data type of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.clip">
+<span class="sig-name descname"><span class="pre">clip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.clip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.clip" title="Permalink to this definition"></a></dt>
+<dd><p>Limits the values in a tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.clip.html#numpy.clip" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.clip</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.clip.html">https://numpy.org/doc/stable/reference/generated/numpy.clip.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.concatenate">
+<span class="sig-name descname"><span class="pre">concatenate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.concatenate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.concatenate" title="Permalink to this definition"></a></dt>
+<dd><p>Joins a sequence of tensors along an existing dimension.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html#numpy.concatenate" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.concatenate</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html">https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.coo_matrix">
+<span class="sig-name descname"><span class="pre">coo_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.coo_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.coo_matrix" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a sparse tensor in COOrdinate format.</p>
+<p>This function follows the api from <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/reference/generated/scipy.sparse.coo_matrix.html#scipy.sparse.coo_matrix" title="(in SciPy v1.7.1)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.sparse.coo_matrix</span></code></a></p>
+<p>See: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.copy" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy of the given tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.copy.html#numpy.copy" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.copy</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.copy.html">https://numpy.org/doc/stable/reference/generated/numpy.copy.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.cumsum">
+<span class="sig-name descname"><span class="pre">cumsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.cumsum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.cumsum" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the cumulative sum of tensor elements over given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html#numpy.cumsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.cumsum</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html">https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.device_type">
+<span class="sig-name descname"><span class="pre">device_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.device_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.device_type" title="Permalink to this definition"></a></dt>
+<dd><p>Returns CPU or GPU depending on the device where the given tensor is located.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.diag">
+<span class="sig-name descname"><span class="pre">diag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.diag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.diag" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts or constructs a diagonal tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.diag.html#numpy.diag" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.diag</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.diag.html">https://numpy.org/doc/stable/reference/generated/numpy.diag.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.dot">
+<span class="sig-name descname"><span class="pre">dot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.dot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.dot" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the dot product of two tensors.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dot.html#numpy.dot" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.dot</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dot.html">https://numpy.org/doc/stable/reference/generated/numpy.dot.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.dtype_device">
+<span class="sig-name descname"><span class="pre">dtype_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.dtype_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.dtype_device" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the dtype and the device of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.einsum">
+<span class="sig-name descname"><span class="pre">einsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subscripts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">operands</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.einsum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.einsum" title="Permalink to this definition"></a></dt>
+<dd><p>Evaluates the Einstein summation convention on the operands.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.einsum.html#numpy.einsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.einsum</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.einsum.html">https://numpy.org/doc/stable/reference/generated/numpy.einsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.eliminate_zeros">
+<span class="sig-name descname"><span class="pre">eliminate_zeros</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.eliminate_zeros"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.eliminate_zeros" title="Permalink to this definition"></a></dt>
+<dd><p>Removes entries smaller than the given threshold from the sparse tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/reference/generated/scipy.sparse.csr_matrix.eliminate_zeros.html#scipy.sparse.csr_matrix.eliminate_zeros" title="(in SciPy v1.7.1)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix.eliminate_zeros</span></code></a></p>
+<p>See: <a class="reference external" href="https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.sparse.csr_matrix.eliminate_zeros.html">https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.sparse.csr_matrix.eliminate_zeros.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.exp">
+<span class="sig-name descname"><span class="pre">exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.exp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.exp" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the exponential value element-wise.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.exp.html#numpy.exp" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.exp</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.exp.html">https://numpy.org/doc/stable/reference/generated/numpy.exp.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.eye">
+<span class="sig-name descname"><span class="pre">eye</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.eye"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.eye" title="Permalink to this definition"></a></dt>
+<dd><p>Creates the identity matrix of given size.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.eye.html#numpy.eye" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.eye</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.eye.html">https://numpy.org/doc/stable/reference/generated/numpy.eye.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.flip">
+<span class="sig-name descname"><span class="pre">flip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.flip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.flip" title="Permalink to this definition"></a></dt>
+<dd><p>Reverses the order of elements in a tensor along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.flip.html#numpy.flip" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.flip</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.flip.html">https://numpy.org/doc/stable/reference/generated/numpy.flip.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.from_numpy">
+<span class="sig-name descname"><span class="pre">from_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.from_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.from_numpy" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a tensor cloning a numpy array, with the given precision (defaulting to input’s precision) and the given device (in case of GPUs)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.full">
+<span class="sig-name descname"><span class="pre">full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.full" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a tensor with given shape, filled with given value.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.full.html#numpy.full" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.full</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.full.html">https://numpy.org/doc/stable/reference/generated/numpy.full.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.isinf">
+<span class="sig-name descname"><span class="pre">isinf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.isinf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.isinf" title="Permalink to this definition"></a></dt>
+<dd><p>Tests element-wise for positive or negative infinity and returns result as a boolean tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.isinf.html#numpy.isinf" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.isinf</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.isinf.html">https://numpy.org/doc/stable/reference/generated/numpy.isinf.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.isnan">
+<span class="sig-name descname"><span class="pre">isnan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.isnan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.isnan" title="Permalink to this definition"></a></dt>
+<dd><p>Tests element-wise for NaN and returns result as a boolean tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.isnan.html#numpy.isnan" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.isnan</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.isnan.html">https://numpy.org/doc/stable/reference/generated/numpy.isnan.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.issparse">
+<span class="sig-name descname"><span class="pre">issparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.issparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.issparse" title="Permalink to this definition"></a></dt>
+<dd><p>Checks whether or not the input tensor is a sparse tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/reference/generated/scipy.sparse.issparse.html#scipy.sparse.issparse" title="(in SciPy v1.7.1)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.sparse.issparse</span></code></a></p>
+<p>See: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.issparse.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.issparse.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.linspace">
+<span class="sig-name descname"><span class="pre">linspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.linspace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.linspace" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a specified number of evenly spaced values over a given interval.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.linspace</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html">https://numpy.org/doc/stable/reference/generated/numpy.linspace.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.log" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the natural logarithm, element-wise.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.log.html#numpy.log" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.log</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.log.html">https://numpy.org/doc/stable/reference/generated/numpy.log.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.logsumexp">
+<span class="sig-name descname"><span class="pre">logsumexp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.logsumexp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.logsumexp" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the log of the sum of exponentials of input elements.</p>
+<p>This function follows the api from <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/reference/generated/scipy.special.logsumexp.html#scipy.special.logsumexp" title="(in SciPy v1.7.1)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.special.logsumexp</span></code></a></p>
+<p>See: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.logsumexp.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.logsumexp.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.max">
+<span class="sig-name descname"><span class="pre">max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keepdims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.max"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.max" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the maximum of an array or maximum along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.amax.html#numpy.amax" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.amax</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.amax.html">https://numpy.org/doc/stable/reference/generated/numpy.amax.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.maximum">
+<span class="sig-name descname"><span class="pre">maximum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.maximum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.maximum" title="Permalink to this definition"></a></dt>
+<dd><p>Returns element-wise maximum of array elements.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.maximum.html#numpy.maximum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.maximum</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.maximum.html">https://numpy.org/doc/stable/reference/generated/numpy.maximum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.mean">
+<span class="sig-name descname"><span class="pre">mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.mean" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the arithmetic mean of a tensor along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.mean.html#numpy.mean" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.mean</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.mean.html">https://numpy.org/doc/stable/reference/generated/numpy.mean.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.meshgrid">
+<span class="sig-name descname"><span class="pre">meshgrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.meshgrid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.meshgrid" title="Permalink to this definition"></a></dt>
+<dd><p>Returns coordinate matrices from coordinate vectors (Numpy convention).</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html#numpy.meshgrid" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.meshgrid</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html">https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.min">
+<span class="sig-name descname"><span class="pre">min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keepdims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.min" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the maximum of an array or maximum along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.amin.html#numpy.amin" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.amin</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.amin.html">https://numpy.org/doc/stable/reference/generated/numpy.amin.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.minimum">
+<span class="sig-name descname"><span class="pre">minimum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.minimum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.minimum" title="Permalink to this definition"></a></dt>
+<dd><p>Returns element-wise minimum of array elements.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.minimum.html#numpy.minimum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.minimum</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.minimum.html">https://numpy.org/doc/stable/reference/generated/numpy.minimum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.norm">
+<span class="sig-name descname"><span class="pre">norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.norm" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the matrix frobenius norm.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.linalg.norm.html#numpy.linalg.norm" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.linalg.norm</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.linalg.norm.html">https://numpy.org/doc/stable/reference/generated/numpy.linalg.norm.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.ones">
+<span class="sig-name descname"><span class="pre">ones</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.ones"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.ones" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a tensor full of ones.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ones.html#numpy.ones" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.ones</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ones.html">https://numpy.org/doc/stable/reference/generated/numpy.ones.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.outer">
+<span class="sig-name descname"><span class="pre">outer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.outer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.outer" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the outer product between two vectors.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.outer.html#numpy.outer" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.outer</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.outer.html">https://numpy.org/doc/stable/reference/generated/numpy.outer.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.power">
+<span class="sig-name descname"><span class="pre">power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponents</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.power" title="Permalink to this definition"></a></dt>
+<dd><p>First tensor elements raised to powers from second tensor, element-wise.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.power.html#numpy.power" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.power</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.power.html">https://numpy.org/doc/stable/reference/generated/numpy.power.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.rand">
+<span class="sig-name descname"><span class="pre">rand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.rand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.rand" title="Permalink to this definition"></a></dt>
+<dd><p>Generate uniform random numbers.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.rand.html#numpy.random.rand" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.random.rand</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.random.rand.html">https://numpy.org/doc/stable/reference/generated/numpy.random.rand.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.randn">
+<span class="sig-name descname"><span class="pre">randn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.randn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.randn" title="Permalink to this definition"></a></dt>
+<dd><p>Generate normal Gaussian random numbers.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.rand.html#numpy.random.rand" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.random.rand</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.random.rand.html">https://numpy.org/doc/stable/reference/generated/numpy.random.rand.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.repeat">
+<span class="sig-name descname"><span class="pre">repeat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeats</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.repeat" title="Permalink to this definition"></a></dt>
+<dd><p>Repeats elements of a tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.repeat.html#numpy.repeat" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.repeat</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.repeat.html">https://numpy.org/doc/stable/reference/generated/numpy.repeat.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.reshape">
+<span class="sig-name descname"><span class="pre">reshape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.reshape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.reshape" title="Permalink to this definition"></a></dt>
+<dd><p>Gives a new shape to a tensor without changing its data.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.reshape.html#numpy.reshape" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.reshape</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.reshape.html">https://numpy.org/doc/stable/reference/generated/numpy.reshape.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.searchsorted">
+<span class="sig-name descname"><span class="pre">searchsorted</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'left'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.searchsorted"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.searchsorted" title="Permalink to this definition"></a></dt>
+<dd><p>Finds indices where elements should be inserted to maintain order in given tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.searchsorted.html#numpy.searchsorted" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.searchsorted</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.searchsorted.html">https://numpy.org/doc/stable/reference/generated/numpy.searchsorted.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.seed" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the seed for the random generator.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.seed.html#numpy.random.seed" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.random.seed</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.random.seed.html">https://numpy.org/doc/stable/reference/generated/numpy.random.seed.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.set_gradients">
+<span class="sig-name descname"><span class="pre">set_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grads</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.set_gradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.set_gradients" title="Permalink to this definition"></a></dt>
+<dd><p>Define the gradients for the value val wrt the inputs</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.sort">
+<span class="sig-name descname"><span class="pre">sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.sort" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a sorted copy of a tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sort.html#numpy.sort" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.sort</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sort.html">https://numpy.org/doc/stable/reference/generated/numpy.sort.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.sqrt">
+<span class="sig-name descname"><span class="pre">sqrt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.sqrt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.sqrt" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the non-ngeative square root of a tensor, element-wise.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html#numpy.sqrt" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.sqrt</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html">https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.squeeze">
+<span class="sig-name descname"><span class="pre">squeeze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.squeeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.squeeze" title="Permalink to this definition"></a></dt>
+<dd><p>Remove axes of length one from a.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html#numpy.squeeze" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.squeeze</span></code></a>.</p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.stack">
+<span class="sig-name descname"><span class="pre">stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.stack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.stack" title="Permalink to this definition"></a></dt>
+<dd><p>Joins a sequence of tensors along a new dimension.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.stack</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.stack.html">https://numpy.org/doc/stable/reference/generated/numpy.stack.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.std">
+<span class="sig-name descname"><span class="pre">std</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.std"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.std" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the standard deviation of a tensor along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.std.html#numpy.std" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.std</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.std.html">https://numpy.org/doc/stable/reference/generated/numpy.std.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.sum">
+<span class="sig-name descname"><span class="pre">sum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keepdims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.sum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.sum" title="Permalink to this definition"></a></dt>
+<dd><p>Sums tensor elements over given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.sum</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html">https://numpy.org/doc/stable/reference/generated/numpy.sum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.take_along_axis">
+<span class="sig-name descname"><span class="pre">take_along_axis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.take_along_axis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.take_along_axis" title="Permalink to this definition"></a></dt>
+<dd><p>Gathers elements of a tensor along given dimensions.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.take_along_axis.html#numpy.take_along_axis" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.take_along_axis</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.take_along_axis.html">https://numpy.org/doc/stable/reference/generated/numpy.take_along_axis.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.to_numpy">
+<span class="sig-name descname"><span class="pre">to_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.to_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.to_numpy" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the numpy version of a tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.tocsr">
+<span class="sig-name descname"><span class="pre">tocsr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.tocsr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.tocsr" title="Permalink to this definition"></a></dt>
+<dd><p>Converts this matrix to Compressed Sparse Row format.</p>
+<p>This function follows the api from <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/reference/generated/scipy.sparse.coo_matrix.tocsr.html#scipy.sparse.coo_matrix.tocsr" title="(in SciPy v1.7.1)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.sparse.coo_matrix.tocsr</span></code></a></p>
+<p>See: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.tocsr.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.tocsr.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.todense">
+<span class="sig-name descname"><span class="pre">todense</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.todense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.todense" title="Permalink to this definition"></a></dt>
+<dd><p>Converts a sparse tensor to a dense tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/reference/generated/scipy.sparse.csr_matrix.toarray.html#scipy.sparse.csr_matrix.toarray" title="(in SciPy v1.7.1)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix.toarray</span></code></a></p>
+<p>See: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.toarray.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.toarray.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.unique">
+<span class="sig-name descname"><span class="pre">unique</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.unique"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.unique" title="Permalink to this definition"></a></dt>
+<dd><p>Finds unique elements of given tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.unique.html#numpy.unique" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.unique</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.unique.html">https://numpy.org/doc/stable/reference/generated/numpy.unique.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.where">
+<span class="sig-name descname"><span class="pre">where</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.where"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.where" title="Permalink to this definition"></a></dt>
+<dd><p>Returns elements chosen from x or y depending on condition.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.where.html#numpy.where" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.where</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.where.html">https://numpy.org/doc/stable/reference/generated/numpy.where.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.zero_pad">
+<span class="sig-name descname"><span class="pre">zero_pad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_width</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.zero_pad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.zero_pad" title="Permalink to this definition"></a></dt>
+<dd><p>Pads a tensor.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html#numpy.pad" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.pad</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html">https://numpy.org/doc/stable/reference/generated/numpy.pad.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TensorflowBackend.zeros">
+<span class="sig-name descname"><span class="pre">zeros</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TensorflowBackend.zeros"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TensorflowBackend.zeros" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a tensor full of zeros.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html#numpy.zeros" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.zeros</span></code></a></p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.zeros.html">https://numpy.org/doc/stable/reference/generated/numpy.zeros.html</a></p>
+</dd></dl>
+
+</dd></dl>
+
+<div class="sphx-glr-clear"></div><dl class="py class">
 <dt class="sig sig-object py" id="ot.backend.TorchBackend">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ot.backend.</span></span><span class="sig-name descname"><span class="pre">TorchBackend</span></span><a class="reference internal" href="../_modules/ot/backend.html#TorchBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TorchBackend" title="Permalink to this definition"></a></dt>
 <dd><p>PyTorch implementation of the backend</p>
@@ -2063,6 +2682,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TorchBackend.bitsize">
+<span class="sig-name descname"><span class="pre">bitsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TorchBackend.bitsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TorchBackend.bitsize" title="Permalink to this definition"></a></dt>
+<dd><p>Gives the number of bits used by the data type of the given tensor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ot.backend.TorchBackend.clip">
 <span class="sig-name descname"><span class="pre">clip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TorchBackend.clip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TorchBackend.clip" title="Permalink to this definition"></a></dt>
 <dd><p>Limits the values in a tensor.</p>
@@ -2100,6 +2725,12 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 <dd><p>Returns the cumulative sum of tensor elements over given dimensions.</p>
 <p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html#numpy.cumsum" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.cumsum</span></code></a></p>
 <p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html">https://numpy.org/doc/stable/reference/generated/numpy.cumsum.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TorchBackend.device_type">
+<span class="sig-name descname"><span class="pre">device_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_as</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TorchBackend.device_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TorchBackend.device_type" title="Permalink to this definition"></a></dt>
+<dd><p>Returns CPU or GPU depending on the device where the given tensor is located.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2374,6 +3005,14 @@ Implementations: <a class="reference internal" href="#ot.backend.JaxBackend" tit
 <dd><p>Returns the non-ngeative square root of a tensor, element-wise.</p>
 <p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html#numpy.sqrt" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.sqrt</span></code></a></p>
 <p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html">https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ot.backend.TorchBackend.squeeze">
+<span class="sig-name descname"><span class="pre">squeeze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/backend.html#TorchBackend.squeeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.backend.TorchBackend.squeeze" title="Permalink to this definition"></a></dt>
+<dd><p>Remove axes of length one from a.</p>
+<p>This function follows the api from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html#numpy.squeeze" title="(in NumPy v1.21)"><code class="xref any docutils literal notranslate"><span class="pre">numpy.squeeze</span></code></a>.</p>
+<p>See: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html</a></p>
 </dd></dl>
 
 <dl class="py method">
