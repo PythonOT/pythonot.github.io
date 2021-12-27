@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.optim &mdash; POT Python Optimal Transport 0.8.0 documentation</title>
+  <title>ot.optim &mdash; POT Python Optimal Transport 0.8.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -31,7 +31,7 @@
             <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
           </a>
               <div class="version">
-                0.8.0
+                0.8.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -47,6 +47,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../.github/CONTRIBUTING.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../.github/CODE_OF_CONDUCT.html">Code of Conduct</a></li>
 </ul>
 
         </div>
@@ -94,8 +96,10 @@
 <span class="c1"># The corresponding scipy function does not work for matrices</span>
 
 
-<div class="viewcode-block" id="line_search_armijo"><a class="viewcode-back" href="../../gen_modules/ot.optim.html#ot.optim.line_search_armijo">[docs]</a><span class="k">def</span> <span class="nf">line_search_armijo</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">xk</span><span class="p">,</span> <span class="n">pk</span><span class="p">,</span> <span class="n">gfk</span><span class="p">,</span> <span class="n">old_fval</span><span class="p">,</span>
-                       <span class="n">args</span><span class="o">=</span><span class="p">(),</span> <span class="n">c1</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">alpha0</span><span class="o">=</span><span class="mf">0.99</span><span class="p">):</span>
+<div class="viewcode-block" id="line_search_armijo"><a class="viewcode-back" href="../../gen_modules/ot.optim.html#ot.optim.line_search_armijo">[docs]</a><span class="k">def</span> <span class="nf">line_search_armijo</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">,</span> <span class="n">xk</span><span class="p">,</span> <span class="n">pk</span><span class="p">,</span> <span class="n">gfk</span><span class="p">,</span> <span class="n">old_fval</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(),</span> <span class="n">c1</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+    <span class="n">alpha0</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Armijo linesearch function that works with matrices</span>
 
@@ -120,6 +124,10 @@
 <span class="sd">        :math:`c_1` const in armijo rule (&gt;0)</span>
 <span class="sd">    alpha0 : float, optional</span>
 <span class="sd">        initial step (&gt;0)</span>
+<span class="sd">    alpha_min : float, optional</span>
+<span class="sd">        minimum value for alpha</span>
+<span class="sd">    alpha_max : float, optional</span>
+<span class="sd">        maximum value for alpha</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -153,14 +161,18 @@
     <span class="n">alpha</span><span class="p">,</span> <span class="n">phi1</span> <span class="o">=</span> <span class="n">scalar_search_armijo</span><span class="p">(</span>
         <span class="n">phi</span><span class="p">,</span> <span class="n">phi0</span><span class="p">,</span> <span class="n">derphi0</span><span class="p">,</span> <span class="n">c1</span><span class="o">=</span><span class="n">c1</span><span class="p">,</span> <span class="n">alpha0</span><span class="o">=</span><span class="n">alpha0</span><span class="p">)</span>
 
-    <span class="c1"># scalar_search_armijo can return alpha &gt; 1</span>
-    <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phi1</span></div>
+    <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phi0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">alpha_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phi1</span></div>
 
 
-<div class="viewcode-block" id="solve_linesearch"><a class="viewcode-back" href="../../gen_modules/ot.optim.html#ot.optim.solve_linesearch">[docs]</a><span class="k">def</span> <span class="nf">solve_linesearch</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">f_val</span><span class="p">,</span>
-                     <span class="n">armijo</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">C1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Gc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">constC</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="solve_linesearch"><a class="viewcode-back" href="../../gen_modules/ot.optim.html#ot.optim.solve_linesearch">[docs]</a><span class="k">def</span> <span class="nf">solve_linesearch</span><span class="p">(</span>
+    <span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">f_val</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">C1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">C2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Gc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">constC</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Solve the linesearch in the FW iterations</span>
 
@@ -191,6 +203,10 @@
 <span class="sd">        Constant for the gromov cost. See :ref:`[24] &lt;references-solve-linesearch&gt;`. Only used and necessary when armijo=False</span>
 <span class="sd">    M : array-like (ns,nt), optional</span>
 <span class="sd">        Cost matrix between the features. Only used and necessary when armijo=False</span>
+<span class="sd">    alpha_min : float, optional</span>
+<span class="sd">        Minimum value for alpha</span>
+<span class="sd">    alpha_max : float, optional</span>
+<span class="sd">        Maximum value for alpha</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -210,7 +226,9 @@
 <span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">armijo</span><span class="p">:</span>
-        <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">f_val</span> <span class="o">=</span> <span class="n">line_search_armijo</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">f_val</span><span class="p">)</span>
+        <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">f_val</span> <span class="o">=</span> <span class="n">line_search_armijo</span><span class="p">(</span>
+            <span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">f_val</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="n">alpha_max</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># requires symetric matrices</span>
         <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">constC</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">constC</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
@@ -224,6 +242,8 @@
         <span class="n">c</span> <span class="o">=</span> <span class="n">cost</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
 
         <span class="n">alpha</span> <span class="o">=</span> <span class="n">solve_1d_linesearch_quad</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">alpha_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
         <span class="n">fc</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">f_val</span> <span class="o">=</span> <span class="n">cost</span><span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">deltaG</span><span class="p">)</span>
 
@@ -348,9 +368,10 @@
         <span class="n">deltaG</span> <span class="o">=</span> <span class="n">Gc</span> <span class="o">-</span> <span class="n">G</span>
 
         <span class="c1"># line search</span>
-        <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">f_val</span> <span class="o">=</span> <span class="n">solve_linesearch</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">f_val</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="n">M</span><span class="p">,</span> <span class="n">Gc</span><span class="o">=</span><span class="n">Gc</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">f_val</span> <span class="o">=</span> <span class="n">solve_linesearch</span><span class="p">(</span>
+            <span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">f_val</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="n">M</span><span class="p">,</span> <span class="n">Gc</span><span class="o">=</span><span class="n">Gc</span><span class="p">,</span>
+            <span class="n">alpha_min</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">G</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">deltaG</span>
 
@@ -496,7 +517,9 @@
 
         <span class="c1"># line search</span>
         <span class="n">dcost</span> <span class="o">=</span> <span class="n">Mi</span> <span class="o">+</span> <span class="n">reg1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span><span class="p">))</span>  <span class="c1"># ??</span>
-        <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">f_val</span> <span class="o">=</span> <span class="n">line_search_armijo</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">dcost</span><span class="p">,</span> <span class="n">f_val</span><span class="p">)</span>
+        <span class="n">alpha</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">f_val</span> <span class="o">=</span> <span class="n">line_search_armijo</span><span class="p">(</span>
+            <span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">dcost</span><span class="p">,</span> <span class="n">f_val</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="mf">1.</span>
+        <span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">G</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">deltaG</span>
 
@@ -577,7 +600,9 @@
       </div>
     </section>
   </div>
-  <div class="rst-versions shift-up" data-toggle="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing -->
     <span class="rst-current-version" data-toggle="rst-current-version">
       <span class="fa fa-book"> Python Optimal Transport</span>
       versions
@@ -591,10 +616,12 @@
       
       <dl>
         <dt>Versions</dt>
+
+        <dd><a href="https://pythonot.github.io/">Release</a></dd>
         
-        <dd><a href="https://pythonot.github.io/master">latest</a></dd>
+        <dd><a href="https://pythonot.github.io/master">Development</a></dd>
        
-        <dd><a href="https://pythonot.github.io/">stable</a></dd>
+        
         
       </dl>
       
