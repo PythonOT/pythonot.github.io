@@ -85,6 +85,7 @@
 <span class="c1">#         Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
 <span class="c1">#         Rémi Flamary &lt;remi.flamary@unice.fr&gt;</span>
 <span class="c1">#         Titouan Vayer &lt;titouan.vayer@irisa.fr&gt;</span>
+<span class="c1">#         Cédric Vincent-Cuaz &lt;cedric.vincent-cuaz@inria.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
@@ -95,7 +96,7 @@
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">UndefinedParameter</span><span class="p">,</span> <span class="n">list_to_array</span>
 <span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">cg</span>
 <span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd_1d</span><span class="p">,</span> <span class="n">emd</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">check_random_state</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">check_random_state</span><span class="p">,</span> <span class="n">unif</span>
 <span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 
@@ -398,7 +399,7 @@
     <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">tmpsum</span> <span class="o">/</span> <span class="n">ppt</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="gromov_wasserstein"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="gromov_wasserstein"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the gromov-wasserstein transport between :math:`(\mathbf{C_1}, \mathbf{p})` and :math:`(\mathbf{C_2}, \mathbf{q})`</span>
 
@@ -443,6 +444,9 @@
 <span class="sd">    armijo : bool, optional</span>
 <span class="sd">        If True the step of the line-search is found via an armijo research. Else closed form is used.</span>
 <span class="sd">        If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
 <span class="sd">    **kwargs : dict</span>
 <span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
 
@@ -467,18 +471,26 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
-
     <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span> <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">)</span>
-
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">G0_</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
     <span class="n">C1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C10</span><span class="p">)</span>
     <span class="n">C2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C20</span><span class="p">)</span>
 
-    <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0_</span><span class="p">)</span>
+        <span class="c1"># Check marginals of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
 
-    <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
@@ -496,7 +508,7 @@
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span> <span class="n">C1</span><span class="o">=</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="o">=</span><span class="n">C2</span><span class="p">,</span> <span class="n">constC</span><span class="o">=</span><span class="n">constC</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="gromov_wasserstein2"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="gromov_wasserstein2"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the gromov-wasserstein discrepancy between :math:`(\mathbf{C_1}, \mathbf{p})` and :math:`(\mathbf{C_2}, \mathbf{q})`</span>
 
@@ -545,6 +557,9 @@
 <span class="sd">    armijo : bool, optional</span>
 <span class="sd">        If True the step of the line-search is found via an armijo research. Else closed form is used.</span>
 <span class="sd">        If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -569,9 +584,12 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
-
     <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span> <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">G0_</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
@@ -580,7 +598,13 @@
 
     <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">)</span>
 
-    <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0_</span><span class="p">)</span>
+        <span class="c1"># Check marginals of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
@@ -611,7 +635,7 @@
         <span class="k">return</span> <span class="n">gw</span></div>
 
 
-<div class="viewcode-block" id="fused_gromov_wasserstein"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="fused_gromov_wasserstein"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the FGW transport between two graphs (see :ref:`[24] &lt;references-fused-gromov-wasserstein&gt;`)</span>
 
@@ -656,6 +680,9 @@
 <span class="sd">    armijo : bool, optional</span>
 <span class="sd">        If True the step of the line-search is found via an armijo research. Else closed form is used.</span>
 <span class="sd">        If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
 <span class="sd">    **kwargs : dict</span>
@@ -678,19 +705,27 @@
 <span class="sd">        (ICML). 2019.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
-
     <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">,</span> <span class="n">G0_</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
     <span class="n">C1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C10</span><span class="p">)</span>
     <span class="n">C2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C20</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0_</span><span class="p">)</span>
+        <span class="c1"># Check marginals of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
 
     <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">)</span>
-
-    <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
@@ -700,19 +735,16 @@
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">res</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span> <span class="n">C1</span><span class="o">=</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="o">=</span><span class="n">C2</span><span class="p">,</span> <span class="n">constC</span><span class="o">=</span><span class="n">constC</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
         <span class="n">fgw_dist</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
-
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;fgw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fgw_dist</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">),</span> <span class="n">log</span>
-
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span> <span class="n">C1</span><span class="o">=</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="o">=</span><span class="n">C2</span><span class="p">,</span> <span class="n">constC</span><span class="o">=</span><span class="n">constC</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="fused_gromov_wasserstein2"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="fused_gromov_wasserstein2"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the FGW distance between two graphs see (see :ref:`[24] &lt;references-fused-gromov-wasserstein2&gt;`)</span>
 
@@ -761,6 +793,9 @@
 <span class="sd">    armijo : bool, optional</span>
 <span class="sd">        If True the step of the line-search is found via an armijo research.</span>
 <span class="sd">        Else closed form is used. If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        Record log if True.</span>
 <span class="sd">    **kwargs : dict</span>
@@ -789,7 +824,11 @@
     <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
 
     <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">,</span> <span class="n">G0_</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
@@ -799,7 +838,13 @@
 
     <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">)</span>
 
-    <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0_</span><span class="p">)</span>
+        <span class="c1"># Check marginals of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
@@ -1874,6 +1919,991 @@
         <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ts</span><span class="p">))</span>
     <span class="p">])</span>
     <span class="k">return</span> <span class="n">tmpsum</span></div>
+
+
+<div class="viewcode-block" id="gromov_wasserstein_dictionary_learning"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.gromov_wasserstein_dictionary_learning">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein_dictionary_learning</span><span class="p">(</span><span class="n">Cs</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">ps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">Cdict_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;nonnegative_symmetric&#39;</span><span class="p">,</span> <span class="n">use_log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                           <span class="n">tol_outer</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">tol_inner</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">max_iter_outer</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter_inner</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">use_adam_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Infer Gromov-Wasserstein linear dictionary :math:`\{ (\mathbf{C_{dict}[d]}, q) \}_{d \in [D]}`  from the list of structures :math:`\{ (\mathbf{C_s},\mathbf{p_s}) \}_s`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{C_{dict}}, \{\mathbf{w_s} \}_{s \leq S}} \sum_{s=1}^S  GW_2(\mathbf{C_s}, \sum_{d=1}^D w_{s,d}\mathbf{C_{dict}[d]}, \mathbf{p_s}, \mathbf{q}) - reg\| \mathbf{w_s}  \|_2^2</span>
+
+<span class="sd">    such that, :math:`\forall s \leq S` :</span>
+
+<span class="sd">        - :math:`\mathbf{w_s}^\top \mathbf{1}_D = 1`</span>
+<span class="sd">        - :math:`\mathbf{w_s} \geq \mathbf{0}_D`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\forall s \leq S, \mathbf{C_s}` is a (ns,ns) pairwise similarity matrix of variable size ns.</span>
+<span class="sd">    - :math:`\mathbf{C_{dict}}` is a (D, nt, nt) tensor of D pairwise similarity matrix of fixed size nt.</span>
+<span class="sd">    - :math:`\forall s \leq S, \mathbf{p_s}` is the source distribution corresponding to :math:`\mathbf{C_s}`</span>
+<span class="sd">    - :math:`\mathbf{q}` is the target distribution assigned to every structures in the embedding space.</span>
+<span class="sd">    - reg is the regularization coefficient.</span>
+
+<span class="sd">    The stochastic algorithm used for estimating the graph dictionary atoms as proposed in [38]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cs : list of S symmetric array-like, shape (ns, ns)</span>
+<span class="sd">        List of Metric/Graph cost matrices of variable size (ns, ns).</span>
+<span class="sd">    D: int</span>
+<span class="sd">        Number of dictionary atoms to learn</span>
+<span class="sd">    nt: int</span>
+<span class="sd">        Number of samples within each dictionary atoms</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w. The default is 0.</span>
+<span class="sd">    ps : list of S array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in each source space C of Cs. Default is None and corresponds to uniform distibutions.</span>
+<span class="sd">    q : array-like, shape (nt,), optional</span>
+<span class="sd">        Distribution in the embedding space whose structure will be learned. Default is None and corresponds to uniform distributions.</span>
+<span class="sd">    epochs: int, optional</span>
+<span class="sd">        Number of epochs used to learn the dictionary. Default is 32.</span>
+<span class="sd">    batch_size: int, optional</span>
+<span class="sd">        Batch size for each stochastic gradient update of the dictionary. Set to the dataset size if the provided batch_size is higher than the dataset size. Default is 32.</span>
+<span class="sd">    learning_rate: float, optional</span>
+<span class="sd">        Learning rate used for the stochastic gradient descent. Default is 1.</span>
+<span class="sd">    Cdict_init: list of D array-like with shape (nt, nt), optional</span>
+<span class="sd">        Used to initialize the dictionary.</span>
+<span class="sd">        If set to None (Default), the dictionary will be initialized randomly.</span>
+<span class="sd">        Else Cdict must have shape (D, nt, nt) i.e match provided shape features.</span>
+<span class="sd">    projection: str , optional</span>
+<span class="sd">        If &#39;nonnegative&#39; and/or &#39;symmetric&#39; is in projection, the corresponding projection will be performed at each stochastic update of the dictionary</span>
+<span class="sd">        Else the set of atoms is :math:`R^{nt * nt}`. Default is &#39;nonnegative_symmetric&#39;</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        If set to True, losses evolution by batches and epochs are tracked. Default is False.</span>
+<span class="sd">    use_adam_optimizer: bool, optional</span>
+<span class="sd">        If set to True, adam optimizer with default settings is used as adaptative learning rate strategy.</span>
+<span class="sd">        Else perform SGD with fixed learning rate. Default is True.</span>
+<span class="sd">    tol_outer : float, optional</span>
+<span class="sd">        Solver precision for the BCD algorithm, measured by absolute relative error on consecutive losses. Default is :math:`10^{-5}`.</span>
+<span class="sd">    tol_inner : float, optional</span>
+<span class="sd">        Solver precision for the Conjugate Gradient algorithm used to get optimal w at a fixed transport, measured by absolute relative error on consecutive losses. Default is :math:`10^{-5}`.</span>
+<span class="sd">    max_iter_outer : int, optional</span>
+<span class="sd">        Maximum number of iterations for the BCD. Default is 20.</span>
+<span class="sd">    max_iter_inner : int, optional</span>
+<span class="sd">        Maximum number of iterations for the Conjugate Gradient. Default is 200.</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print the reconstruction loss every epoch. Default is False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    Cdict_best_state : D array-like, shape (D,nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary.</span>
+<span class="sd">        The dictionary leading to the best loss over an epoch is saved and returned.</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If use_log is True, contains loss evolutions by batches and epochs.</span>
+<span class="sd">    References</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    ..[38]  Cédric Vincent-Cuaz, Titouan Vayer, Rémi Flamary, Marco Corneli, Nicolas Courty.</span>
+<span class="sd">            &quot;Online Graph Dictionary Learning&quot;</span>
+<span class="sd">            International Conference on Machine Learning (ICML). 2021.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle backend of non-optional arguments</span>
+    <span class="n">Cs0</span> <span class="o">=</span> <span class="n">Cs</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Cs0</span><span class="p">)</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs0</span><span class="p">]</span>
+    <span class="n">dataset_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="c1"># Handle backend of optional arguments</span>
+    <span class="k">if</span> <span class="n">ps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="n">unif</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ps</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Cdict_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Initialize randomly structures of dictionary atoms based on samples</span>
+        <span class="n">dataset_means</span> <span class="o">=</span> <span class="p">[</span><span class="n">C</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">]</span>
+        <span class="n">Cdict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dataset_means</span><span class="p">),</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dataset_means</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nt</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Cdict</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Cdict_init</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;symmetric&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+        <span class="n">Cdict</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cdict</span> <span class="o">+</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="s1">&#39;nonnegative&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+        <span class="n">Cdict</span><span class="p">[</span><span class="n">Cdict</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">use_adam_optimizer</span><span class="p">:</span>
+        <span class="n">adam_moments</span> <span class="o">=</span> <span class="n">_initialize_adam_optimizer</span><span class="p">(</span><span class="n">Cdict</span><span class="p">)</span>
+
+    <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss_batches&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;loss_epochs&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+    <span class="n">const_q</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">Cdict_best_state</span> <span class="o">=</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">loss_best_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="n">dataset_size</span><span class="p">:</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dataset_size</span>
+    <span class="n">iter_by_epoch</span> <span class="o">=</span> <span class="n">dataset_size</span> <span class="o">//</span> <span class="n">batch_size</span> <span class="o">+</span> <span class="nb">int</span><span class="p">((</span><span class="n">dataset_size</span> <span class="o">%</span> <span class="n">batch_size</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+        <span class="n">cumulated_loss_over_epoch</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iter_by_epoch</span><span class="p">):</span>
+            <span class="c1"># batch sampling</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dataset_size</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">cumulated_loss_over_batch</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">unmixings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">D</span><span class="p">))</span>
+            <span class="n">Cs_embedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nt</span><span class="p">))</span>
+            <span class="n">Ts</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">batch_size</span>
+
+            <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">C_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+                <span class="c1"># BCD solver for Gromov-Wassersteisn linear unmixing used independently on each structure of the sampled batch</span>
+                <span class="n">unmixings</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">Cs_embedded</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">current_loss</span> <span class="o">=</span> <span class="n">gromov_wasserstein_linear_unmixing</span><span class="p">(</span>
+                    <span class="n">Cs</span><span class="p">[</span><span class="n">C_idx</span><span class="p">],</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">ps</span><span class="p">[</span><span class="n">C_idx</span><span class="p">],</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">tol_outer</span><span class="o">=</span><span class="n">tol_outer</span><span class="p">,</span> <span class="n">tol_inner</span><span class="o">=</span><span class="n">tol_inner</span><span class="p">,</span>
+                    <span class="n">max_iter_outer</span><span class="o">=</span><span class="n">max_iter_outer</span><span class="p">,</span> <span class="n">max_iter_inner</span><span class="o">=</span><span class="n">max_iter_inner</span>
+                <span class="p">)</span>
+                <span class="n">cumulated_loss_over_batch</span> <span class="o">+=</span> <span class="n">current_loss</span>
+            <span class="n">cumulated_loss_over_epoch</span> <span class="o">+=</span> <span class="n">cumulated_loss_over_batch</span>
+
+            <span class="k">if</span> <span class="n">use_log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss_batches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cumulated_loss_over_batch</span><span class="p">)</span>
+
+            <span class="c1"># Stochastic projected gradient step over dictionary atoms</span>
+            <span class="n">grad_Cdict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">Cdict</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">C_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+                <span class="n">shared_term_structures</span> <span class="o">=</span> <span class="n">Cs_embedded</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">const_q</span> <span class="o">-</span> <span class="p">(</span><span class="n">Cs</span><span class="p">[</span><span class="n">C_idx</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]))</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">])</span>
+                <span class="n">grad_Cdict</span> <span class="o">+=</span> <span class="n">unmixings</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">shared_term_structures</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">grad_Cdict</span> <span class="o">*=</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">batch_size</span>
+            <span class="k">if</span> <span class="n">use_adam_optimizer</span><span class="p">:</span>
+                <span class="n">Cdict</span><span class="p">,</span> <span class="n">adam_moments</span> <span class="o">=</span> <span class="n">_adam_stochastic_updates</span><span class="p">(</span><span class="n">Cdict</span><span class="p">,</span> <span class="n">grad_Cdict</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">,</span> <span class="n">adam_moments</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Cdict</span> <span class="o">-=</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">grad_Cdict</span>
+            <span class="k">if</span> <span class="s1">&#39;symmetric&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+                <span class="n">Cdict</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cdict</span> <span class="o">+</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="s1">&#39;nonnegative&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+                <span class="n">Cdict</span><span class="p">[</span><span class="n">Cdict</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">if</span> <span class="n">use_log</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss_epochs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cumulated_loss_over_epoch</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">loss_best_state</span> <span class="o">&gt;</span> <span class="n">cumulated_loss_over_epoch</span><span class="p">:</span>
+            <span class="n">loss_best_state</span> <span class="o">=</span> <span class="n">cumulated_loss_over_epoch</span>
+            <span class="n">Cdict_best_state</span> <span class="o">=</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;--- epoch =&#39;</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="s1">&#39; cumulated reconstruction error: &#39;</span><span class="p">,</span> <span class="n">cumulated_loss_over_epoch</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Cdict_best_state</span><span class="p">),</span> <span class="n">log</span></div>
+
+
+<span class="k">def</span> <span class="nf">_initialize_adam_optimizer</span><span class="p">(</span><span class="n">variable</span><span class="p">):</span>
+
+    <span class="c1"># Initialization for our numpy implementation of adam optimizer</span>
+    <span class="n">atoms_adam_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>  <span class="c1"># Initialize first  moment tensor</span>
+    <span class="n">atoms_adam_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>  <span class="c1"># Initialize second moment tensor</span>
+    <span class="n">atoms_adam_count</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">atoms_adam_m</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">:</span> <span class="n">atoms_adam_v</span><span class="p">,</span> <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">atoms_adam_count</span><span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_adam_stochastic_updates</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">,</span> <span class="n">adam_moments</span><span class="p">,</span> <span class="n">beta_1</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">beta_2</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-09</span><span class="p">):</span>
+
+    <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta_1</span> <span class="o">*</span> <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta_1</span><span class="p">)</span> <span class="o">*</span> <span class="n">grad</span>
+    <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta_2</span> <span class="o">*</span> <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta_2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">grad</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">unbiased_m</span> <span class="o">=</span> <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta_1</span><span class="o">**</span><span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">])</span>
+    <span class="n">unbiased_v</span> <span class="o">=</span> <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta_2</span><span class="o">**</span><span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">])</span>
+    <span class="n">variable</span> <span class="o">-=</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">unbiased_m</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">unbiased_v</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="n">adam_moments</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">variable</span><span class="p">,</span> <span class="n">adam_moments</span>
+
+
+<div class="viewcode-block" id="gromov_wasserstein_linear_unmixing"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.gromov_wasserstein_linear_unmixing">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein_linear_unmixing</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol_outer</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">tol_inner</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">max_iter_outer</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter_inner</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the Gromov-Wasserstein linear unmixing of :math:`(\mathbf{C},\mathbf{p})` onto the dictionary :math:`\{ (\mathbf{C_{dict}[d]}, \mathbf{q}) \}_{d \in [D]}`.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{ \mathbf{w}}  GW_2(\mathbf{C}, \sum_{d=1}^D w_d\mathbf{C_{dict}[d]}, \mathbf{p}, \mathbf{q}) - reg \| \mathbf{w}  \|_2^2</span>
+
+<span class="sd">    such that:</span>
+
+<span class="sd">        - :math:`\mathbf{w}^\top \mathbf{1}_D = 1`</span>
+<span class="sd">        - :math:`\mathbf{w} \geq \mathbf{0}_D`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}` is the (ns,ns) pairwise similarity matrix.</span>
+<span class="sd">    - :math:`\mathbf{C_{dict}}` is a (D, nt, nt) tensor of D pairwise similarity matrices of size nt.</span>
+<span class="sd">    - :math:`\mathbf{p}` and :math:`\mathbf{q}` are source and target weights.</span>
+<span class="sd">    - reg is the regularization coefficient.</span>
+
+<span class="sd">    The algorithm used for solving the problem is a Block Coordinate Descent as discussed in [38], algorithm 1.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric/Graph cost matrix.</span>
+<span class="sd">    Cdict : D array-like, shape (D,nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary on which to embed C.</span>
+<span class="sd">    reg : float, optional.</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w. Default is 0.</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space C. Default is None and corresponds to uniform distribution.</span>
+<span class="sd">    q : array-like, shape (nt,), optional</span>
+<span class="sd">        Distribution in the space depicted by the dictionary. Default is None and corresponds to uniform distribution.</span>
+<span class="sd">    tol_outer : float, optional</span>
+<span class="sd">        Solver precision for the BCD algorithm.</span>
+<span class="sd">    tol_inner : float, optional</span>
+<span class="sd">        Solver precision for the Conjugate Gradient algorithm used to get optimal w at a fixed transport. Default is :math:`10^{-5}`.</span>
+<span class="sd">    max_iter_outer : int, optional</span>
+<span class="sd">        Maximum number of iterations for the BCD. Default is 20.</span>
+<span class="sd">    max_iter_inner : int, optional</span>
+<span class="sd">        Maximum number of iterations for the Conjugate Gradient. Default is 200.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    w: array-like, shape (D,)</span>
+<span class="sd">        gromov-wasserstein linear unmixing of :math:`(\mathbf{C},\mathbf{p})` onto the span of the dictionary.</span>
+<span class="sd">    Cembedded: array-like, shape (nt,nt)</span>
+<span class="sd">        embedded structure of :math:`(\mathbf{C},\mathbf{p})` onto the dictionary, :math:`\sum_d w_d\mathbf{C_{dict}[d]}`.</span>
+<span class="sd">    T: array-like (ns, nt)</span>
+<span class="sd">        Gromov-Wasserstein transport plan between :math:`(\mathbf{C},\mathbf{p})` and :math:`(\sum_d w_d\mathbf{C_{dict}[d]}, \mathbf{q})`</span>
+<span class="sd">    current_loss: float</span>
+<span class="sd">        reconstruction error</span>
+<span class="sd">    References</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    ..[38]  Cédric Vincent-Cuaz, Titouan Vayer, Rémi Flamary, Marco Corneli, Nicolas Courty.</span>
+<span class="sd">            &quot;Online Graph Dictionary Learning&quot;</span>
+<span class="sd">            International Conference on Machine Learning (ICML). 2021.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">C0</span><span class="p">,</span> <span class="n">Cdict0</span> <span class="o">=</span> <span class="n">C</span><span class="p">,</span> <span class="n">Cdict</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C0</span><span class="p">,</span> <span class="n">Cdict0</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C0</span><span class="p">)</span>
+    <span class="n">Cdict</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Cdict0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">Cdict</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cdict</span><span class="p">)</span>
+
+    <span class="n">w</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>  <span class="c1"># Initialize uniformly the unmixing w</span>
+    <span class="n">Cembedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">const_q</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="c1"># Trackers for BCD convergence</span>
+    <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">current_loss</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="mi">15</span>
+    <span class="n">outer_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">convergence_criterion</span> <span class="o">&gt;</span> <span class="n">tol_outer</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">outer_count</span> <span class="o">&lt;</span> <span class="n">max_iter_outer</span><span class="p">):</span>
+        <span class="n">previous_loss</span> <span class="o">=</span> <span class="n">current_loss</span>
+        <span class="c1"># 1. Solve GW transport between (C,p) and (\sum_d Cdictionary[d],q) fixing the unmixing w</span>
+        <span class="n">T</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="o">=</span><span class="n">C</span><span class="p">,</span> <span class="n">C2</span><span class="o">=</span><span class="n">Cembedded</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">current_loss</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;gw_dist&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">reg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">current_loss</span> <span class="o">-=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># 2. Solve linear unmixing problem over w with a fixed transport plan T</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">current_loss</span> <span class="o">=</span> <span class="n">_cg_gromov_wasserstein_unmixing</span><span class="p">(</span>
+            <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">,</span> <span class="n">Cdict</span><span class="o">=</span><span class="n">Cdict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="o">=</span><span class="n">Cembedded</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">const_q</span><span class="o">=</span><span class="n">const_q</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">starting_loss</span><span class="o">=</span><span class="n">current_loss</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol_inner</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter_inner</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">previous_loss</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># handle numerical issues around 0</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">outer_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Cembedded</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">current_loss</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_cg_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">starting_loss</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns for a fixed admissible transport plan,</span>
+<span class="sd">    the linear unmixing w minimizing the Gromov-Wasserstein cost between :math:`(\mathbf{C},\mathbf{p})` and :math:`(\sum_d w[d]*\mathbf{C_{dict}[d]}, \mathbf{q})`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{w}}  \sum_{ijkl} (C_{i,j} - \sum_{d=1}^D w_d*C_{dict}[d]_{k,l} )^2 T_{i,k}T_{j,l} - reg* \| \mathbf{w}  \|_2^2</span>
+
+
+<span class="sd">    Such that:</span>
+
+<span class="sd">        - :math:`\mathbf{w}^\top \mathbf{1}_D = 1`</span>
+<span class="sd">        - :math:`\mathbf{w} \geq \mathbf{0}_D`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}` is the (ns,ns) pairwise similarity matrix.</span>
+<span class="sd">    - :math:`\mathbf{C_{dict}}` is a (D, nt, nt) tensor of D pairwise similarity matrices of nt points.</span>
+<span class="sd">    - :math:`\mathbf{p}` and :math:`\mathbf{q}` are source and target weights.</span>
+<span class="sd">    - :math:`\mathbf{w}` is the linear unmixing of :math:`(\mathbf{C}, \mathbf{p})` onto :math:`(\sum_d w_d \mathbf{Cdict[d]}, \mathbf{q})`.</span>
+<span class="sd">    - :math:`\mathbf{T}` is the optimal transport plan conditioned by the current state of :math:`\mathbf{w}`.</span>
+<span class="sd">    - reg is the regularization coefficient.</span>
+
+<span class="sd">    The algorithm used for solving the problem is a Conditional Gradient Descent as discussed in [38]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    C : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric/Graph cost matrix.</span>
+<span class="sd">    Cdict : list of D array-like, shape (nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary on which to embed C.</span>
+<span class="sd">        Each matrix in the dictionary must have the same size (nt,nt).</span>
+<span class="sd">    Cembedded: array-like, shape (nt,nt)</span>
+<span class="sd">        Embedded structure :math:`(\sum_d w[d]*Cdict[d],q)` of :math:`(\mathbf{C},\mathbf{p})` onto the dictionary. Used to avoid redundant computations.</span>
+<span class="sd">    w: array-like, shape (D,)</span>
+<span class="sd">        Linear unmixing of the input structure onto the dictionary</span>
+<span class="sd">    const_q: array-like, shape (nt,nt)</span>
+<span class="sd">        product matrix :math:`\mathbf{q}\mathbf{q}^\top` where q is the target space distribution. Used to avoid redundant computations.</span>
+<span class="sd">    T: array-like, shape (ns,nt)</span>
+<span class="sd">        fixed transport plan between the input structure and its representation in the dictionary.</span>
+<span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">    q : array-like, shape (nt,)</span>
+<span class="sd">        Distribution in the embedding space depicted by the dictionary.</span>
+<span class="sd">    reg : float, optional.</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w. Default is 0.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    w: ndarray (D,)</span>
+<span class="sd">        optimal unmixing of :math:`(\mathbf{C},\mathbf{p})` onto the dictionary span given OT starting from previously optimal unmixing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">current_loss</span> <span class="o">=</span> <span class="n">starting_loss</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">const_TCT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">convergence_criterion</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">count</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">):</span>
+
+        <span class="n">previous_loss</span> <span class="o">=</span> <span class="n">current_loss</span>
+        <span class="c1"># 1) Compute gradient at current point w</span>
+        <span class="n">grad_w</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cdict</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cembedded</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">const_q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">const_TCT</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">grad_w</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">w</span>
+
+        <span class="c1"># 2) Conditional gradient direction finding: x= \argmin_x x^T.grad_w</span>
+        <span class="n">min_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">grad_w</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">grad_w</span> <span class="o">==</span> <span class="n">min_</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># 3) Line-search step: solve \argmin_{\gamma \in [0,1]} a*gamma^2 + b*gamma + c</span>
+        <span class="n">gamma</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">Cembedded_diff</span> <span class="o">=</span> <span class="n">_linesearch_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">grad_w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">const_TCT</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+
+        <span class="c1"># 4) Updates: w &lt;-- (1-gamma)*w + gamma*x</span>
+        <span class="n">w</span> <span class="o">+=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span>
+        <span class="n">Cembedded</span> <span class="o">+=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">Cembedded_diff</span>
+        <span class="n">current_loss</span> <span class="o">+=</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">gamma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">gamma</span>
+
+        <span class="k">if</span> <span class="n">previous_loss</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># not that the loss can be negative if reg &gt;0</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># handle numerical issues around 0</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">current_loss</span>
+
+
+<span class="k">def</span> <span class="nf">_linesearch_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">grad_w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">const_TCT</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute optimal steps for the line search problem of Gromov-Wasserstein linear unmixing</span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\gamma \in [0,1]}  \sum_{ijkl} (C_{i,j} - \sum_{d=1}^D z_d(\gamma)C_{dict}[d]_{k,l} )^2 T_{i,k}T_{j,l} - reg\| \mathbf{z}(\gamma)  \|_2^2</span>
+
+
+<span class="sd">    Such that:</span>
+
+<span class="sd">        - :math:`\mathbf{z}(\gamma) = (1- \gamma)\mathbf{w} + \gamma \mathbf{x}`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    w : array-like, shape (D,)</span>
+<span class="sd">        Unmixing.</span>
+<span class="sd">    grad_w : array-like, shape (D, D)</span>
+<span class="sd">        Gradient of the reconstruction loss with respect to w.</span>
+<span class="sd">    x: array-like, shape (D,)</span>
+<span class="sd">        Conditional gradient direction.</span>
+<span class="sd">    Cdict : list of D array-like, shape (nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary on which to embed C.</span>
+<span class="sd">        Each matrix in the dictionary must have the same size (nt,nt).</span>
+<span class="sd">    Cembedded: array-like, shape (nt,nt)</span>
+<span class="sd">        Embedded structure :math:`(\sum_d w_dCdict[d],q)` of :math:`(\mathbf{C},\mathbf{p})` onto the dictionary. Used to avoid redundant computations.</span>
+<span class="sd">    const_q: array-like, shape (nt,nt)</span>
+<span class="sd">        product matrix :math:`\mathbf{q}\mathbf{q}^\top` where q is the target space distribution. Used to avoid redundant computations.</span>
+<span class="sd">    const_TCT: array-like, shape (nt, nt)</span>
+<span class="sd">        :math:`\mathbf{T}^\top \mathbf{C}^\top \mathbf{T}`. Used to avoid redundant computations.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma: float</span>
+<span class="sd">        Optimal value for the line-search step</span>
+<span class="sd">    a: float</span>
+<span class="sd">        Constant factor appearing in the factorization :math:`a \gamma^2 + b \gamma +c` of the reconstruction loss</span>
+<span class="sd">    b: float</span>
+<span class="sd">        Constant factor appearing in the factorization :math:`a \gamma^2 + b \gamma +c` of the reconstruction loss</span>
+<span class="sd">    Cembedded_diff: numpy array, shape (nt, nt)</span>
+<span class="sd">        Difference between models evaluated in :math:`\mathbf{w}` and in :math:`\mathbf{w}`.</span>
+<span class="sd">    reg : float, optional.</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of :math:`\mathbf{w}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># 3) Line-search step: solve \argmin_{\gamma \in [0,1]} a*gamma^2 + b*gamma + c</span>
+    <span class="n">Cembedded_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">Cembedded_diff</span> <span class="o">=</span> <span class="n">Cembedded_x</span> <span class="o">-</span> <span class="n">Cembedded</span>
+    <span class="n">trace_diffx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cembedded_diff</span> <span class="o">*</span> <span class="n">Cembedded_x</span> <span class="o">*</span> <span class="n">const_q</span><span class="p">)</span>
+    <span class="n">trace_diffw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cembedded_diff</span> <span class="o">*</span> <span class="n">Cembedded</span> <span class="o">*</span> <span class="n">const_q</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">trace_diffx</span> <span class="o">-</span> <span class="n">trace_diffw</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">trace_diffw</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cembedded_diff</span> <span class="o">*</span> <span class="n">const_TCT</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">reg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">-=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">w</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span> <span class="n">b</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="p">)))</span>
+    <span class="k">elif</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">Cembedded_diff</span>
+
+
+<div class="viewcode-block" id="fused_gromov_wasserstein_dictionary_learning"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein_dictionary_learning">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein_dictionary_learning</span><span class="p">(</span><span class="n">Cs</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">ps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">learning_rate_C</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">learning_rate_Y</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+                                                 <span class="n">Cdict_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Ydict_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;nonnegative_symmetric&#39;</span><span class="p">,</span> <span class="n">use_log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                 <span class="n">tol_outer</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">tol_inner</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">max_iter_outer</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter_inner</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">use_adam_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Infer Fused Gromov-Wasserstein linear dictionary :math:`\{ (\mathbf{C_{dict}[d]}, \mathbf{Y_{dict}[d]}, \mathbf{q}) \}_{d \in [D]}`  from the list of S attributed structures :math:`\{ (\mathbf{C_s}, \mathbf{Y_s},\mathbf{p_s}) \}_s`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{C_{dict}},\mathbf{Y_{dict}}, \{\mathbf{w_s}\}_{s}} \sum_{s=1}^S  FGW_{2,\alpha}(\mathbf{C_s}, \mathbf{Y_s}, \sum_{d=1}^D w_{s,d}\mathbf{C_{dict}[d]},\sum_{d=1}^D w_{s,d}\mathbf{Y_{dict}[d]}, \mathbf{p_s}, \mathbf{q}) \\ - reg\| \mathbf{w_s}  \|_2^2</span>
+
+
+<span class="sd">    Such that :math:`\forall s \leq S` :</span>
+
+<span class="sd">    - :math:`\mathbf{w_s}^\top \mathbf{1}_D = 1`</span>
+<span class="sd">    - :math:`\mathbf{w_s} \geq \mathbf{0}_D`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\forall s \leq S, \mathbf{C_s}` is a (ns,ns) pairwise similarity matrix of variable size ns.</span>
+<span class="sd">    - :math:`\forall s \leq S, \mathbf{Y_s}` is a (ns,d) features matrix of variable size ns and fixed dimension d.</span>
+<span class="sd">    - :math:`\mathbf{C_{dict}}` is a (D, nt, nt) tensor of D pairwise similarity matrix of fixed size nt.</span>
+<span class="sd">    - :math:`\mathbf{Y_{dict}}` is a (D, nt, d) tensor of D features matrix of fixed size nt and fixed dimension d.</span>
+<span class="sd">    - :math:`\forall s \leq S, \mathbf{p_s}` is the source distribution corresponding to :math:`\mathbf{C_s}`</span>
+<span class="sd">    - :math:`\mathbf{q}` is the target distribution assigned to every structures in the embedding space.</span>
+<span class="sd">    - :math:`\alpha` is the trade-off parameter of Fused Gromov-Wasserstein</span>
+<span class="sd">    - reg is the regularization coefficient.</span>
+
+
+<span class="sd">    The stochastic algorithm used for estimating the attributed graph dictionary atoms as proposed in [38]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cs : list of S symmetric array-like, shape (ns, ns)</span>
+<span class="sd">        List of Metric/Graph cost matrices of variable size (ns,ns).</span>
+<span class="sd">    Ys : list of S array-like, shape (ns, d)</span>
+<span class="sd">        List of feature matrix of variable size (ns,d) with d fixed.</span>
+<span class="sd">    D: int</span>
+<span class="sd">        Number of dictionary atoms to learn</span>
+<span class="sd">    nt: int</span>
+<span class="sd">        Number of samples within each dictionary atoms</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        Trade-off parameter of Fused Gromov-Wasserstein</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w. The default is 0.</span>
+<span class="sd">    ps : list of S array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in each source space C of Cs. Default is None and corresponds to uniform distibutions.</span>
+<span class="sd">    q : array-like, shape (nt,), optional</span>
+<span class="sd">        Distribution in the embedding space whose structure will be learned. Default is None and corresponds to uniform distributions.</span>
+<span class="sd">    epochs: int, optional</span>
+<span class="sd">        Number of epochs used to learn the dictionary. Default is 32.</span>
+<span class="sd">    batch_size: int, optional</span>
+<span class="sd">        Batch size for each stochastic gradient update of the dictionary. Set to the dataset size if the provided batch_size is higher than the dataset size. Default is 32.</span>
+<span class="sd">    learning_rate_C: float, optional</span>
+<span class="sd">        Learning rate used for the stochastic gradient descent on Cdict. Default is 1.</span>
+<span class="sd">    learning_rate_Y: float, optional</span>
+<span class="sd">        Learning rate used for the stochastic gradient descent on Ydict. Default is 1.</span>
+<span class="sd">    Cdict_init: list of D array-like with shape (nt, nt), optional</span>
+<span class="sd">        Used to initialize the dictionary structures Cdict.</span>
+<span class="sd">        If set to None (Default), the dictionary will be initialized randomly.</span>
+<span class="sd">        Else Cdict must have shape (D, nt, nt) i.e match provided shape features.</span>
+<span class="sd">    Ydict_init: list of D array-like with shape (nt, d), optional</span>
+<span class="sd">        Used to initialize the dictionary features Ydict.</span>
+<span class="sd">        If set to None, the dictionary features will be initialized randomly.</span>
+<span class="sd">        Else Ydict must have shape (D, nt, d) where d is the features dimension of inputs Ys and also match provided shape features.</span>
+<span class="sd">    projection: str, optional</span>
+<span class="sd">        If &#39;nonnegative&#39; and/or &#39;symmetric&#39; is in projection, the corresponding projection will be performed at each stochastic update of the dictionary</span>
+<span class="sd">        Else the set of atoms is :math:`R^{nt * nt}`. Default is &#39;nonnegative_symmetric&#39;</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        If set to True, losses evolution by batches and epochs are tracked. Default is False.</span>
+<span class="sd">    use_adam_optimizer: bool, optional</span>
+<span class="sd">        If set to True, adam optimizer with default settings is used as adaptative learning rate strategy.</span>
+<span class="sd">        Else perform SGD with fixed learning rate. Default is True.</span>
+<span class="sd">    tol_outer : float, optional</span>
+<span class="sd">        Solver precision for the BCD algorithm, measured by absolute relative error on consecutive losses. Default is :math:`10^{-5}`.</span>
+<span class="sd">    tol_inner : float, optional</span>
+<span class="sd">        Solver precision for the Conjugate Gradient algorithm used to get optimal w at a fixed transport, measured by absolute relative error on consecutive losses. Default is :math:`10^{-5}`.</span>
+<span class="sd">    max_iter_outer : int, optional</span>
+<span class="sd">        Maximum number of iterations for the BCD. Default is 20.</span>
+<span class="sd">    max_iter_inner : int, optional</span>
+<span class="sd">        Maximum number of iterations for the Conjugate Gradient. Default is 200.</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print the reconstruction loss every epoch. Default is False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    Cdict_best_state : D array-like, shape (D,nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary.</span>
+<span class="sd">        The dictionary leading to the best loss over an epoch is saved and returned.</span>
+<span class="sd">    Ydict_best_state : D array-like, shape (D,nt,d)</span>
+<span class="sd">        Feature matrices composing the dictionary.</span>
+<span class="sd">        The dictionary leading to the best loss over an epoch is saved and returned.</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If use_log is True, contains loss evolutions by batches and epoches.</span>
+<span class="sd">    References</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    ..[38]  Cédric Vincent-Cuaz, Titouan Vayer, Rémi Flamary, Marco Corneli, Nicolas Courty.</span>
+<span class="sd">            &quot;Online Graph Dictionary Learning&quot;</span>
+<span class="sd">            International Conference on Machine Learning (ICML). 2021.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Cs0</span><span class="p">,</span> <span class="n">Ys0</span> <span class="o">=</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ys</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Cs0</span><span class="p">,</span> <span class="o">*</span><span class="n">Ys0</span><span class="p">)</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs0</span><span class="p">]</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span> <span class="k">for</span> <span class="n">Y</span> <span class="ow">in</span> <span class="n">Ys0</span><span class="p">]</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">dataset_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="n">unif</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ps</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Cdict_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Initialize randomly structures of dictionary atoms based on samples</span>
+        <span class="n">dataset_means</span> <span class="o">=</span> <span class="p">[</span><span class="n">C</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">]</span>
+        <span class="n">Cdict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dataset_means</span><span class="p">),</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dataset_means</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nt</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Cdict</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Cdict_init</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nt</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Ydict_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Initialize randomly features of dictionary atoms based on samples distribution by feature component</span>
+        <span class="n">dataset_feature_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">F</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">F</span> <span class="ow">in</span> <span class="n">Ys</span><span class="p">])</span>
+        <span class="n">Ydict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">dataset_feature_means</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">scale</span><span class="o">=</span><span class="n">dataset_feature_means</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Ydict</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Ydict_init</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">Ydict</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;symmetric&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+        <span class="n">Cdict</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cdict</span> <span class="o">+</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="s1">&#39;nonnegative&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+        <span class="n">Cdict</span><span class="p">[</span><span class="n">Cdict</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="k">if</span> <span class="n">use_adam_optimizer</span><span class="p">:</span>
+        <span class="n">adam_moments_C</span> <span class="o">=</span> <span class="n">_initialize_adam_optimizer</span><span class="p">(</span><span class="n">Cdict</span><span class="p">)</span>
+        <span class="n">adam_moments_Y</span> <span class="o">=</span> <span class="n">_initialize_adam_optimizer</span><span class="p">(</span><span class="n">Ydict</span><span class="p">)</span>
+
+    <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss_batches&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;loss_epochs&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+    <span class="n">const_q</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">diag_q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">Cdict_best_state</span> <span class="o">=</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">Ydict_best_state</span> <span class="o">=</span> <span class="n">Ydict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">loss_best_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="n">dataset_size</span><span class="p">:</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dataset_size</span>
+    <span class="n">iter_by_epoch</span> <span class="o">=</span> <span class="n">dataset_size</span> <span class="o">//</span> <span class="n">batch_size</span> <span class="o">+</span> <span class="nb">int</span><span class="p">((</span><span class="n">dataset_size</span> <span class="o">%</span> <span class="n">batch_size</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+        <span class="n">cumulated_loss_over_epoch</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iter_by_epoch</span><span class="p">):</span>
+
+            <span class="c1"># Batch iterations</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dataset_size</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">cumulated_loss_over_batch</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">unmixings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">D</span><span class="p">))</span>
+            <span class="n">Cs_embedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nt</span><span class="p">))</span>
+            <span class="n">Ys_embedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+            <span class="n">Ts</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">batch_size</span>
+
+            <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">C_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+                <span class="c1"># BCD solver for Gromov-Wassersteisn linear unmixing used independently on each structure of the sampled batch</span>
+                <span class="n">unmixings</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">Cs_embedded</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">Ys_embedded</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">current_loss</span> <span class="o">=</span> <span class="n">fused_gromov_wasserstein_linear_unmixing</span><span class="p">(</span>
+                    <span class="n">Cs</span><span class="p">[</span><span class="n">C_idx</span><span class="p">],</span> <span class="n">Ys</span><span class="p">[</span><span class="n">C_idx</span><span class="p">],</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">ps</span><span class="p">[</span><span class="n">C_idx</span><span class="p">],</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+                    <span class="n">tol_outer</span><span class="o">=</span><span class="n">tol_outer</span><span class="p">,</span> <span class="n">tol_inner</span><span class="o">=</span><span class="n">tol_inner</span><span class="p">,</span> <span class="n">max_iter_outer</span><span class="o">=</span><span class="n">max_iter_outer</span><span class="p">,</span> <span class="n">max_iter_inner</span><span class="o">=</span><span class="n">max_iter_inner</span>
+                <span class="p">)</span>
+                <span class="n">cumulated_loss_over_batch</span> <span class="o">+=</span> <span class="n">current_loss</span>
+            <span class="n">cumulated_loss_over_epoch</span> <span class="o">+=</span> <span class="n">cumulated_loss_over_batch</span>
+            <span class="k">if</span> <span class="n">use_log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss_batches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cumulated_loss_over_batch</span><span class="p">)</span>
+
+            <span class="c1"># Stochastic projected gradient step over dictionary atoms</span>
+            <span class="n">grad_Cdict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">Cdict</span><span class="p">)</span>
+            <span class="n">grad_Ydict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">Ydict</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">C_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+                <span class="n">shared_term_structures</span> <span class="o">=</span> <span class="n">Cs_embedded</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">const_q</span> <span class="o">-</span> <span class="p">(</span><span class="n">Cs</span><span class="p">[</span><span class="n">C_idx</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]))</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">])</span>
+                <span class="n">shared_term_features</span> <span class="o">=</span> <span class="n">diag_q</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ys_embedded</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">])</span> <span class="o">-</span> <span class="n">Ts</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">C_idx</span><span class="p">])</span>
+                <span class="n">grad_Cdict</span> <span class="o">+=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">unmixings</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">shared_term_structures</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+                <span class="n">grad_Ydict</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">unmixings</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">shared_term_features</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">grad_Cdict</span> <span class="o">*=</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">batch_size</span>
+            <span class="n">grad_Ydict</span> <span class="o">*=</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">batch_size</span>
+
+            <span class="k">if</span> <span class="n">use_adam_optimizer</span><span class="p">:</span>
+                <span class="n">Cdict</span><span class="p">,</span> <span class="n">adam_moments_C</span> <span class="o">=</span> <span class="n">_adam_stochastic_updates</span><span class="p">(</span><span class="n">Cdict</span><span class="p">,</span> <span class="n">grad_Cdict</span><span class="p">,</span> <span class="n">learning_rate_C</span><span class="p">,</span> <span class="n">adam_moments_C</span><span class="p">)</span>
+                <span class="n">Ydict</span><span class="p">,</span> <span class="n">adam_moments_Y</span> <span class="o">=</span> <span class="n">_adam_stochastic_updates</span><span class="p">(</span><span class="n">Ydict</span><span class="p">,</span> <span class="n">grad_Ydict</span><span class="p">,</span> <span class="n">learning_rate_Y</span><span class="p">,</span> <span class="n">adam_moments_Y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Cdict</span> <span class="o">-=</span> <span class="n">learning_rate_C</span> <span class="o">*</span> <span class="n">grad_Cdict</span>
+                <span class="n">Ydict</span> <span class="o">-=</span> <span class="n">learning_rate_Y</span> <span class="o">*</span> <span class="n">grad_Ydict</span>
+
+            <span class="k">if</span> <span class="s1">&#39;symmetric&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+                <span class="n">Cdict</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cdict</span> <span class="o">+</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="s1">&#39;nonnegative&#39;</span> <span class="ow">in</span> <span class="n">projection</span><span class="p">:</span>
+                <span class="n">Cdict</span><span class="p">[</span><span class="n">Cdict</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">if</span> <span class="n">use_log</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss_epochs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cumulated_loss_over_epoch</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">loss_best_state</span> <span class="o">&gt;</span> <span class="n">cumulated_loss_over_epoch</span><span class="p">:</span>
+            <span class="n">loss_best_state</span> <span class="o">=</span> <span class="n">cumulated_loss_over_epoch</span>
+            <span class="n">Cdict_best_state</span> <span class="o">=</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">Ydict_best_state</span> <span class="o">=</span> <span class="n">Ydict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;--- epoch: &#39;</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="s1">&#39; cumulated reconstruction error: &#39;</span><span class="p">,</span> <span class="n">cumulated_loss_over_epoch</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Cdict_best_state</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Ydict_best_state</span><span class="p">),</span> <span class="n">log</span></div>
+
+
+<div class="viewcode-block" id="fused_gromov_wasserstein_linear_unmixing"><a class="viewcode-back" href="../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein_linear_unmixing">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein_linear_unmixing</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol_outer</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">tol_inner</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">),</span> <span class="n">max_iter_outer</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter_inner</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the Fused Gromov-Wasserstein linear unmixing of :math:`(\mathbf{C},\mathbf{Y},\mathbf{p})` onto the attributed dictionary atoms :math:`\{ (\mathbf{C_{dict}[d]},\mathbf{Y_{dict}[d]}, \mathbf{q}) \}_{d \in [D]}`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{w}}  FGW_{2,\alpha}(\mathbf{C},\mathbf{Y}, \sum_{d=1}^D w_d\mathbf{C_{dict}[d]},\sum_{d=1}^D w_d\mathbf{Y_{dict}[d]}, \mathbf{p}, \mathbf{q}) - reg \| \mathbf{w}  \|_2^2</span>
+
+<span class="sd">    such that, :math:`\forall s \leq S` :</span>
+
+<span class="sd">        - :math:`\mathbf{w_s}^\top \mathbf{1}_D = 1`</span>
+<span class="sd">        - :math:`\mathbf{w_s} \geq \mathbf{0}_D`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}` is a (ns,ns) pairwise similarity matrix of variable size ns.</span>
+<span class="sd">    - :math:`\mathbf{Y}` is a (ns,d) features matrix of variable size ns and fixed dimension d.</span>
+<span class="sd">    - :math:`\mathbf{C_{dict}}` is a (D, nt, nt) tensor of D pairwise similarity matrix of fixed size nt.</span>
+<span class="sd">    - :math:`\mathbf{Y_{dict}}` is a (D, nt, d) tensor of D features matrix of fixed size nt and fixed dimension d.</span>
+<span class="sd">    - :math:`\mathbf{p}` is the source distribution corresponding to :math:`\mathbf{C_s}`</span>
+<span class="sd">    - :math:`\mathbf{q}` is the target distribution assigned to every structures in the embedding space.</span>
+<span class="sd">    - :math:`\alpha` is the trade-off parameter of Fused Gromov-Wasserstein</span>
+<span class="sd">    - reg is the regularization coefficient.</span>
+
+<span class="sd">    The algorithm used for solving the problem is a Block Coordinate Descent as discussed in [38], algorithm 6.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric/Graph cost matrix.</span>
+<span class="sd">    Y : array-like, shape (ns, d)</span>
+<span class="sd">        Feature matrix.</span>
+<span class="sd">    Cdict : D array-like, shape (D,nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary on which to embed (C,Y).</span>
+<span class="sd">    Ydict : D array-like, shape (D,nt,d)</span>
+<span class="sd">        Feature matrices composing the dictionary on which to embed (C,Y).</span>
+<span class="sd">    alpha: float,</span>
+<span class="sd">        Trade-off parameter of Fused Gromov-Wasserstein.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w. The default is 0.</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space C. Default is None and corresponds to uniform distribution.</span>
+<span class="sd">    q : array-like, shape (nt,), optional</span>
+<span class="sd">        Distribution in the space depicted by the dictionary. Default is None and corresponds to uniform distribution.</span>
+<span class="sd">    tol_outer : float, optional</span>
+<span class="sd">        Solver precision for the BCD algorithm.</span>
+<span class="sd">    tol_inner : float, optional</span>
+<span class="sd">        Solver precision for the Conjugate Gradient algorithm used to get optimal w at a fixed transport. Default is :math:`10^{-5}`.</span>
+<span class="sd">    max_iter_outer : int, optional</span>
+<span class="sd">        Maximum number of iterations for the BCD. Default is 20.</span>
+<span class="sd">    max_iter_inner : int, optional</span>
+<span class="sd">        Maximum number of iterations for the Conjugate Gradient. Default is 200.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    w: array-like, shape (D,)</span>
+<span class="sd">        fused gromov-wasserstein linear unmixing of (C,Y,p) onto the span of the dictionary.</span>
+<span class="sd">    Cembedded: array-like, shape (nt,nt)</span>
+<span class="sd">        embedded structure of :math:`(\mathbf{C},\mathbf{Y}, \mathbf{p})` onto the dictionary, :math:`\sum_d w_d\mathbf{C_{dict}[d]}`.</span>
+<span class="sd">    Yembedded: array-like, shape (nt,d)</span>
+<span class="sd">        embedded features of :math:`(\mathbf{C},\mathbf{Y}, \mathbf{p})` onto the dictionary, :math:`\sum_d w_d\mathbf{Y_{dict}[d]}`.</span>
+<span class="sd">    T: array-like (ns,nt)</span>
+<span class="sd">        Fused Gromov-Wasserstein transport plan between :math:`(\mathbf{C},\mathbf{p})` and :math:`(\sum_d w_d\mathbf{C_{dict}[d]}, \sum_d w_d\mathbf{Y_{dict}[d]},\mathbf{q})`.</span>
+<span class="sd">    current_loss: float</span>
+<span class="sd">        reconstruction error</span>
+<span class="sd">    References</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    ..[38]  Cédric Vincent-Cuaz, Titouan Vayer, Rémi Flamary, Marco Corneli, Nicolas Courty.</span>
+<span class="sd">            &quot;Online Graph Dictionary Learning&quot;</span>
+<span class="sd">            International Conference on Machine Learning (ICML). 2021.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">C0</span><span class="p">,</span> <span class="n">Y0</span><span class="p">,</span> <span class="n">Cdict0</span><span class="p">,</span> <span class="n">Ydict0</span> <span class="o">=</span> <span class="n">C</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C0</span><span class="p">,</span> <span class="n">Y0</span><span class="p">,</span> <span class="n">Cdict0</span><span class="p">,</span> <span class="n">Ydict0</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C0</span><span class="p">)</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Y0</span><span class="p">)</span>
+    <span class="n">Cdict</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Cdict0</span><span class="p">)</span>
+    <span class="n">Ydict</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Ydict0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">Cdict</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cdict</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>  <span class="c1"># Initialize with uniform weights</span>
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">nt</span> <span class="o">=</span> <span class="n">Cdict</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># modeling (C,Y)</span>
+    <span class="n">Cembedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">Yembedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># constants depending on q</span>
+    <span class="n">const_q</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">diag_q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="c1"># Trackers for BCD convergence</span>
+    <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">current_loss</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="mi">15</span>
+    <span class="n">outer_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">Ys_constM</span> <span class="o">=</span> <span class="p">(</span><span class="n">Y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">d</span><span class="p">,</span> <span class="n">nt</span><span class="p">)))</span>  <span class="c1"># constant in computing euclidean pairwise feature matrix</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">convergence_criterion</span> <span class="o">&gt;</span> <span class="n">tol_outer</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">outer_count</span> <span class="o">&lt;</span> <span class="n">max_iter_outer</span><span class="p">):</span>
+        <span class="n">previous_loss</span> <span class="o">=</span> <span class="n">current_loss</span>
+
+        <span class="c1"># 1. Solve GW transport between (C,p) and (\sum_d Cdictionary[d],q) fixing the unmixing w</span>
+        <span class="n">Yt_varM</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="n">d</span><span class="p">)))</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">Yembedded</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">Ys_constM</span> <span class="o">+</span> <span class="n">Yt_varM</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Y</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Yembedded</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># euclidean distance matrix between features</span>
+        <span class="n">T</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">fused_gromov_wasserstein</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">current_loss</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;fgw_dist&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">reg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">current_loss</span> <span class="o">-=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># 2. Solve linear unmixing problem over w with a fixed transport plan T</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">Yembedded</span><span class="p">,</span> <span class="n">current_loss</span> <span class="o">=</span> <span class="n">_cg_fused_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">Yembedded</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span>
+                                                                                      <span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">diag_q</span><span class="p">,</span> <span class="n">current_loss</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span>
+                                                                                      <span class="n">tol</span><span class="o">=</span><span class="n">tol_inner</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter_inner</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">previous_loss</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">outer_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Cembedded</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Yembedded</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">current_loss</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_cg_fused_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">Yembedded</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">diag_q</span><span class="p">,</span> <span class="n">starting_loss</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">6</span><span class="p">),</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns for a fixed admissible transport plan,</span>
+<span class="sd">    the optimal linear unmixing :math:`\mathbf{w}` minimizing the Fused Gromov-Wasserstein cost between :math:`(\mathbf{C},\mathbf{Y},\mathbf{p})` and :math:`(\sum_d w_d \mathbf{C_{dict}[d]},\sum_d w_d*\mathbf{Y_{dict}[d]}, \mathbf{q})`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{w}}  \alpha  \sum_{ijkl} (C_{i,j} - \sum_{d=1}^D w_d C_{dict}[d]_{k,l} )^2 T_{i,k}T_{j,l} \\+ (1-\alpha) \sum_{ij} \| \mathbf{Y_i} - \sum_d w_d \mathbf{Y_{dict}[d]_j} \|_2^2 T_{ij}- reg \| \mathbf{w}  \|_2^2</span>
+
+<span class="sd">    Such that :</span>
+
+<span class="sd">        - :math:`\mathbf{w}^\top \mathbf{1}_D = 1`</span>
+<span class="sd">        - :math:`\mathbf{w} \geq \mathbf{0}_D`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}` is a (ns,ns) pairwise similarity matrix of variable size ns.</span>
+<span class="sd">    - :math:`\mathbf{Y}` is a (ns,d) features matrix of variable size ns and fixed dimension d.</span>
+<span class="sd">    - :math:`\mathbf{C_{dict}}` is a (D, nt, nt) tensor of D pairwise similarity matrix of fixed size nt.</span>
+<span class="sd">    - :math:`\mathbf{Y_{dict}}` is a (D, nt, d) tensor of D features matrix of fixed size nt and fixed dimension d.</span>
+<span class="sd">    - :math:`\mathbf{p}` is the source distribution corresponding to :math:`\mathbf{C_s}`</span>
+<span class="sd">    - :math:`\mathbf{q}` is the target distribution assigned to every structures in the embedding space.</span>
+<span class="sd">    - :math:`\mathbf{T}` is the optimal transport plan conditioned by the previous state of :math:`\mathbf{w}`</span>
+<span class="sd">    - :math:`\alpha` is the trade-off parameter of Fused Gromov-Wasserstein</span>
+<span class="sd">    - reg is the regularization coefficient.</span>
+
+<span class="sd">    The algorithm used for solving the problem is a Conditional Gradient Descent as discussed in [38], algorithm 7.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    C : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric/Graph cost matrix.</span>
+<span class="sd">    Y : array-like, shape (ns, d)</span>
+<span class="sd">        Feature matrix.</span>
+<span class="sd">    Cdict : list of D array-like, shape (nt,nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary on which to embed (C,Y).</span>
+<span class="sd">        Each matrix in the dictionary must have the same size (nt,nt).</span>
+<span class="sd">    Ydict : list of D array-like, shape (nt,d)</span>
+<span class="sd">        Feature matrices composing the dictionary on which to embed (C,Y).</span>
+<span class="sd">        Each matrix in the dictionary must have the same size (nt,d).</span>
+<span class="sd">    Cembedded: array-like, shape (nt,nt)</span>
+<span class="sd">        Embedded structure of (C,Y) onto the dictionary</span>
+<span class="sd">    Yembedded: array-like, shape (nt,d)</span>
+<span class="sd">        Embedded features of (C,Y) onto the dictionary</span>
+<span class="sd">    w: array-like, shape (n_D,)</span>
+<span class="sd">        Linear unmixing of (C,Y) onto (Cdict,Ydict)</span>
+<span class="sd">    const_q: array-like, shape (nt,nt)</span>
+<span class="sd">        product matrix :math:`\mathbf{qq}^\top` where :math:`\mathbf{q}` is the target space distribution.</span>
+<span class="sd">    diag_q: array-like, shape (nt,nt)</span>
+<span class="sd">        diagonal matrix with values of q on the diagonal.</span>
+<span class="sd">    T: array-like, shape (ns,nt)</span>
+<span class="sd">        fixed transport plan between (C,Y) and its model</span>
+<span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">        Distribution in the source space (C,Y).</span>
+<span class="sd">    q : array-like, shape (nt,)</span>
+<span class="sd">        Distribution in the embedding space depicted by the dictionary.</span>
+<span class="sd">    alpha: float,</span>
+<span class="sd">        Trade-off parameter of Fused Gromov-Wasserstein.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    w: ndarray (D,)</span>
+<span class="sd">        linear unmixing of :math:`(\mathbf{C},\mathbf{Y},\mathbf{p})` onto the span of :math:`(C_{dict},Y_{dict})` given OT corresponding to previous unmixing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">current_loss</span> <span class="o">=</span> <span class="n">starting_loss</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">const_TCT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">ones_ns_d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">convergence_criterion</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">count</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">):</span>
+        <span class="n">previous_loss</span> <span class="o">=</span> <span class="n">current_loss</span>
+
+        <span class="c1"># 1) Compute gradient at current point w</span>
+        <span class="c1"># structure</span>
+        <span class="n">grad_w</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cdict</span> <span class="o">*</span> <span class="p">(</span><span class="n">Cembedded</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">const_q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">const_TCT</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="c1"># feature</span>
+        <span class="n">grad_w</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Ydict</span> <span class="o">*</span> <span class="p">(</span><span class="n">diag_q</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Yembedded</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Y</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">grad_w</span> <span class="o">-=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">grad_w</span> <span class="o">*=</span> <span class="mi">2</span>
+
+        <span class="c1"># 2) Conditional gradient direction finding: x= \argmin_x x^T.grad_w</span>
+        <span class="n">min_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">grad_w</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">grad_w</span> <span class="o">==</span> <span class="n">min_</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># 3) Line-search step: solve \argmin_{\gamma \in [0,1]} a*gamma^2 + b*gamma + c</span>
+        <span class="n">gamma</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">Cembedded_diff</span><span class="p">,</span> <span class="n">Yembedded_diff</span> <span class="o">=</span> <span class="n">_linesearch_fused_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">grad_w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">Yembedded</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">const_TCT</span><span class="p">,</span> <span class="n">ones_ns_d</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+
+        <span class="c1"># 4) Updates: w &lt;-- (1-gamma)*w + gamma*x</span>
+        <span class="n">w</span> <span class="o">+=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span>
+        <span class="n">Cembedded</span> <span class="o">+=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">Cembedded_diff</span>
+        <span class="n">Yembedded</span> <span class="o">+=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">Yembedded_diff</span>
+        <span class="n">current_loss</span> <span class="o">+=</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">gamma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">gamma</span>
+
+        <span class="k">if</span> <span class="n">previous_loss</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">convergence_criterion</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">previous_loss</span> <span class="o">-</span> <span class="n">current_loss</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">Yembedded</span><span class="p">,</span> <span class="n">current_loss</span>
+
+
+<span class="k">def</span> <span class="nf">_linesearch_fused_gromov_wasserstein_unmixing</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">grad_w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">Cembedded</span><span class="p">,</span> <span class="n">Yembedded</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">const_q</span><span class="p">,</span> <span class="n">const_TCT</span><span class="p">,</span> <span class="n">ones_ns_d</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute optimal steps for the line search problem of Fused Gromov-Wasserstein linear unmixing</span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\gamma \in [0,1]}  \alpha \sum_{ijkl} (C_{i,j} - \sum_{d=1}^D z_d(\gamma)C_{dict}[d]_{k,l} )^2 T_{i,k}T_{j,l} \\ + (1-\alpha) \sum_{ij} \| \mathbf{Y_i} - \sum_d z_d(\gamma) \mathbf{Y_{dict}[d]_j} \|_2^2 - reg\| \mathbf{z}(\gamma)  \|_2^2</span>
+
+
+<span class="sd">    Such that :</span>
+
+<span class="sd">        - :math:`\mathbf{z}(\gamma) = (1- \gamma)\mathbf{w} + \gamma \mathbf{x}`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    w : array-like, shape (D,)</span>
+<span class="sd">        Unmixing.</span>
+<span class="sd">    grad_w : array-like, shape (D, D)</span>
+<span class="sd">        Gradient of the reconstruction loss with respect to w.</span>
+<span class="sd">    x: array-like, shape (D,)</span>
+<span class="sd">        Conditional gradient direction.</span>
+<span class="sd">    Y: arrat-like, shape (ns,d)</span>
+<span class="sd">        Feature matrix of the input space</span>
+<span class="sd">    Cdict : list of D array-like, shape (nt, nt)</span>
+<span class="sd">        Metric/Graph cost matrices composing the dictionary on which to embed (C,Y).</span>
+<span class="sd">        Each matrix in the dictionary must have the same size (nt,nt).</span>
+<span class="sd">    Ydict : list of D array-like, shape (nt, d)</span>
+<span class="sd">        Feature matrices composing the dictionary on which to embed (C,Y).</span>
+<span class="sd">        Each matrix in the dictionary must have the same size (nt,d).</span>
+<span class="sd">    Cembedded: array-like, shape (nt, nt)</span>
+<span class="sd">        Embedded structure of (C,Y) onto the dictionary</span>
+<span class="sd">    Yembedded: array-like, shape (nt, d)</span>
+<span class="sd">        Embedded features of (C,Y) onto the dictionary</span>
+<span class="sd">    T: array-like, shape (ns, nt)</span>
+<span class="sd">        Fixed transport plan between (C,Y) and its current model.</span>
+<span class="sd">    const_q: array-like, shape (nt,nt)</span>
+<span class="sd">        product matrix :math:`\mathbf{q}\mathbf{q}^\top` where q is the target space distribution. Used to avoid redundant computations.</span>
+<span class="sd">    const_TCT: array-like, shape (nt, nt)</span>
+<span class="sd">        :math:`\mathbf{T}^\top \mathbf{C}^\top \mathbf{T}`. Used to avoid redundant computations.</span>
+<span class="sd">    ones_ns_d: array-like, shape (ns, d)</span>
+<span class="sd">        :math:`\mathbf{1}_{ ns \times d}`. Used to avoid redundant computations.</span>
+<span class="sd">    alpha: float,</span>
+<span class="sd">        Trade-off parameter of Fused Gromov-Wasserstein.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Coefficient of the negative quadratic regularization used to promote sparsity of w.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma: float</span>
+<span class="sd">        Optimal value for the line-search step</span>
+<span class="sd">    a: float</span>
+<span class="sd">        Constant factor appearing in the factorization :math:`a \gamma^2 + b \gamma +c` of the reconstruction loss</span>
+<span class="sd">    b: float</span>
+<span class="sd">        Constant factor appearing in the factorization :math:`a \gamma^2 + b \gamma +c` of the reconstruction loss</span>
+<span class="sd">    Cembedded_diff: numpy array, shape (nt, nt)</span>
+<span class="sd">        Difference between structure matrix of models evaluated in :math:`\mathbf{w}` and in :math:`\mathbf{w}`.</span>
+<span class="sd">    Yembedded_diff: numpy array, shape (nt, nt)</span>
+<span class="sd">        Difference between feature matrix of models evaluated in :math:`\mathbf{w}` and in :math:`\mathbf{w}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># polynomial coefficients from quadratic objective (with respect to w) on structures</span>
+    <span class="n">Cembedded_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">Cdict</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">Cembedded_diff</span> <span class="o">=</span> <span class="n">Cembedded_x</span> <span class="o">-</span> <span class="n">Cembedded</span>
+    <span class="n">trace_diffx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cembedded_diff</span> <span class="o">*</span> <span class="n">Cembedded_x</span> <span class="o">*</span> <span class="n">const_q</span><span class="p">)</span>
+    <span class="n">trace_diffw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cembedded_diff</span> <span class="o">*</span> <span class="n">Cembedded</span> <span class="o">*</span> <span class="n">const_q</span><span class="p">)</span>
+    <span class="c1"># Constant factor appearing in the factorization a*gamma^2 + b*g + c of the Gromov-Wasserstein reconstruction loss</span>
+    <span class="n">a_gw</span> <span class="o">=</span> <span class="n">trace_diffx</span> <span class="o">-</span> <span class="n">trace_diffw</span>
+    <span class="n">b_gw</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">trace_diffw</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Cembedded_diff</span> <span class="o">*</span> <span class="n">const_TCT</span><span class="p">))</span>
+
+    <span class="c1"># polynomial coefficient from quadratic objective (with respect to w) on features</span>
+    <span class="n">Yembedded_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">Ydict</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">Yembedded_diff</span> <span class="o">=</span> <span class="n">Yembedded_x</span> <span class="o">-</span> <span class="n">Yembedded</span>
+    <span class="c1"># Constant factor appearing in the factorization a*gamma^2 + b*g + c of the Gromov-Wasserstein reconstruction loss</span>
+    <span class="n">a_w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ones_ns_d</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">Yembedded_diff</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+    <span class="n">b_w</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span> <span class="o">*</span> <span class="p">(</span><span class="n">ones_ns_d</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">Yembedded</span> <span class="o">*</span> <span class="n">Yembedded_diff</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="n">Y</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Yembedded_diff</span><span class="o">.</span><span class="n">T</span><span class="p">)))</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">a_gw</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">a_w</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">b_gw</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">b_w</span>
+    <span class="k">if</span> <span class="n">reg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">-=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">w</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">b</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="p">)))</span>
+    <span class="k">elif</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">Cembedded_diff</span><span class="p">,</span> <span class="n">Yembedded_diff</span>
 </pre></div>
 
            </div>
