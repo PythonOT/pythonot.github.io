@@ -304,6 +304,13 @@
 <span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
 <span class="sd">        which can lead to copy overhead on GPU arrays.</span>
 
+<span class="sd">    .. note:: This function will cast the computed transport plan to the data type</span>
+<span class="sd">        of the provided input with the following priority: :math:`\mathbf{a}`,</span>
+<span class="sd">        then :math:`\mathbf{b}`, then :math:`\mathbf{M}` if marginals are not provided.</span>
+<span class="sd">        Casting to an integer tensor might result in a loss of precision.</span>
+<span class="sd">        If this behaviour is unwanted, please make sure to provide a</span>
+<span class="sd">        floating point input.</span>
+
 <span class="sd">    Uses the algorithm proposed in :ref:`[1] &lt;references-emd&gt;`.</span>
 
 <span class="sd">    Parameters</span>
@@ -369,12 +376,16 @@
     <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
     <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a0</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">b0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">M0</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">)</span>
 
     <span class="c1"># convert to numpy</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
-    <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
     <span class="c1"># ensure float64</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -409,15 +420,23 @@
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
     <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
+            <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+            <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+            <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cost</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
-        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span> <span class="n">log</span>
-    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="emd2"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a><span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -442,6 +461,14 @@
 <span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
 <span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
 <span class="sd">        which can lead to copy overhead on GPU arrays.</span>
+
+<span class="sd">    .. note:: This function will cast the computed transport plan and</span>
+<span class="sd">        transportation loss to the data type of the provided input with the</span>
+<span class="sd">        following priority: :math:`\mathbf{a}`, then :math:`\mathbf{b}`,</span>
+<span class="sd">        then :math:`\mathbf{M}` if marginals are not provided.</span>
+<span class="sd">        Casting to an integer tensor might result in a loss of precision.</span>
+<span class="sd">        If this behaviour is unwanted, please make sure to provide a</span>
+<span class="sd">        floating point input.</span>
 
 <span class="sd">    Uses the algorithm proposed in :ref:`[1] &lt;references-emd2&gt;`.</span>
 
@@ -511,12 +538,16 @@
     <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
     <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a0</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">b0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">M0</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">)</span>
 
     <span class="c1"># convert to numpy</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
-    <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -549,14 +580,22 @@
 
             <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
             <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
+                    <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+                    <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+                    <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+                <span class="p">)</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">)</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
             <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
             <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
-            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
                                     <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">G</span><span class="p">))</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">cost</span><span class="p">,</span> <span class="n">log</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
@@ -570,10 +609,18 @@
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
                 <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
-            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
-            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span>
-                                    <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">),</span>
-                                                   <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">),</span> <span class="n">G</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
+                    <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+                    <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+                    <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+                <span class="p">)</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                                    <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                                                   <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span> <span class="n">G</span><span class="p">))</span>
 
             <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">cost</span>

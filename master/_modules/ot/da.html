@@ -91,12 +91,12 @@
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">scipy.linalg</span> <span class="k">as</span> <span class="nn">linalg</span>
 
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span><span class="p">,</span> <span class="n">jcpot_barycenter</span>
 <span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">cost_normalization</span><span class="p">,</span> <span class="n">label_normalization</span><span class="p">,</span> <span class="n">laplacian</span><span class="p">,</span> <span class="n">dots</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">check_params</span><span class="p">,</span> <span class="n">BaseEstimator</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">check_params</span><span class="p">,</span> <span class="n">BaseEstimator</span>
 <span class="kn">from</span> <span class="nn">.unbalanced</span> <span class="kn">import</span> <span class="n">sinkhorn_unbalanced</span>
 <span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">cg</span>
 <span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">gcg</span>
@@ -139,13 +139,13 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : np.ndarray (ns,)</span>
+<span class="sd">    a : array-like (ns,)</span>
 <span class="sd">        samples weights in the source domain</span>
-<span class="sd">    labels_a : np.ndarray (ns,)</span>
+<span class="sd">    labels_a : array-like (ns,)</span>
 <span class="sd">        labels of samples in the source domain</span>
-<span class="sd">    b : np.ndarray (nt,)</span>
+<span class="sd">    b : array-like (nt,)</span>
 <span class="sd">        samples weights in the target domain</span>
-<span class="sd">    M : np.ndarray (ns,nt)</span>
+<span class="sd">    M : array-like (ns,nt)</span>
 <span class="sd">        loss matrix</span>
 <span class="sd">    reg : float</span>
 <span class="sd">        Regularization term for entropic regularization &gt;0</span>
@@ -165,7 +165,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma : (ns, nt) ndarray</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -190,26 +190,28 @@
 <span class="sd">    ot.optim.cg : General regularized OT</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="mf">0.5</span>
     <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-3</span>
 
     <span class="n">indices_labels</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels_a</span><span class="p">)</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels_a</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-        <span class="n">idxc</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels_a</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span>
+        <span class="n">idxc</span><span class="p">,</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels_a</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span>
         <span class="n">indices_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idxc</span><span class="p">)</span>
 
-    <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-
+    <span class="n">W</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">cpt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
         <span class="n">Mreg</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">W</span>
         <span class="n">transp</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">Mreg</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span>
                           <span class="n">stopThr</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">)</span>
         <span class="c1"># the transport has been computed. Check if classes are really</span>
         <span class="c1"># separated</span>
-        <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">classes</span><span class="p">):</span>
-            <span class="n">majs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">transp</span><span class="p">[</span><span class="n">indices_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">majs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">transp</span><span class="p">[</span><span class="n">indices_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">majs</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="p">((</span><span class="n">majs</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">W</span><span class="p">[</span><span class="n">indices_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">majs</span>
 
@@ -253,13 +255,13 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : np.ndarray (ns,)</span>
+<span class="sd">    a : array-like (ns,)</span>
 <span class="sd">        samples weights in the source domain</span>
-<span class="sd">    labels_a : np.ndarray (ns,)</span>
+<span class="sd">    labels_a : array-like (ns,)</span>
 <span class="sd">        labels of samples in the source domain</span>
-<span class="sd">    b : np.ndarray (nt,)</span>
+<span class="sd">    b : array-like (nt,)</span>
 <span class="sd">        samples in the target domain</span>
-<span class="sd">    M : np.ndarray (ns,nt)</span>
+<span class="sd">    M : array-like (ns,nt)</span>
 <span class="sd">        loss matrix</span>
 <span class="sd">    reg : float</span>
 <span class="sd">        Regularization term for entropic regularization &gt;0</span>
@@ -279,7 +281,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma : (ns, nt) ndarray</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -301,22 +303,25 @@
 <span class="sd">    ot.optim.gcg : Generalized conditional gradient for OT problems</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">lstlab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels_a</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">labels_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">lstlab</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels_a</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="n">res</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
             <span class="k">for</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">lstlab</span><span class="p">:</span>
                 <span class="n">temp</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">labels_a</span> <span class="o">==</span> <span class="n">lab</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
-                <span class="n">res</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+                <span class="n">res</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-        <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">G</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
             <span class="k">for</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">lstlab</span><span class="p">:</span>
                 <span class="n">temp</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">labels_a</span> <span class="o">==</span> <span class="n">lab</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
-                <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">n</span><span class="p">:</span>
                     <span class="n">W</span><span class="p">[</span><span class="n">labels_a</span> <span class="o">==</span> <span class="n">lab</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span> <span class="o">/</span> <span class="n">n</span>
         <span class="k">return</span> <span class="n">W</span>
@@ -368,9 +373,9 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    xs : np.ndarray (ns,d)</span>
+<span class="sd">    xs : array-like (ns,d)</span>
 <span class="sd">        samples in the source domain</span>
-<span class="sd">    xt : np.ndarray (nt,d)</span>
+<span class="sd">    xt : array-like (nt,d)</span>
 <span class="sd">        samples in the target domain</span>
 <span class="sd">    mu : float,optional</span>
 <span class="sd">        Weight for the linear OT loss (&gt;0)</span>
@@ -394,9 +399,9 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma : (ns, nt) ndarray</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
-<span class="sd">    L : (d, d) ndarray</span>
+<span class="sd">    L : (d, d) array-like</span>
 <span class="sd">        Linear mapping matrix ((:math:`d+1`, `d`) if bias)</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -415,13 +420,15 @@
 <span class="sd">    ot.optim.cg : General regularized OT</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
 
     <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
-        <span class="n">xs1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">xs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">))))</span>
-        <span class="n">xstxs</span> <span class="o">=</span> <span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="p">)</span>
-        <span class="n">Id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">xs1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">xs</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">xstxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs1</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
         <span class="n">Id</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">I0</span> <span class="o">=</span> <span class="n">Id</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
@@ -429,8 +436,8 @@
             <span class="k">return</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">xs1</span> <span class="o">=</span> <span class="n">xs</span>
-        <span class="n">xstxs</span> <span class="o">=</span> <span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="p">)</span>
-        <span class="n">Id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">xstxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs1</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
         <span class="n">I0</span> <span class="o">=</span> <span class="n">Id</span>
 
         <span class="k">def</span> <span class="nf">sel</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -439,7 +446,8 @@
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
 
-    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">),</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">*</span> <span class="n">ns</span>
     <span class="n">G</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
@@ -447,23 +455,26 @@
 
     <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Compute full loss&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xs1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> \
-            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sel</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">I0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sel</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">I0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">solve_L</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; solve L problem with fixed G (least square)&quot;&quot;&quot;</span>
-        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">xstxs</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Id</span><span class="p">,</span> <span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xst</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">I0</span><span class="p">)</span>
+        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">xstxs</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Id</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xst</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">I0</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">solve_G</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update G with CG algorithm&quot;&quot;&quot;</span>
-        <span class="n">xsi</span> <span class="o">=</span> <span class="n">xs1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="n">xsi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-            <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ns</span> <span class="o">*</span> <span class="p">(</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">),</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">mu</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
                <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">)</span>
@@ -560,9 +571,9 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    xs : np.ndarray (ns,d)</span>
+<span class="sd">    xs : array-like (ns,d)</span>
 <span class="sd">        samples in the source domain</span>
-<span class="sd">    xt : np.ndarray (nt,d)</span>
+<span class="sd">    xt : array-like (nt,d)</span>
 <span class="sd">        samples in the target domain</span>
 <span class="sd">    mu : float,optional</span>
 <span class="sd">        Weight for the linear OT loss (&gt;0)</span>
@@ -592,9 +603,9 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma : (ns, nt) ndarray</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
-<span class="sd">    L : (ns, d) ndarray</span>
+<span class="sd">    L : (ns, d) array-like</span>
 <span class="sd">        Nonlinear mapping matrix ((:math:`n_s+1`, `d`) if bias)</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -613,15 +624,17 @@
 <span class="sd">    ot.optim.cg : General regularized OT</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
 
     <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">K</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">kerneltype</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
-        <span class="n">K1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">))))</span>
-        <span class="n">Id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">K1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
         <span class="n">Id</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">Kp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">Kp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
         <span class="n">Kp</span><span class="p">[:</span><span class="n">ns</span><span class="p">,</span> <span class="p">:</span><span class="n">ns</span><span class="p">]</span> <span class="o">=</span> <span class="n">K</span>
 
         <span class="c1"># ls regu</span>
@@ -629,12 +642,12 @@
         <span class="c1"># Kreg=I</span>
 
         <span class="c1"># RKHS regul</span>
-        <span class="n">K0</span> <span class="o">=</span> <span class="n">K1</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Kp</span>
+        <span class="n">K0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">K1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Kp</span>
         <span class="n">Kreg</span> <span class="o">=</span> <span class="n">Kp</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="n">K1</span> <span class="o">=</span> <span class="n">K</span>
-        <span class="n">Id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
 
         <span class="c1"># ls regul</span>
         <span class="c1"># K0 = K1.T.dot(K1)+eta*I</span>
@@ -647,7 +660,8 @@
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
 
-    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">),</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">*</span> <span class="n">ns</span>
     <span class="n">G</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
@@ -655,28 +669,31 @@
 
     <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Compute full loss&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">K1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> \
-            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kreg</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">L</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Kreg</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">solve_L_nobias</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; solve L problem with fixed G (least square)&quot;&quot;&quot;</span>
-        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K0</span><span class="p">,</span> <span class="n">xst</span><span class="p">)</span>
+        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K0</span><span class="p">,</span> <span class="n">xst</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">solve_L_bias</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; solve L problem with fixed G (least square)&quot;&quot;&quot;</span>
-        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K0</span><span class="p">,</span> <span class="n">K1</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xst</span><span class="p">))</span>
+        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K0</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xst</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">solve_G</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update G with CG algorithm&quot;&quot;&quot;</span>
-        <span class="n">xsi</span> <span class="o">=</span> <span class="n">K1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="n">xsi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-            <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ns</span> <span class="o">*</span> <span class="p">(</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">G</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">),</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">mu</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
                <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">)</span>
@@ -760,15 +777,15 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    xs : np.ndarray (ns,d)</span>
+<span class="sd">    xs : array-like (ns,d)</span>
 <span class="sd">        samples in the source domain</span>
-<span class="sd">    xt : np.ndarray (nt,d)</span>
+<span class="sd">    xt : array-like (nt,d)</span>
 <span class="sd">        samples in the target domain</span>
 <span class="sd">    reg : float,optional</span>
 <span class="sd">        regularization added to the diagonals of covariances (&gt;0)</span>
-<span class="sd">    ws : np.ndarray (ns,1), optional</span>
+<span class="sd">    ws : array-like (ns,1), optional</span>
 <span class="sd">        weights for the source samples</span>
-<span class="sd">    wt : np.ndarray (ns,1), optional</span>
+<span class="sd">    wt : array-like (ns,1), optional</span>
 <span class="sd">        weights for the target samples</span>
 <span class="sd">    bias: boolean, optional</span>
 <span class="sd">        estimate bias :math:`\mathbf{b}` else :math:`\mathbf{b} = 0` (default:True)</span>
@@ -778,9 +795,9 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    A : (d, d) ndarray</span>
+<span class="sd">    A : (d, d) array-like</span>
 <span class="sd">        Linear operator</span>
-<span class="sd">    b : (1, d) ndarray</span>
+<span class="sd">    b : (1, d) array-like</span>
 <span class="sd">        bias</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -798,36 +815,38 @@
 
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
 
     <span class="n">d</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
-        <span class="n">mxs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">mxt</span> <span class="o">=</span> <span class="n">xt</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">xt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
         <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span> <span class="o">-</span> <span class="n">mxs</span>
         <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">-</span> <span class="n">mxt</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">mxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
-        <span class="n">mxt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ws</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">wt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">Cs</span> <span class="o">=</span> <span class="p">(</span><span class="n">xs</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">ws</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
-    <span class="n">Ct</span> <span class="o">=</span> <span class="p">(</span><span class="n">xt</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">wt</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xs</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">Ct</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xt</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
 
-    <span class="n">Cs12</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
-    <span class="n">Cs_12</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Cs12</span><span class="p">)</span>
+    <span class="n">Cs12</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">Cs_12</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Cs12</span><span class="p">)</span>
 
-    <span class="n">M0</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">Cs12</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ct</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Cs12</span><span class="p">)))</span>
+    <span class="n">M0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">Cs12</span><span class="p">,</span> <span class="n">Ct</span><span class="p">,</span> <span class="n">Cs12</span><span class="p">))</span>
 
-    <span class="n">A</span> <span class="o">=</span> <span class="n">Cs_12</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M0</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Cs_12</span><span class="p">))</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Cs_12</span><span class="p">,</span> <span class="n">M0</span><span class="p">,</span> <span class="n">Cs_12</span><span class="p">)</span>
 
-    <span class="n">b</span> <span class="o">=</span> <span class="n">mxt</span> <span class="o">-</span> <span class="n">mxs</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">mxt</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
@@ -877,15 +896,15 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    a : np.ndarray (ns,)</span>
+<span class="sd">    a : array-like (ns,)</span>
 <span class="sd">        samples weights in the source domain</span>
-<span class="sd">    b : np.ndarray (nt,)</span>
+<span class="sd">    b : array-like (nt,)</span>
 <span class="sd">        samples weights in the target domain</span>
-<span class="sd">    xs : np.ndarray (ns,d)</span>
+<span class="sd">    xs : array-like (ns,d)</span>
 <span class="sd">        samples in the source domain</span>
-<span class="sd">    xt : np.ndarray (nt,d)</span>
+<span class="sd">    xt : array-like (nt,d)</span>
 <span class="sd">        samples in the target domain</span>
-<span class="sd">    M : np.ndarray (ns,nt)</span>
+<span class="sd">    M : array-like (ns,nt)</span>
 <span class="sd">        loss matrix</span>
 <span class="sd">    sim : string, optional</span>
 <span class="sd">        Type of similarity (&#39;knn&#39; or &#39;gauss&#39;) used to construct the Laplacian.</span>
@@ -913,7 +932,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma : (ns, nt) ndarray</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary return only if log==True in parameters</span>
@@ -941,9 +960,12 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;Similarity parameter should be an int or a float. Got </span><span class="si">{type}</span><span class="s1"> instead.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">sim_param</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
 
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">sim</span> <span class="o">==</span> <span class="s1">&#39;gauss&#39;</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">sim_param</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">sim_param</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="s1">&#39;sqeuclidean&#39;</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">sim_param</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="s1">&#39;sqeuclidean&#39;</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">sS</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">sim</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sim_param</span><span class="p">)</span>
         <span class="n">sT</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">(</span><span class="n">xt</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">sim</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sim_param</span><span class="p">)</span>
 
@@ -953,9 +975,13 @@
 
         <span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="kn">import</span> <span class="n">kneighbors_graph</span>
 
-        <span class="n">sS</span> <span class="o">=</span> <span class="n">kneighbors_graph</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">sim_param</span><span class="p">))</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="n">sS</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">kneighbors_graph</span><span class="p">(</span>
+            <span class="n">X</span><span class="o">=</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">sim_param</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
         <span class="n">sS</span> <span class="o">=</span> <span class="p">(</span><span class="n">sS</span> <span class="o">+</span> <span class="n">sS</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-        <span class="n">sT</span> <span class="o">=</span> <span class="n">kneighbors_graph</span><span class="p">(</span><span class="n">xt</span><span class="p">,</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">sim_param</span><span class="p">))</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="n">sT</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">kneighbors_graph</span><span class="p">(</span>
+            <span class="n">X</span><span class="o">=</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">xt</span><span class="p">),</span> <span class="n">n_neighbors</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">sim_param</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
         <span class="n">sT</span> <span class="o">=</span> <span class="p">(</span><span class="n">sT</span> <span class="o">+</span> <span class="n">sT</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown similarity type </span><span class="si">{sim}</span><span class="s1">. Currently supported similarity types are &quot;knn&quot; and &quot;gauss&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sim</span><span class="o">=</span><span class="n">sim</span><span class="p">))</span>
@@ -964,12 +990,14 @@
     <span class="n">lT</span> <span class="o">=</span> <span class="n">laplacian</span><span class="p">(</span><span class="n">sT</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">lS</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)))))</span> \
-            <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">lT</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)))))</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">alpha</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">G</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">lS</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span>
+            <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">lT</span><span class="p">,</span> <span class="n">G</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">))</span>
+        <span class="p">)</span>
 
     <span class="n">ls2</span> <span class="o">=</span> <span class="n">lS</span> <span class="o">+</span> <span class="n">lS</span><span class="o">.</span><span class="n">T</span>
     <span class="n">lt2</span> <span class="o">=</span> <span class="n">lT</span> <span class="o">+</span> <span class="n">lT</span><span class="o">.</span><span class="n">T</span>
-    <span class="n">xt2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">,</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">xt2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">,</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">reg</span> <span class="o">==</span> <span class="s1">&#39;disp&#39;</span><span class="p">:</span>
         <span class="n">Cs</span> <span class="o">=</span> <span class="o">-</span><span class="n">eta</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">dots</span><span class="p">(</span><span class="n">ls2</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
@@ -977,8 +1005,10 @@
         <span class="n">M</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">Cs</span> <span class="o">+</span> <span class="n">Ct</span>
 
     <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ls2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt2</span><span class="p">))</span>\
-            <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">lt2</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">alpha</span> <span class="o">*</span> <span class="n">dots</span><span class="p">(</span><span class="n">ls2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">xt2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">dots</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">lt2</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">cg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span> <span class="n">numItermaxEmd</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span>
               <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">)</span></div>
@@ -998,7 +1028,7 @@
 <span class="sd">        The uniform distribution estimated from :math:`\mathbf{X}`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">return</span> <span class="n">unif</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+    <span class="k">return</span> <span class="n">unif</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="BaseTransport"><a class="viewcode-back" href="../../gen_modules/ot.da.html#ot.BaseTransport">[docs]</a><span class="k">class</span> <span class="nc">BaseTransport</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">):</span>
@@ -1052,6 +1082,7 @@
 <span class="sd">        self : object</span>
 <span class="sd">            Returns self.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_backend</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">)</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">):</span>
@@ -1063,14 +1094,14 @@
             <span class="k">if</span> <span class="p">(</span><span class="n">ys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">yt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">infty</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">)</span>
 
                 <span class="c1"># assumes labeled source samples occupy the first rows</span>
                 <span class="c1"># and labeled target samples occupy the first columns</span>
-                <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-                    <span class="n">idx_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">ys</span> <span class="o">!=</span> <span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">ys</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-                    <span class="n">idx_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">yt</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span>
+                    <span class="n">idx_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">ys</span> <span class="o">!=</span> <span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">ys</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="n">idx_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">yt</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span>
 
                     <span class="c1"># all the coefficients corresponding to a source sample</span>
                     <span class="c1"># and a target sample :</span>
@@ -1141,23 +1172,24 @@
 <span class="sd">        transp_Xs : array-like, shape (n_source_samples, n_features)</span>
 <span class="sd">            The transport source samples.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">):</span>
 
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">):</span>
 
                 <span class="c1"># perform standard barycentric mapping</span>
-                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
                 <span class="c1"># compute transported samples</span>
-                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
+                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># perform out of sample mapping</span>
-                <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="n">batch_ind</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">)]</span>
@@ -1166,20 +1198,20 @@
                 <span class="k">for</span> <span class="n">bi</span> <span class="ow">in</span> <span class="n">batch_ind</span><span class="p">:</span>
                     <span class="c1"># get the nearest neighbor in the source domain</span>
                     <span class="n">D0</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">Xs</span><span class="p">[</span><span class="n">bi</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
-                    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
                     <span class="c1"># transport the source samples</span>
-                    <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-                    <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
-                    <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
+                    <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
 
                     <span class="c1"># define the transported points</span>
                     <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">transp_Xs_</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">Xs</span><span class="p">[</span><span class="n">bi</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
 
                     <span class="n">transp_Xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transp_Xs_</span><span class="p">)</span>
 
-                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_Xs</span></div>
 
@@ -1206,26 +1238,27 @@
 <span class="sd">           International Conference on Artificial Intelligence and Statistics (AISTATS), 2019.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">):</span>
 
-            <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
-            <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
+            <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
-            <span class="n">D1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)))</span>
+            <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">)</span>
 
             <span class="c1"># perform label propagation</span>
-            <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
             <span class="c1"># set nans to 0</span>
-            <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
                 <span class="n">D1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ysTemp</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
             <span class="c1"># compute propagated labels</span>
-            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="p">)</span>
+            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_ys</span><span class="o">.</span><span class="n">T</span></div>
 
@@ -1255,23 +1288,24 @@
 <span class="sd">        transp_Xt : array-like, shape (n_source_samples, n_features)</span>
 <span class="sd">            The transported target samples.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">):</span>
 
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">,</span> <span class="n">Xt</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">,</span> <span class="n">Xt</span><span class="p">):</span>
 
                 <span class="c1"># perform standard barycentric mapping</span>
-                <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp_</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp_</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp_</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp_</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
                 <span class="c1"># compute transported samples</span>
-                <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
+                <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># perform out of sample mapping</span>
-                <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="n">batch_ind</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">)]</span>
@@ -1279,20 +1313,20 @@
                 <span class="n">transp_Xt</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">bi</span> <span class="ow">in</span> <span class="n">batch_ind</span><span class="p">:</span>
                     <span class="n">D0</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">Xt</span><span class="p">[</span><span class="n">bi</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
-                    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
                     <span class="c1"># transport the target samples</span>
-                    <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                    <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-                    <span class="n">transp_</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp_</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
-                    <span class="n">transp_Xt_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
+                    <span class="n">transp_</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp_</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">transp_Xt_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
 
                     <span class="c1"># define the transported points</span>
                     <span class="n">transp_Xt_</span> <span class="o">=</span> <span class="n">transp_Xt_</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">Xt</span><span class="p">[</span><span class="n">bi</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
 
                     <span class="n">transp_Xt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transp_Xt_</span><span class="p">)</span>
 
-                <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_Xt</span></div>
 
@@ -1309,26 +1343,27 @@
 <span class="sd">        transp_ys : array-like, shape (n_source_samples, nb_classes)</span>
 <span class="sd">            Estimated soft source labels.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">yt</span><span class="o">=</span><span class="n">yt</span><span class="p">):</span>
 
-            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">yt</span><span class="p">))</span>
-            <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)</span>
+            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">yt</span><span class="p">))</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
-            <span class="n">D1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)))</span>
+            <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">)</span>
 
             <span class="c1"># perform label propagation</span>
-            <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
             <span class="c1"># set nans to 0</span>
-            <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
                 <span class="n">D1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ytTemp</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
             <span class="c1"># compute propagated samples</span>
-            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_ys</span><span class="o">.</span><span class="n">T</span></div></div>
 
@@ -1409,14 +1444,15 @@
 <span class="sd">        self : object</span>
 <span class="sd">            Returns self.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_backend</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xt</span><span class="p">)</span>
 
         <span class="c1"># coupling estimation</span>
         <span class="n">returned_</span> <span class="o">=</span> <span class="n">OT_mapping_linear</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reg</span><span class="p">,</span>
-                                      <span class="n">ws</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
-                                      <span class="n">wt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                                      <span class="n">ws</span><span class="o">=</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                                      <span class="n">wt</span><span class="o">=</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
                                       <span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
 
         <span class="c1"># deal with the value of log</span>
@@ -1427,8 +1463,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">log_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
         <span class="c1"># re compute inverse mapping</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">B_</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span> <span class="o">=</span> <span class="o">-</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span></div>
 
@@ -1457,10 +1493,11 @@
 <span class="sd">        transp_Xs : array-like, shape (n_source_samples, n_features)</span>
 <span class="sd">            The transport source samples.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">):</span>
-            <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">Xs</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_</span>
+            <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_</span>
 
             <span class="k">return</span> <span class="n">transp_Xs</span></div>
 
@@ -1490,10 +1527,11 @@
 <span class="sd">        transp_Xt : array-like, shape (n_source_samples, n_features)</span>
 <span class="sd">            The transported target samples.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">):</span>
-            <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">Xt</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span>
+            <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Xt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span>
 
             <span class="k">return</span> <span class="n">transp_Xt</span></div></div>
 
@@ -2191,6 +2229,7 @@
 <span class="sd">        self : object</span>
 <span class="sd">            Returns self</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_backend</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">)</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">):</span>
@@ -2237,19 +2276,20 @@
 <span class="sd">        transp_Xs : array-like, shape (n_source_samples, n_features)</span>
 <span class="sd">            The transport source samples.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">):</span>
 
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">):</span>
                 <span class="c1"># perform standard barycentric mapping</span>
-                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
                 <span class="c1"># compute transported samples</span>
-                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
+                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">==</span> <span class="s2">&quot;gaussian&quot;</span><span class="p">:</span>
                     <span class="n">K</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span>
@@ -2257,8 +2297,10 @@
                 <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
                     <span class="n">K</span> <span class="o">=</span> <span class="n">Xs</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
-                    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))))</span>
-                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping_</span><span class="p">)</span>
+                    <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">K</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapping_</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_Xs</span></div></div>
 
@@ -2475,6 +2517,7 @@
 <span class="sd">        self : object</span>
 <span class="sd">            Returns self.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Xs</span><span class="p">,</span> <span class="o">*</span><span class="n">ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">)</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">):</span>
@@ -2517,28 +2560,29 @@
 <span class="sd">        batch_size : int, optional (default=128)</span>
 <span class="sd">            The batch size for out of sample inverse transform</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="n">transp_Xs</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">):</span>
 
-            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">)]):</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">)]):</span>
 
                 <span class="c1"># perform standard barycentric mapping for each source domain</span>
 
                 <span class="k">for</span> <span class="n">coupling</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">:</span>
-                    <span class="n">transp</span> <span class="o">=</span> <span class="n">coupling</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">coupling</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="n">transp</span> <span class="o">=</span> <span class="n">coupling</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">coupling</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                     <span class="c1"># set nans to 0</span>
-                    <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
                     <span class="c1"># compute transported samples</span>
-                    <span class="n">transp_Xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">))</span>
+                    <span class="n">transp_Xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
 
                 <span class="c1"># perform out of sample mapping</span>
-                <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="n">batch_ind</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">)]</span>
@@ -2549,23 +2593,22 @@
                     <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="p">[]</span>
 
                     <span class="c1"># get the nearest neighbor in the sources domains</span>
-                    <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-                    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dist</span><span class="p">(</span><span class="n">Xs</span><span class="p">[</span><span class="n">bi</span><span class="p">],</span> <span class="n">xs</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dist</span><span class="p">(</span><span class="n">Xs</span><span class="p">[</span><span class="n">bi</span><span class="p">],</span> <span class="n">xs</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
                     <span class="c1"># transport the source samples</span>
                     <span class="k">for</span> <span class="n">coupling</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">:</span>
-                        <span class="n">transp</span> <span class="o">=</span> <span class="n">coupling</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                            <span class="n">coupling</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-                        <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="n">transp_Xs_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">))</span>
+                        <span class="n">transp</span> <span class="o">=</span> <span class="n">coupling</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">coupling</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                        <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="n">transp_Xs_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">))</span>
 
-                    <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xs_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xs_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
                     <span class="c1"># define the transported points</span>
                     <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">transp_Xs_</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">Xs</span><span class="p">[</span><span class="n">bi</span><span class="p">]</span> <span class="o">-</span> <span class="n">xs</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
                     <span class="n">transp_Xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transp_Xs_</span><span class="p">)</span>
 
-                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">transp_Xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_Xs</span></div>
 
@@ -2591,32 +2634,36 @@
 <span class="sd">           &quot;Optimal transport for multi-source domain adaptation under target shift&quot;,</span>
 <span class="sd">           International Conference on Artificial Intelligence and Statistics (AISTATS), 2019.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">):</span>
-            <span class="n">yt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">ys</span><span class="p">))),</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">yt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">ys</span><span class="p">))),</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)):</span>
-                <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
-                <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
+                <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
                 <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
                 <span class="n">ns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
 
                 <span class="c1"># perform label propagation</span>
-                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
                     <span class="n">D1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_</span><span class="p">[</span><span class="s1">&#39;D1&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">D1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">ns</span><span class="p">))</span>
+                    <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">ns</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">transp</span><span class="p">)</span>
 
                     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
                         <span class="n">D1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ysTemp</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
                 <span class="c1"># compute propagated labels</span>
-                <span class="n">yt</span> <span class="o">=</span> <span class="n">yt</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+                <span class="n">yt</span> <span class="o">=</span> <span class="n">yt</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">yt</span><span class="o">.</span><span class="n">T</span></div>
 
@@ -2634,14 +2681,15 @@
 <span class="sd">        transp_ys : list of K array-like objects, shape K x (nk_source_samples, nb_classes)</span>
 <span class="sd">            A list of estimated soft source labels</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">yt</span><span class="o">=</span><span class="n">yt</span><span class="p">):</span>
             <span class="n">transp_ys</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">yt</span><span class="p">))</span>
-            <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)</span>
+            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">yt</span><span class="p">))</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
-            <span class="n">D1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)))</span>
+            <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
                 <span class="n">D1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ytTemp</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
@@ -2649,13 +2697,13 @@
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)):</span>
 
                 <span class="c1"># perform label propagation</span>
-                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
 
                 <span class="c1"># compute propagated labels</span>
-                <span class="n">transp_ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">transp_ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_ys</span></div></div>
 </pre></div>

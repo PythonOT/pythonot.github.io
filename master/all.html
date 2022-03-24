@@ -253,11 +253,11 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>A</strong> (<em>np.ndarray</em><em> (</em><em>dim</em><em>, </em><em>n_hists</em><em>)</em>) – <cite>n_hists</cite> training distributions <span class="math notranslate nohighlight">\(\mathbf{a}_i\)</span> of dimension <cite>dim</cite></p></li>
-<li><p><strong>M</strong> (<em>np.ndarray</em><em> (</em><em>dim</em><em>, </em><em>dim</em><em>)</em>) – ground metric matrix for OT.</p></li>
+<li><p><strong>A</strong> (<em>array-like</em><em> (</em><em>dim</em><em>, </em><em>n_hists</em><em>)</em>) – <cite>n_hists</cite> training distributions <span class="math notranslate nohighlight">\(\mathbf{a}_i\)</span> of dimension <cite>dim</cite></p></li>
+<li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim</em><em>, </em><em>dim</em><em>)</em>) – ground metric matrix for OT.</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
 <li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
-<li><p><strong>weights</strong> (<em>np.ndarray</em><em> (</em><em>n_hists</em><em>,</em><em>) </em><em>optional</em>) – Weight of each distribution (barycentric coodinates)
+<li><p><strong>weights</strong> (<em>array-like</em><em> (</em><em>n_hists</em><em>,</em><em>) </em><em>optional</em>) – Weight of each distribution (barycentric coodinates)
 If None, uniform weights are used.</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
 <li><p><strong>stopThr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>, </em><em>optional</em>) – Stop threshold on error (&gt; 0)</p></li>
@@ -267,7 +267,7 @@ If None, uniform weights are used.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>a</strong> (<em>(dim,) ndarray</em>) – Unbalanced Wasserstein barycenter</p></li>
+<li><p><strong>a</strong> (<em>(dim,) array-like</em>) – Unbalanced Wasserstein barycenter</p></li>
 <li><p><strong>log</strong> (<em>dict</em>) – log dictionary return only if log==True in parameters</p></li>
 </ul>
 </p>
@@ -344,6 +344,15 @@ format</p>
 from all compatible backends. But the algorithm uses the C++ CPU backend
 which can lead to copy overhead on GPU arrays.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will cast the computed transport plan to the data type
+of the provided input with the following priority: <span class="math notranslate nohighlight">\(\mathbf{a}\)</span>,
+then <span class="math notranslate nohighlight">\(\mathbf{b}\)</span>, then <span class="math notranslate nohighlight">\(\mathbf{M}\)</span> if marginals are not provided.
+Casting to an integer tensor might result in a loss of precision.
+If this behaviour is unwanted, please make sure to provide a
+floating point input.</p>
+</div>
 <p>Uses the algorithm proposed in <a class="reference internal" href="gen_modules/ot.lp.html#references-emd"><span class="std std-ref">[1]</span></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -418,6 +427,16 @@ In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p. 158). ACM.</p>
 <p>This function is backend-compatible and will work on arrays
 from all compatible backends. But the algorithm uses the C++ CPU backend
 which can lead to copy overhead on GPU arrays.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will cast the computed transport plan and
+transportation loss to the data type of the provided input with the
+following priority: <span class="math notranslate nohighlight">\(\mathbf{a}\)</span>, then <span class="math notranslate nohighlight">\(\mathbf{b}\)</span>,
+then <span class="math notranslate nohighlight">\(\mathbf{M}\)</span> if marginals are not provided.
+Casting to an integer tensor might result in a loss of precision.
+If this behaviour is unwanted, please make sure to provide a
+floating point input.</p>
 </div>
 <p>Uses the algorithm proposed in <a class="reference internal" href="gen_modules/ot.lp.html#references-emd2"><span class="std std-ref">[1]</span></a>.</p>
 <dl class="field-list simple">
@@ -1259,10 +1278,10 @@ gradient as proposed in <a class="reference internal" href="gen_modules/ot.da.ht
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>a</strong> (<em>np.ndarray</em><em> (</em><em>ns</em><em>,</em><em>)</em>) – samples weights in the source domain</p></li>
-<li><p><strong>labels_a</strong> (<em>np.ndarray</em><em> (</em><em>ns</em><em>,</em><em>)</em>) – labels of samples in the source domain</p></li>
-<li><p><strong>b</strong> (<em>np.ndarray</em><em> (</em><em>nt</em><em>,</em><em>)</em>) – samples weights in the target domain</p></li>
-<li><p><strong>M</strong> (<em>np.ndarray</em><em> (</em><em>ns</em><em>,</em><em>nt</em><em>)</em>) – loss matrix</p></li>
+<li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>ns</em><em>,</em><em>)</em>) – samples weights in the source domain</p></li>
+<li><p><strong>labels_a</strong> (<em>array-like</em><em> (</em><em>ns</em><em>,</em><em>)</em>) – labels of samples in the source domain</p></li>
+<li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>nt</em><em>,</em><em>)</em>) – samples weights in the target domain</p></li>
+<li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>ns</em><em>,</em><em>nt</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Regularization term for entropic regularization &gt;0</p></li>
 <li><p><strong>eta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>, </em><em>optional</em>) – Regularization term  for group lasso regularization &gt;0</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
@@ -1274,7 +1293,7 @@ gradient as proposed in <a class="reference internal" href="gen_modules/ot.da.ht
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>gamma</strong> (<em>(ns, nt) ndarray</em>) – Optimal transportation matrix for the given parameters</p></li>
+<li><p><strong>gamma</strong> (<em>(ns, nt) array-like</em>) – Optimal transportation matrix for the given parameters</p></li>
 <li><p><strong>log</strong> (<em>dict</em>) – log dictionary return only if log==True in parameters</p></li>
 </ul>
 </p>
@@ -1330,10 +1349,10 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>a</strong> (<em>np.ndarray</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
-<li><p><strong>b</strong> (<em>np.ndarray</em><em> (</em><em>dim_b</em><em>,</em><em>) or </em><em>np.ndarray</em><em> (</em><em>dim_b</em><em>, </em><em>n_hists</em><em>)</em>) – One or multiple unnormalized histograms of dimension <cite>dim_b</cite>.
+<li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
+<li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>) or </em><em>array-like</em><em> (</em><em>dim_b</em><em>, </em><em>n_hists</em><em>)</em>) – One or multiple unnormalized histograms of dimension <cite>dim_b</cite>.
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
-<li><p><strong>M</strong> (<em>np.ndarray</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
+<li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
 <li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – method used for the solver either ‘sinkhorn’,  ‘sinkhorn_stabilized’ or
@@ -1349,7 +1368,7 @@ If many, compute all the OT distances <span class="math notranslate nohighlight"
 <li><p><em>if n_hists == 1</em> –</p>
 <ul>
 <li><dl class="simple">
-<dt>gamma<span class="classifier">(dim_a, dim_b) ndarray</span></dt><dd><p>Optimal transportation matrix for the given parameters</p>
+<dt>gamma<span class="classifier">(dim_a, dim_b) array-like</span></dt><dd><p>Optimal transportation matrix for the given parameters</p>
 </dd>
 </dl>
 </li>
@@ -1363,7 +1382,7 @@ If many, compute all the OT distances <span class="math notranslate nohighlight"
 <li><p><em>else</em> –</p>
 <ul>
 <li><dl class="simple">
-<dt>ot_distance<span class="classifier">(n_hists,) ndarray</span></dt><dd><p>the OT distance between <span class="math notranslate nohighlight">\(\mathbf{a}\)</span> and each of the histograms <span class="math notranslate nohighlight">\(\mathbf{b}_i\)</span></p>
+<dt>ot_distance<span class="classifier">(n_hists,) array-like</span></dt><dd><p>the OT distance between <span class="math notranslate nohighlight">\(\mathbf{a}\)</span> and each of the histograms <span class="math notranslate nohighlight">\(\mathbf{b}_i\)</span></p>
 </dd>
 </dl>
 </li>
@@ -1446,10 +1465,10 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>a</strong> (<em>np.ndarray</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
-<li><p><strong>b</strong> (<em>np.ndarray</em><em> (</em><em>dim_b</em><em>,</em><em>) or </em><em>np.ndarray</em><em> (</em><em>dim_b</em><em>, </em><em>n_hists</em><em>)</em>) – One or multiple unnormalized histograms of dimension <cite>dim_b</cite>.
+<li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
+<li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>) or </em><em>array-like</em><em> (</em><em>dim_b</em><em>, </em><em>n_hists</em><em>)</em>) – One or multiple unnormalized histograms of dimension <cite>dim_b</cite>.
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
-<li><p><strong>M</strong> (<em>np.ndarray</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
+<li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
 <li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – method used for the solver either ‘sinkhorn’,  ‘sinkhorn_stabilized’ or
@@ -1462,7 +1481,7 @@ If many, compute all the OT distances <span class="math notranslate nohighlight"
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>ot_distance</strong> (<em>(n_hists,) ndarray</em>) – the OT distance between <span class="math notranslate nohighlight">\(\mathbf{a}\)</span> and each of the histograms <span class="math notranslate nohighlight">\(\mathbf{b}_i\)</span></p></li>
+<li><p><strong>ot_distance</strong> (<em>(n_hists,) array-like</em>) – the OT distance between <span class="math notranslate nohighlight">\(\mathbf{a}\)</span> and each of the histograms <span class="math notranslate nohighlight">\(\mathbf{b}_i\)</span></p></li>
 <li><p><strong>log</strong> (<em>dict</em>) – log dictionary returned only if <cite>log</cite> is <cite>True</cite></p></li>
 </ul>
 </p>
