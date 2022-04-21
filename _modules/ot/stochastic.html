@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.stochastic &mdash; POT Python Optimal Transport 0.8.1.0 documentation</title>
+  <title>ot.stochastic &mdash; POT Python Optimal Transport 0.8.2 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -29,9 +29,10 @@
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
             <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
+            <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.8.1.0
+                0.8.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -48,6 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../.github/CONTRIBUTING.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../.github/CODE_OF_CONDUCT.html">Code of Conduct</a></li>
 </ul>
 
@@ -82,12 +84,14 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="c1"># Author: Kilian Fatras &lt;kilian.fatras@gmail.com&gt;</span>
+<span class="c1"># Authors: Kilian Fatras &lt;kilian.fatras@gmail.com&gt;</span>
+<span class="c1">#          Rémi Flamary &lt;remi.flamary@polytechnique.edu&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 <span class="c1">##############################################################################</span>
 <span class="c1"># Optimization toolbox for SEMI - DUAL problems</span>
@@ -825,6 +829,242 @@
         <span class="k">return</span> <span class="n">pi</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">pi</span></div>
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># Losses for stochastic optimization</span>
+<span class="c1">################################################################################</span>
+
+<div class="viewcode-block" id="loss_dual_entropic"><a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.loss_dual_entropic">[docs]</a><span class="k">def</span> <span class="nf">loss_dual_entropic</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the dual loss of the entropic OT as in equation (6)-(7) of [19]</span>
+
+<span class="sd">    This loss is backend compatible and can be used for stochastic optimization</span>
+<span class="sd">    of the dual potentials. It can be used on the full dataset (beware of</span>
+<span class="sd">    memory) or on minibatches.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u : array-like, shape (ns,)</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    v : array-like, shape (nt,)</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    xs : array-like, shape (ns,d)</span>
+<span class="sd">        Source samples</span>
+<span class="sd">    xt : array-like, shape (ns,d)</span>
+<span class="sd">        Target samples</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0 (default=1)</span>
+<span class="sd">    ws : array-like, shape (ns,), optional</span>
+<span class="sd">        Source sample weights (default unif)</span>
+<span class="sd">    wt : array-like, shape (ns,), optional</span>
+<span class="sd">        Target sample weights (default unif)</span>
+<span class="sd">    metric : string, callable</span>
+<span class="sd">        Ground metric for OT (default quadratic). Can be given as a callable</span>
+<span class="sd">        function taking (xs,xt) as parameters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dual_loss : array-like</span>
+<span class="sd">        Dual loss (to maximize)</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [19] Seguy, V., Bhushan Damodaran, B., Flamary, R., Courty, N., Rolet, A.&amp; Blondel, M. Large-scale Optimal Transport and Mapping Estimation. International Conference on Learning Representation (2018)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">metric</span><span class="p">):</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="o">-</span><span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">u</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">F</span> <span class="o">*</span> <span class="n">wt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span></div>
+
+
+<div class="viewcode-block" id="plan_dual_entropic"><a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.plan_dual_entropic">[docs]</a><span class="k">def</span> <span class="nf">plan_dual_entropic</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the primal OT plan the entropic OT as in equation (8) of [19]</span>
+
+<span class="sd">    This loss is backend compatible and can be used for stochastic optimization</span>
+<span class="sd">    of the dual potentials. It can be used on the full dataset (beware of</span>
+<span class="sd">    memory) or on minibatches.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u : array-like, shape (ns,)</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    v : array-like, shape (nt,)</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    xs : array-like, shape (ns,d)</span>
+<span class="sd">        Source samples</span>
+<span class="sd">    xt : array-like, shape (ns,d)</span>
+<span class="sd">        Target samples</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0 (default=1)</span>
+<span class="sd">    ws : array-like, shape (ns,), optional</span>
+<span class="sd">        Source sample weights (default unif)</span>
+<span class="sd">    wt : array-like, shape (ns,), optional</span>
+<span class="sd">        Target sample weights (default unif)</span>
+<span class="sd">    metric : string, callable</span>
+<span class="sd">        Ground metric for OT (default quadratic). Can be given as a callable</span>
+<span class="sd">        function taking (xs,xt) as parameters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G : array-like</span>
+<span class="sd">        Primal OT plan</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [19] Seguy, V., Bhushan Damodaran, B., Flamary, R., Courty, N., Rolet, A.&amp; Blondel, M. Large-scale Optimal Transport and Mapping Estimation. International Conference on Learning Representation (2018)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">metric</span><span class="p">):</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">u</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ws</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">H</span> <span class="o">*</span> <span class="n">wt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span></div>
+
+
+<div class="viewcode-block" id="loss_dual_quadratic"><a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.loss_dual_quadratic">[docs]</a><span class="k">def</span> <span class="nf">loss_dual_quadratic</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the dual loss of the quadratic regularized OT as in equation (6)-(7) of [19]</span>
+
+<span class="sd">    This loss is backend compatible and can be used for stochastic optimization</span>
+<span class="sd">    of the dual potentials. It can be used on the full dataset (beware of</span>
+<span class="sd">    memory) or on minibatches.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u : array-like, shape (ns,)</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    v : array-like, shape (nt,)</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    xs : array-like, shape (ns,d)</span>
+<span class="sd">        Source samples</span>
+<span class="sd">    xt : array-like, shape (ns,d)</span>
+<span class="sd">        Target samples</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0 (default=1)</span>
+<span class="sd">    ws : array-like, shape (ns,), optional</span>
+<span class="sd">        Source sample weights (default unif)</span>
+<span class="sd">    wt : array-like, shape (ns,), optional</span>
+<span class="sd">        Target sample weights (default unif)</span>
+<span class="sd">    metric : string, callable</span>
+<span class="sd">        Ground metric for OT (default quadratic). Can be given as a callable</span>
+<span class="sd">        function taking (xs,xt) as parameters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dual_loss : array-like</span>
+<span class="sd">        Dual loss (to maximize)</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [19] Seguy, V., Bhushan Damodaran, B., Flamary, R., Courty, N., Rolet, A.&amp; Blondel, M. Large-scale Optimal Transport and Mapping Estimation. International Conference on Learning Representation (2018)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">metric</span><span class="p">):</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">reg</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">u</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">F</span> <span class="o">*</span> <span class="n">wt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span></div>
+
+
+<div class="viewcode-block" id="plan_dual_quadratic"><a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.plan_dual_quadratic">[docs]</a><span class="k">def</span> <span class="nf">plan_dual_quadratic</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the primal OT plan the quadratic regularized OT as in equation (8) of [19]</span>
+
+<span class="sd">    This loss is backend compatible and can be used for stochastic optimization</span>
+<span class="sd">    of the dual potentials. It can be used on the full dataset (beware of</span>
+<span class="sd">    memory) or on minibatches.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u : array-like, shape (ns,)</span>
+<span class="sd">        Source dual potential</span>
+<span class="sd">    v : array-like, shape (nt,)</span>
+<span class="sd">        Target dual potential</span>
+<span class="sd">    xs : array-like, shape (ns,d)</span>
+<span class="sd">        Source samples</span>
+<span class="sd">    xt : array-like, shape (ns,d)</span>
+<span class="sd">        Target samples</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0 (default=1)</span>
+<span class="sd">    ws : array-like, shape (ns,), optional</span>
+<span class="sd">        Source sample weights (default unif)</span>
+<span class="sd">    wt : array-like, shape (ns,), optional</span>
+<span class="sd">        Target sample weights (default unif)</span>
+<span class="sd">    metric : string, callable</span>
+<span class="sd">        Ground metric for OT (default quadratic). Can be given as a callable</span>
+<span class="sd">        function taking (xs,xt) as parameters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G : array-like</span>
+<span class="sd">        Primal OT plan</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [19] Seguy, V., Bhushan Damodaran, B., Flamary, R., Courty, N., Rolet, A.&amp; Blondel, M. Large-scale Optimal Transport and Mapping Estimation. International Conference on Learning Representation (2018)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">metric</span><span class="p">):</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">reg</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">u</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ws</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">H</span> <span class="o">*</span> <span class="n">wt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span></div>
 </pre></div>
 
            </div>

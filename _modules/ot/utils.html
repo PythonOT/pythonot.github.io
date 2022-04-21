@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.utils &mdash; POT Python Optimal Transport 0.8.1.0 documentation</title>
+  <title>ot.utils &mdash; POT Python Optimal Transport 0.8.2 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -29,9 +29,10 @@
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
             <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
+            <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.8.1.0
+                0.8.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -48,6 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../.github/CONTRIBUTING.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../.github/CODE_OF_CONDUCT.html">Code of Conduct</a></li>
 </ul>
 
@@ -93,7 +95,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
-<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">Backend</span>
 
 <span class="n">__time_tic_toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
@@ -129,7 +131,8 @@
 
 <div class="viewcode-block" id="laplacian"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.laplacian">[docs]</a><span class="k">def</span> <span class="nf">laplacian</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute Laplacian matrix&quot;&quot;&quot;</span>
-    <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">-</span> <span class="n">x</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">-</span> <span class="n">x</span>
     <span class="k">return</span> <span class="n">L</span></div>
 
 
@@ -194,7 +197,7 @@
         <span class="k">return</span> <span class="n">w</span></div>
 
 
-<div class="viewcode-block" id="unif"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.unif">[docs]</a><span class="k">def</span> <span class="nf">unif</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<div class="viewcode-block" id="unif"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.unif">[docs]</a><span class="k">def</span> <span class="nf">unif</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a uniform histogram of length `n` (simplex).</span>
 
@@ -202,13 +205,19 @@
 <span class="sd">    ----------</span>
 <span class="sd">    n : int</span>
 <span class="sd">        number of bins in the histogram</span>
+<span class="sd">    type_as : array_like</span>
+<span class="sd">        array of the same type of the expected output (numpy/pytorch/jax)</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    h : np.array (`n`,)</span>
+<span class="sd">    h : array_like (`n`,)</span>
 <span class="sd">        histogram of length `n` such that :math:`\forall i, \mathbf{h}_i = \frac{1}{n}`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,))</span> <span class="o">/</span> <span class="n">n</span></div>
+    <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,))</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span></div>
 
 
 <div class="viewcode-block" id="clean_zeros"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.clean_zeros">[docs]</a><span class="k">def</span> <span class="nf">clean_zeros</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
@@ -368,7 +377,8 @@
 
 <div class="viewcode-block" id="dots"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.dots">[docs]</a><span class="k">def</span> <span class="nf">dots</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot; dots function for multiple matrix multiply &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="label_normalization"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.label_normalization">[docs]</a><span class="k">def</span> <span class="nf">label_normalization</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -386,8 +396,9 @@
 <span class="sd">    y : array-like, shape (`n1`, )</span>
 <span class="sd">        The input vector of labels normalized according to given start value.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
-    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="o">-</span> <span class="n">start</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="o">-</span> <span class="n">start</span>
     <span class="k">if</span> <span class="n">diff</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">y</span> <span class="o">-=</span> <span class="n">diff</span>
     <span class="k">return</span> <span class="n">y</span></div>
@@ -553,6 +564,19 @@
 <span class="sd">    at the class level in their ``__init__`` as explicit keyword</span>
 <span class="sd">    arguments (no ``*args`` or ``**kwargs``).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span><span class="p">:</span> <span class="n">Backend</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_get_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arrays</span><span class="p">):</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span><span class="n">input_</span> <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">arrays</span> <span class="k">if</span> <span class="n">input_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;JAX or TF arrays have been received but domain</span>
+<span class="sd">                adaptation does not support those backend.&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">=</span> <span class="n">nx</span>
+        <span class="k">return</span> <span class="n">nx</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_get_param_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>

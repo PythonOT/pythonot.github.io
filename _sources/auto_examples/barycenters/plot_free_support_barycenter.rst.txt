@@ -25,14 +25,17 @@
 Illustration of 2D Wasserstein barycenters if distributions are weighted
 sum of diracs.
 
-.. GENERATED FROM PYTHON SOURCE LINES 11-21
+.. GENERATED FROM PYTHON SOURCE LINES 11-24
 
 .. code-block:: default
 
 
-    # Author: Vivien Seguy <vivien.seguy@iip.ist.i.kyoto-u.ac.jp>
+    # Authors: Vivien Seguy <vivien.seguy@iip.ist.i.kyoto-u.ac.jp>
+    #          Rémi Flamary <remi.flamary@polytechnique.edu>
     #
     # License: MIT License
+
+    # sphinx_gallery_thumbnail_number = 2
 
     import numpy as np
     import matplotlib.pylab as pl
@@ -46,56 +49,69 @@ sum of diracs.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 22-24
+.. GENERATED FROM PYTHON SOURCE LINES 25-27
 
 Generate data
 -------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 24-47
+.. GENERATED FROM PYTHON SOURCE LINES 27-50
 
 .. code-block:: default
 
 
-    N = 3
+    N = 2
     d = 2
-    measures_locations = []
-    measures_weights = []
 
-    for i in range(N):
+    I1 = pl.imread('../../data/redcross.png').astype(np.float64)[::4, ::4, 2]
+    I2 = pl.imread('../../data/duck.png').astype(np.float64)[::4, ::4, 2]
 
-        n_i = np.random.randint(low=1, high=20)  # nb samples
+    sz = I2.shape[0]
+    XX, YY = np.meshgrid(np.arange(sz), np.arange(sz))
 
-        mu_i = np.random.normal(0., 4., (d,))  # Gaussian mean
+    x1 = np.stack((XX[I1 == 0], YY[I1 == 0]), 1) * 1.0
+    x2 = np.stack((XX[I2 == 0] + 80, -YY[I2 == 0] + 32), 1) * 1.0
+    x3 = np.stack((XX[I2 == 0], -YY[I2 == 0] + 32), 1) * 1.0
 
-        A_i = np.random.rand(d, d)
-        cov_i = np.dot(A_i, A_i.transpose())  # Gaussian covariance matrix
+    measures_locations = [x1, x2]
+    measures_weights = [ot.unif(x1.shape[0]), ot.unif(x2.shape[0])]
 
-        x_i = ot.datasets.make_2D_samples_gauss(n_i, mu_i, cov_i)  # Dirac locations
-        b_i = np.random.uniform(0., 1., (n_i,))
-        b_i = b_i / np.sum(b_i)  # Dirac weights
-
-        measures_locations.append(x_i)
-        measures_weights.append(b_i)
-
-
+    pl.figure(1, (12, 4))
+    pl.scatter(x1[:, 0], x1[:, 1], alpha=0.5)
+    pl.scatter(x2[:, 0], x2[:, 1], alpha=0.5)
+    pl.title('Distributions')
 
 
 
 
 
+.. image-sg:: /auto_examples/barycenters/images/sphx_glr_plot_free_support_barycenter_001.png
+   :alt: Distributions
+   :srcset: /auto_examples/barycenters/images/sphx_glr_plot_free_support_barycenter_001.png
+   :class: sphx-glr-single-img
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 48-50
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+
+    Text(0.5, 1.0, 'Distributions')
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 51-53
 
 Compute free support barycenter
 -------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 50-58
+.. GENERATED FROM PYTHON SOURCE LINES 53-60
 
 .. code-block:: default
 
 
-    k = 10  # number of Diracs of the barycenter
+    k = 200  # number of Diracs of the barycenter
     X_init = np.random.normal(0., 1., (k, d))  # initial Dirac locations
     b = np.ones((k,)) / k  # weights of the barycenter (it will not be optimized, only the locations are optimized)
 
@@ -108,31 +124,29 @@ Compute free support barycenter
 
 
 
+.. GENERATED FROM PYTHON SOURCE LINES 61-63
 
-.. GENERATED FROM PYTHON SOURCE LINES 59-61
-
-Plot data
+Plot the barycenter
 ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 61-70
+.. GENERATED FROM PYTHON SOURCE LINES 63-71
 
 .. code-block:: default
 
 
-    pl.figure(1)
-    for (x_i, b_i) in zip(measures_locations, measures_weights):
-        color = np.random.randint(low=1, high=10 * N)
-        pl.scatter(x_i[:, 0], x_i[:, 1], s=b_i * 1000, label='input measure')
-    pl.scatter(X[:, 0], X[:, 1], s=b * 1000, c='black', marker='^', label='2-Wasserstein barycenter')
+    pl.figure(2, (8, 3))
+    pl.scatter(x1[:, 0], x1[:, 1], alpha=0.5)
+    pl.scatter(x2[:, 0], x2[:, 1], alpha=0.5)
+    pl.scatter(X[:, 0], X[:, 1], s=b * 1000, marker='s', label='2-Wasserstein barycenter')
     pl.title('Data measures and their barycenter')
-    pl.legend(loc=0)
+    pl.legend(loc="lower right")
     pl.show()
 
 
 
-.. image-sg:: /auto_examples/barycenters/images/sphx_glr_plot_free_support_barycenter_001.png
+.. image-sg:: /auto_examples/barycenters/images/sphx_glr_plot_free_support_barycenter_002.png
    :alt: Data measures and their barycenter
-   :srcset: /auto_examples/barycenters/images/sphx_glr_plot_free_support_barycenter_001.png
+   :srcset: /auto_examples/barycenters/images/sphx_glr_plot_free_support_barycenter_002.png
    :class: sphx-glr-single-img
 
 
@@ -142,7 +156,7 @@ Plot data
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.100 seconds)
+   **Total running time of the script:** ( 0 minutes  0.944 seconds)
 
 
 .. _sphx_glr_download_auto_examples_barycenters_plot_free_support_barycenter.py:

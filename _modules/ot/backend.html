@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.backend &mdash; POT Python Optimal Transport 0.8.1.0 documentation</title>
+  <title>ot.backend &mdash; POT Python Optimal Transport 0.8.2 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -29,9 +29,10 @@
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
             <a href="../../index.html" class="icon icon-home"> POT Python Optimal Transport
+            <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.8.1.0
+                0.8.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -48,6 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../.github/CONTRIBUTING.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../.github/CODE_OF_CONDUCT.html">Code of Conduct</a></li>
 </ul>
 
@@ -165,7 +167,9 @@
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">scipy.special</span> <span class="k">as</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">scipy.linalg</span>
+<span class="kn">import</span> <span class="nn">scipy.special</span> <span class="k">as</span> <span class="nn">special</span>
 <span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">issparse</span><span class="p">,</span> <span class="n">coo_matrix</span><span class="p">,</span> <span class="n">csr_matrix</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">time</span>
@@ -180,7 +184,7 @@
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">jax</span>
     <span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
-    <span class="kn">import</span> <span class="nn">jax.scipy.special</span> <span class="k">as</span> <span class="nn">jscipy</span>
+    <span class="kn">import</span> <span class="nn">jax.scipy.special</span> <span class="k">as</span> <span class="nn">jspecial</span>
     <span class="kn">from</span> <span class="nn">jax.lib</span> <span class="kn">import</span> <span class="n">xla_bridge</span>
     <span class="n">jax_type</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
@@ -280,15 +284,31 @@
     <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span>
 
-    <span class="c1"># convert to numpy</span>
-<div class="viewcode-block" id="Backend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the numpy version of a tensor&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+    <span class="c1"># convert batch of tensors to numpy</span>
+<div class="viewcode-block" id="Backend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the numpy version of tensors&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_numpy</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_to_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">)</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span></div>
 
-    <span class="c1"># convert from numpy</span>
-<div class="viewcode-block" id="Backend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># convert a tensor to numpy</span>
+    <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the numpy version of a tensor&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+    <span class="c1"># convert batch of arrays from numpy</span>
+<div class="viewcode-block" id="Backend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arrays</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates tensors cloning a numpy array, with the given precision (defaulting to input&#39;s precision) and the given device (in case of GPUs)&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_numpy</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span></div>
+
+    <span class="c1"># convert an array from numpy</span>
+    <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Creates a tensor cloning a numpy array, with the given precision (defaulting to input&#39;s precision) and the given device (in case of GPUs)&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
 <div class="viewcode-block" id="Backend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Define the gradients for the value val wrt the inputs &quot;&quot;&quot;</span>
@@ -614,6 +634,16 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="Backend.argmin"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the indices of the minimum values of a tensor along given dimensions.</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.argmin`</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.argmin.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="Backend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes the arithmetic mean of a tensor along given dimensions.</span>
@@ -862,7 +892,73 @@
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Executes a benchmark of the given callable with the given arguments.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Backend.solve"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.solve">[docs]</a>    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Solves a linear matrix equation, or system of linear scalar equations.</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.linalg.solve`.</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.linalg.solve.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.trace"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the sum along diagonals of the array.</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.trace`.</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.trace.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.inv"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the inverse of a matrix.</span>
+
+<span class="sd">        This function follows the api from :any:`scipy.linalg.inv`.</span>
+
+<span class="sd">        See: https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.inv.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the matrix square root. Requires input to be definite positive.</span>
+
+<span class="sd">        This function follows the api from :any:`scipy.linalg.sqrtm`.</span>
+
+<span class="sd">        See: https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.sqrtm.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.isfinite"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tests element-wise for finiteness (not infinity and not Not a Number).</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.isfinite`.</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.isfinite.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.array_equal"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.array_equal">[docs]</a>    <span class="k">def</span> <span class="nf">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        True if two arrays have the same shape and elements, False otherwise.</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.array_equal`.</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.array_equal.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.is_floating_point"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.is_floating_point">[docs]</a>    <span class="k">def</span> <span class="nf">is_floating_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns whether or not the input consists of floats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="NumpyBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend">[docs]</a><span class="k">class</span> <span class="nc">NumpyBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -880,16 +976,16 @@
 
     <span class="n">rng_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
 
-<div class="viewcode-block" id="NumpyBackend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">a</span></div>
+    <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span>
 
-<div class="viewcode-block" id="NumpyBackend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">a</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">a</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
+            <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
 <div class="viewcode-block" id="NumpyBackend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
         <span class="c1"># No gradients for numpy</span>
@@ -1014,6 +1110,9 @@
 <div class="viewcode-block" id="NumpyBackend.argmax"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="NumpyBackend.argmin"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="NumpyBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
@@ -1033,7 +1132,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.logsumexp"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.logsumexp">[docs]</a>    <span class="k">def</span> <span class="nf">logsumexp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">special</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.stack"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.stack">[docs]</a>    <span class="k">def</span> <span class="nf">stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span></div>
@@ -1082,8 +1181,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">a</span></div>
 
-<div class="viewcode-block" id="NumpyBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NumpyBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.copy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
@@ -1122,7 +1224,28 @@
             <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Numpy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bitsize</span><span class="p">(</span><span class="n">type_as</span><span class="p">))</span>
             <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_runs</span>
-        <span class="k">return</span> <span class="n">results</span></div>
+        <span class="k">return</span> <span class="n">results</span>
+
+<div class="viewcode-block" id="NumpyBackend.solve"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.solve">[docs]</a>    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.trace"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.inv"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.isfinite"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.array_equal"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.array_equal">[docs]</a>    <span class="k">def</span> <span class="nf">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.is_floating_point"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.is_floating_point">[docs]</a>    <span class="k">def</span> <span class="nf">is_floating_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span></div></div>
 
 
 <div class="viewcode-block" id="JaxBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend">[docs]</a><span class="k">class</span> <span class="nc">JaxBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -1153,17 +1276,19 @@
                 <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">d</span><span class="p">)</span>
             <span class="p">]</span>
 
-<div class="viewcode-block" id="JaxBackend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_change_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span><span class="p">())</span>
 
-<div class="viewcode-block" id="JaxBackend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_change_device</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">type_as</span><span class="p">)</span></div>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_change_device</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">type_as</span><span class="p">)</span>
 
 <div class="viewcode-block" id="JaxBackend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">jax.flatten_util</span> <span class="kn">import</span> <span class="n">ravel_pytree</span>
@@ -1294,6 +1419,9 @@
 <div class="viewcode-block" id="JaxBackend.argmax"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="JaxBackend.argmin"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="JaxBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
@@ -1313,7 +1441,7 @@
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JaxBackend.logsumexp"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.logsumexp">[docs]</a>    <span class="k">def</span> <span class="nf">logsumexp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">jscipy</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">jspecial</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JaxBackend.stack"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.stack">[docs]</a>    <span class="k">def</span> <span class="nf">stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span></div>
@@ -1371,8 +1499,11 @@
         <span class="c1"># Currently, JAX does not support sparse matrices</span>
         <span class="k">return</span> <span class="n">a</span></div>
 
-<div class="viewcode-block" id="JaxBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<div class="viewcode-block" id="JaxBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JaxBackend.copy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="c1"># No need to copy, JAX arrays are immutable</span>
@@ -1415,7 +1546,29 @@
             <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Jax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bitsize</span><span class="p">(</span><span class="n">type_as</span><span class="p">))</span>
             <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_runs</span>
-        <span class="k">return</span> <span class="n">results</span></div>
+        <span class="k">return</span> <span class="n">results</span>
+
+<div class="viewcode-block" id="JaxBackend.solve"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.solve">[docs]</a>    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.trace"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.inv"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="JaxBackend.isfinite"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.array_equal"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.array_equal">[docs]</a>    <span class="k">def</span> <span class="nf">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.is_floating_point"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.is_floating_point">[docs]</a>    <span class="k">def</span> <span class="nf">is_floating_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span></div></div>
 
 
 <div class="viewcode-block" id="TorchBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend">[docs]</a><span class="k">class</span> <span class="nc">TorchBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -1462,20 +1615,20 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">ValFunction</span> <span class="o">=</span> <span class="n">ValFunction</span>
 
-<div class="viewcode-block" id="TorchBackend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TorchBackend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
             <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TorchBackend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
 
-        <span class="n">Func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ValFunction</span><span class="p">()</span>
+        <span class="n">Func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ValFunction</span>
 
         <span class="n">res</span> <span class="o">=</span> <span class="n">Func</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">grads</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
 
@@ -1642,6 +1795,9 @@
 <div class="viewcode-block" id="TorchBackend.argmax"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="TorchBackend.argmin"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TorchBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
@@ -1658,8 +1814,11 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TorchBackend.meshgrid"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.meshgrid">[docs]</a>    <span class="k">def</span> <span class="nf">meshgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span></div>
 
 <div class="viewcode-block" id="TorchBackend.diag"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.diag">[docs]</a>    <span class="k">def</span> <span class="nf">diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">diagonal</span><span class="o">=</span><span class="n">k</span><span class="p">)</span></div>
@@ -1737,8 +1896,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">a</span></div>
 
-<div class="viewcode-block" id="TorchBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<div class="viewcode-block" id="TorchBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TorchBackend.copy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
@@ -1794,7 +1956,29 @@
             <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration</span> <span class="o">/</span> <span class="n">n_runs</span>
         <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">results</span></div>
+        <span class="k">return</span> <span class="n">results</span>
+
+<div class="viewcode-block" id="TorchBackend.solve"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.solve">[docs]</a>    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.trace"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.inv"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="TorchBackend.isfinite"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.array_equal"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.array_equal">[docs]</a>    <span class="k">def</span> <span class="nf">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.is_floating_point"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.is_floating_point">[docs]</a>    <span class="k">def</span> <span class="nf">is_floating_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating_point</span></div></div>
 
 
 <div class="viewcode-block" id="CupyBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend">[docs]</a><span class="k">class</span> <span class="nc">CupyBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
@@ -1819,15 +2003,17 @@
             <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="p">]</span>
 
-<div class="viewcode-block" id="CupyBackend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
 
-<div class="viewcode-block" id="CupyBackend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">cp</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Device</span><span class="p">(</span><span class="n">type_as</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CupyBackend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
         <span class="c1"># No gradients for cupy</span>
@@ -1962,6 +2148,9 @@
 <div class="viewcode-block" id="CupyBackend.argmax"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="CupyBackend.argmin"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="CupyBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
@@ -2060,8 +2249,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">a</span></div>
 
-<div class="viewcode-block" id="CupyBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<div class="viewcode-block" id="CupyBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CupyBackend.copy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
@@ -2111,7 +2303,29 @@
             <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_gpu</span> <span class="o">/</span> <span class="n">n_runs</span>
         <span class="n">mempool</span><span class="o">.</span><span class="n">free_all_blocks</span><span class="p">()</span>
         <span class="n">pinned_mempool</span><span class="o">.</span><span class="n">free_all_blocks</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">results</span></div>
+        <span class="k">return</span> <span class="n">results</span>
+
+<div class="viewcode-block" id="CupyBackend.solve"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.solve">[docs]</a>    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.trace"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.inv"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="CupyBackend.isfinite"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.array_equal"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.array_equal">[docs]</a>    <span class="k">def</span> <span class="nf">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.is_floating_point"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.is_floating_point">[docs]</a>    <span class="k">def</span> <span class="nf">is_floating_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span></div></div>
 
 
 <div class="viewcode-block" id="TensorflowBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend">[docs]</a><span class="k">class</span> <span class="nc">TensorflowBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -2138,13 +2352,16 @@
                 <span class="s2">&quot;To use TensorflowBackend, you need to activate the tensorflow &quot;</span>
                 <span class="s2">&quot;numpy API. You can activate it by running: </span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot;from tensorflow.python.ops.numpy_ops import np_config</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;np_config.enable_numpy_behavior()&quot;</span>
+                <span class="s2">&quot;np_config.enable_numpy_behavior()&quot;</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="TensorflowBackend.to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TensorflowBackend.from_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.from_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type__</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
@@ -2154,7 +2371,7 @@
             <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">a</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">type_as</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TensorflowBackend.set_gradients"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.set_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">set_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
         <span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
@@ -2286,6 +2503,9 @@
 <div class="viewcode-block" id="TensorflowBackend.argmax"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="TensorflowBackend.argmin"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TensorflowBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
@@ -2387,8 +2607,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">a</span></div>
 
-<div class="viewcode-block" id="TensorflowBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<div class="viewcode-block" id="TensorflowBackend.where"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorflowBackend.copy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
@@ -2441,7 +2664,28 @@
                     <span class="p">)</span>
                     <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_runs</span>
 
-        <span class="k">return</span> <span class="n">results</span></div>
+        <span class="k">return</span> <span class="n">results</span>
+
+<div class="viewcode-block" id="TensorflowBackend.solve"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.solve">[docs]</a>    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.trace"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.inv"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.isfinite"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.array_equal"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.array_equal">[docs]</a>    <span class="k">def</span> <span class="nf">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.is_floating_point"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.is_floating_point">[docs]</a>    <span class="k">def</span> <span class="nf">is_floating_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span></div></div>
 </pre></div>
 
            </div>
