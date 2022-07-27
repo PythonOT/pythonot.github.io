@@ -1621,6 +1621,126 @@
         <span class="k">return</span> <span class="n">geometricBar</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">UKv</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="free_support_sinkhorn_barycenter"><a class="viewcode-back" href="../../gen_modules/ot.bregman.html#ot.free_support_sinkhorn_barycenter">[docs]</a><span class="k">def</span> <span class="nf">free_support_sinkhorn_barycenter</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">numInnerItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) regularized Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Sinkhorn divergence), formally:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\mathbf{X} \quad \sum_{i=1}^N w_i W_{reg}^2(\mathbf{b}, \mathbf{X}, \mathbf{a}_i, \mathbf{X}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`w \in \mathbb{(0, 1)}^{N}`&#39;s are the barycenter weights and sum to one</span>
+<span class="sd">    - `measure_weights` denotes the :math:`\mathbf{a}_i \in \mathbb{R}^{k_i}`: empirical measures weights (on simplex)</span>
+<span class="sd">    - `measures_locations` denotes the :math:`\mathbf{X}_i \in \mathbb{R}^{k_i, d}`: empirical measures atoms locations</span>
+<span class="sd">    - :math:`\mathbf{b} \in \mathbb{R}^{k}` is the desired weights vector of the barycenter</span>
+
+<span class="sd">    This problem is considered in :ref:`[20] &lt;references-free-support-barycenter&gt;` (Algorithm 2).</span>
+<span class="sd">    There are two differences with the following codes:</span>
+
+<span class="sd">    - we do not optimize over the weights</span>
+<span class="sd">    - we do not do line search for the locations updates, we use i.e. :math:`\theta = 1` in</span>
+<span class="sd">      :ref:`[20] &lt;references-free-support-barycenter&gt;` (Algorithm 2). This can be seen as a discrete</span>
+<span class="sd">      implementation of the fixed-point algorithm of</span>
+<span class="sd">      :ref:`[43] &lt;references-free-support-barycenter&gt;` proposed in the continuous setting.</span>
+<span class="sd">    - at each iteration, instead of solving an exact OT problem, we use the Sinkhorn algorithm for calculating the</span>
+<span class="sd">      transport plan in :ref:`[20] &lt;references-free-support-barycenter&gt;` (Algorithm 2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    measures_locations : list of N (k_i,d) array-like</span>
+<span class="sd">        The discrete support of a measure supported on :math:`k_i` locations of a `d`-dimensional space</span>
+<span class="sd">        (:math:`k_i` can be different for each element of the list)</span>
+<span class="sd">    measures_weights : list of N (k_i,) array-like</span>
+<span class="sd">        Numpy arrays where each numpy array has :math:`k_i` non-negatives values summing to one</span>
+<span class="sd">        representing the weights of each discrete input measure</span>
+
+<span class="sd">    X_init : (k,d) array-like</span>
+<span class="sd">        Initialization of the support locations (on `k` atoms) of the barycenter</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    b : (k,) array-like</span>
+<span class="sd">        Initialization of the weights of the barycenter (non-negatives, sum to 1)</span>
+<span class="sd">    weights : (N,) array-like</span>
+<span class="sd">        Initialization of the coefficients of the barycenter (non-negatives, sum to 1)</span>
+
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    numInnerItermax : int, optional</span>
+<span class="sd">        Max number of iterations when calculating the transport plans with Sinkhorn</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : (k,d) array-like</span>
+<span class="sd">        Support locations (on k atoms) of the barycenter</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT solver</span>
+<span class="sd">    ot.lp.free_support_barycenter : Barycenter solver based on Linear Programming</span>
+
+<span class="sd">    .. _references-free-support-barycenter:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [20] Cuturi, Marco, and Arnaud Doucet. &quot;Fast computation of Wasserstein barycenters.&quot; International Conference on Machine Learning. 2014.</span>
+
+<span class="sd">    .. [43] Álvarez-Esteban, Pedro C., et al. &quot;A fixed-point approach to barycenters in Wasserstein space.&quot; Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">measures_locations</span><span class="p">,</span> <span class="o">*</span><span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">)</span>
+
+    <span class="n">iter_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">X_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">k</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span> <span class="o">/</span> <span class="n">k</span>
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">X_init</span>
+
+    <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">displacement_square_norms</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">stopThr</span> <span class="o">+</span> <span class="mf">1.</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">displacement_square_norm</span> <span class="o">&gt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">iter_count</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">):</span>
+
+        <span class="n">T_sum</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">measure_locations_i</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">weight_i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+            <span class="n">M_i</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+            <span class="n">T_i</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">M_i</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">T_sum</span> <span class="o">=</span> <span class="n">T_sum</span> <span class="o">+</span> <span class="n">weight_i</span> <span class="o">*</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_i</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+
+        <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">T_sum</span> <span class="o">-</span> <span class="n">X</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">displacement_square_norms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">displacement_square_norm</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">T_sum</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;iteration </span><span class="si">%d</span><span class="s1">, displacement_square_norm=</span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">iter_count</span><span class="p">,</span> <span class="n">displacement_square_norm</span><span class="p">)</span>
+
+        <span class="n">iter_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;displacement_square_norms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">displacement_square_norms</span>
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">log_dict</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X</span></div>
+
+
 <span class="k">def</span> <span class="nf">_barycenter_sinkhorn_log</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
                              <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the entropic wasserstein barycenter in log-domain</span>
