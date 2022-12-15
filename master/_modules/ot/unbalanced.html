@@ -92,6 +92,9 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">Bounds</span>
+
 <span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
 <span class="c1"># from .utils import unif, dist</span>
@@ -351,7 +354,8 @@
 <div class="viewcode-block" id="sinkhorn_knopp_unbalanced"><a class="viewcode-back" href="../../gen_modules/ot.unbalanced.html#ot.sinkhorn_knopp_unbalanced">[docs]</a><span class="k">def</span> <span class="nf">sinkhorn_knopp_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
                               <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Solve the entropic regularization unbalanced optimal transport problem and return the loss</span>
+<span class="sd">    Solve the entropic regularization unbalanced optimal transport problem and</span>
+<span class="sd">    return the OT plan</span>
 
 <span class="sd">    The function solves the following optimization problem:</span>
 
@@ -816,7 +820,7 @@
     <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_hists</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_hists</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
@@ -964,7 +968,7 @@
     <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_hists</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_hists</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
@@ -1334,6 +1338,185 @@
         <span class="k">return</span> <span class="n">log_mm</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">],</span> <span class="n">log_mm</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">log_mm</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_loss_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    return the loss function (scipy.optimize compatible) for regularized</span>
+<span class="sd">    unbalanced OT</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="k">def</span> <span class="nf">kl</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">q</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">reg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">G</span> <span class="o">-</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">grad_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">G</span> <span class="o">-</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="k">def</span> <span class="nf">reg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">kl</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+
+    <span class="k">def</span> <span class="nf">grad_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">reg_entropy</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">kl</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">grad_entropy</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">reg_div</span> <span class="o">==</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span>
+        <span class="n">reg_fun</span> <span class="o">=</span> <span class="n">reg_kl</span>
+        <span class="n">grad_reg_fun</span> <span class="o">=</span> <span class="n">grad_kl</span>
+    <span class="k">elif</span> <span class="n">reg_div</span> <span class="o">==</span> <span class="s1">&#39;entropy&#39;</span><span class="p">:</span>
+        <span class="n">reg_fun</span> <span class="o">=</span> <span class="n">reg_entropy</span>
+        <span class="n">grad_reg_fun</span> <span class="o">=</span> <span class="n">grad_entropy</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">reg_fun</span> <span class="o">=</span> <span class="n">reg_l2</span>
+        <span class="n">grad_reg_fun</span> <span class="o">=</span> <span class="n">grad_l2</span>
+
+    <span class="k">def</span> <span class="nf">marg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">grad_marg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">((</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">marg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">kl</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="n">kl</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">grad_marg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">regm_div</span> <span class="o">==</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span>
+        <span class="n">regm_fun</span> <span class="o">=</span> <span class="n">marg_kl</span>
+        <span class="n">grad_regm_fun</span> <span class="o">=</span> <span class="n">grad_marg_kl</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">regm_fun</span> <span class="o">=</span> <span class="n">marg_l2</span>
+        <span class="n">grad_regm_fun</span> <span class="o">=</span> <span class="n">grad_marg_l2</span>
+
+    <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+
+        <span class="c1"># compute loss</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">reg_fun</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg_m</span> <span class="o">*</span> <span class="n">regm_fun</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+        <span class="c1"># compute gradient</span>
+        <span class="n">grad</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">grad_reg_fun</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg_m</span> <span class="o">*</span> <span class="n">grad_regm_fun</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">_func</span>
+
+
+<div class="viewcode-block" id="lbfgsb_unbalanced"><a class="viewcode-back" href="../../gen_modules/ot.unbalanced.html#ot.lbfgsb_unbalanced">[docs]</a><span class="k">def</span> <span class="nf">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                      <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-15</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solve the unbalanced optimal transport problem and return the OT plan using L-BFGS-B.</span>
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
+<span class="sd">        + \mathrm{reg} \mathrm{div}(\gamma,\mathbf{a}\mathbf{b}^T)</span>
+<span class="sd">        \mathrm{reg_m} \cdot \mathrm{div_m}(\gamma \mathbf{1}, \mathbf{a}) +</span>
+<span class="sd">        \mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})</span>
+
+<span class="sd">        s.t.</span>
+<span class="sd">             \gamma \geq 0</span>
+
+<span class="sd">    where:</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`dim_a`, `dim_b`) metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target</span>
+<span class="sd">      unbalanced distributions</span>
+<span class="sd">    - :math:`\mathrm{div}` is a divergence, either Kullback-Leibler or :math:`\ell_2` divergence</span>
+
+<span class="sd">    The algorithm used for solving the problem is a L-BFGS-B from scipy.optimize</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array-like (dim_a,)</span>
+<span class="sd">        Unnormalized histogram of dimension `dim_a`</span>
+<span class="sd">    b : array-like (dim_b,)</span>
+<span class="sd">        Unnormalized histogram of dimension `dim_b`</span>
+<span class="sd">    M : array-like (dim_a, dim_b)</span>
+<span class="sd">        loss matrix</span>
+<span class="sd">    reg: float</span>
+<span class="sd">        regularization term (&gt;=0)</span>
+<span class="sd">    reg_m: float</span>
+<span class="sd">        Marginal relaxation term &gt;= 0</span>
+<span class="sd">    reg_div: string, optional</span>
+<span class="sd">        Divergence used for regularization.</span>
+<span class="sd">        Can take two values: &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (quadratic)</span>
+<span class="sd">    reg_div: string, optional</span>
+<span class="sd">        Divergence to quantify the difference between the marginals.</span>
+<span class="sd">        Can take two values: &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (quadratic)</span>
+<span class="sd">    G0: array-like (dim_a, dim_b)</span>
+<span class="sd">        Initialization of the transport matrix</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt; 0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ot_distance : array-like</span>
+<span class="sd">        the OT distance between :math:`\mathbf{a}` and :math:`\mathbf{b}`</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary returned only if `log` is `True`</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; a=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; b=[.5, .5]</span>
+<span class="sd">    &gt;&gt;&gt; M=[[1., 36.],[9., 4.]]</span>
+<span class="sd">    &gt;&gt;&gt; np.round(ot.unbalanced.mm_unbalanced2(a, b, M, 1, &#39;l2&#39;),2)</span>
+<span class="sd">    0.25</span>
+<span class="sd">    &gt;&gt;&gt; np.round(ot.unbalanced.mm_unbalanced2(a, b, M, 1, &#39;kl&#39;),2)</span>
+<span class="sd">    0.57</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [41] Chapel, L., Flamary, R., Wu, H., Févotte, C., and Gasso, G. (2021).</span>
+<span class="sd">        Unbalanced optimal transport through non-negative penalized</span>
+<span class="sd">        linear regression. NeurIPS.</span>
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd2 : Unregularized OT loss</span>
+<span class="sd">    ot.unbalanced.sinkhorn_unbalanced2 : Entropic regularized OT loss</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="n">M0</span> <span class="o">=</span> <span class="n">M</span>
+    <span class="c1"># convert to humpy</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="n">_func</span> <span class="o">=</span> <span class="n">_get_loss_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="p">,</span> <span class="n">reg_div</span><span class="p">,</span> <span class="n">regm_div</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">_func</span><span class="p">,</span> <span class="n">G0</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">Bounds</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
+                   <span class="n">tol</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="n">verbose</span><span class="p">))</span>
+
+    <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">fun</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span> <span class="s1">&#39;res&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G</span></div>
 </pre></div>
 
            </div>

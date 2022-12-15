@@ -126,6 +126,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 
 <div class="viewcode-block" id="projection_simplex"><a class="viewcode-back" href="../../gen_modules/ot.smooth.html#ot.smooth.projection_simplex">[docs]</a><span class="k">def</span> <span class="nf">projection_simplex</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -593,6 +594,8 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="s1">&#39;squaredl2&#39;</span><span class="p">]:</span>
         <span class="n">regul</span> <span class="o">=</span> <span class="n">SquaredL2</span><span class="p">(</span><span class="n">gamma</span><span class="o">=</span><span class="n">reg</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropic&#39;</span><span class="p">,</span> <span class="s1">&#39;negentropy&#39;</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">]:</span>
@@ -600,15 +603,19 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown regularization&#39;</span><span class="p">)</span>
 
+    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
+    <span class="c1"># convert to humpy</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
     <span class="c1"># solve dual</span>
     <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">solve_dual</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">regul</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
                                   <span class="n">tol</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
     <span class="c1"># reconstruct transport matrix</span>
-    <span class="n">G</span> <span class="o">=</span> <span class="n">get_plan_from_dual</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">regul</span><span class="p">)</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">get_plan_from_dual</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">regul</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="n">beta</span><span class="p">,</span> <span class="s1">&#39;res&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">}</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a0</span><span class="p">),</span> <span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b0</span><span class="p">),</span> <span class="s1">&#39;res&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">G</span></div>
