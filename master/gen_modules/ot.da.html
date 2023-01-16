@@ -60,8 +60,12 @@
 <li class="toctree-l2"><a class="reference internal" href="ot.optim.html">ot.optim</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ot.da</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ot.da.OT_mapping_linear"><code class="docutils literal notranslate"><span class="pre">OT_mapping_linear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#examples-using-ot-da-ot-mapping-linear">Examples using <code class="docutils literal notranslate"><span class="pre">ot.da.OT_mapping_linear</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot.da.distribution_estimation_uniform"><code class="docutils literal notranslate"><span class="pre">distribution_estimation_uniform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot.da.emd_laplace"><code class="docutils literal notranslate"><span class="pre">emd_laplace()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot.da.joint_OT_mapping_kernel"><code class="docutils literal notranslate"><span class="pre">joint_OT_mapping_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot.da.joint_OT_mapping_linear"><code class="docutils literal notranslate"><span class="pre">joint_OT_mapping_linear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot.da.sinkhorn_l1l2_gl"><code class="docutils literal notranslate"><span class="pre">sinkhorn_l1l2_gl()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ot.da.sinkhorn_lpl1_mm"><code class="docutils literal notranslate"><span class="pre">sinkhorn_lpl1_mm()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a><ul>
@@ -90,6 +94,7 @@
 <li class="toctree-l2"><a class="reference internal" href="ot.sliced.html">ot.sliced</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ot.weak.html">ot.weak</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ot.factored.html">ot.factored</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ot.gaussian.html">ot.gaussian</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../all.html#ot.barycenter"><code class="docutils literal notranslate"><span class="pre">barycenter()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../all.html#ot.barycenter_unbalanced"><code class="docutils literal notranslate"><span class="pre">barycenter_unbalanced()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../all.html#ot.dist"><code class="docutils literal notranslate"><span class="pre">dist()</span></code></a></li>
@@ -157,63 +162,6 @@
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Permalink to this heading"></a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="ot.da.OT_mapping_linear">
-<span class="sig-prename descclassname"><span class="pre">ot.da.</span></span><span class="sig-name descname"><span class="pre">OT_mapping_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/da.html#OT_mapping_linear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.da.OT_mapping_linear" title="Permalink to this definition"></a></dt>
-<dd><p>Return OT linear operator between samples.</p>
-<p>The function estimates the optimal linear operator that aligns the two
-empirical distributions. This is equivalent to estimating the closed
-form mapping between two Gaussian distributions <span class="math notranslate nohighlight">\(\mathcal{N}(\mu_s,\Sigma_s)\)</span>
-and <span class="math notranslate nohighlight">\(\mathcal{N}(\mu_t,\Sigma_t)\)</span> as proposed in
-<a class="reference internal" href="#references-ot-mapping-linear"><span class="std std-ref">[14]</span></a> and discussed in remark 2.29 in
-<a class="reference internal" href="#references-ot-mapping-linear"><span class="std std-ref">[15]</span></a>.</p>
-<p>The linear operator from source to target <span class="math notranslate nohighlight">\(M\)</span></p>
-<div class="math notranslate nohighlight">
-\[M(\mathbf{x})= \mathbf{A} \mathbf{x} + \mathbf{b}\]</div>
-<p>where :</p>
-<div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\mathbf{A} &amp;= \Sigma_s^{-1/2} \left(\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2} \right)^{1/2}
-\Sigma_s^{-1/2}\\\mathbf{b} &amp;= \mu_t - \mathbf{A} \mu_s\end{aligned}\end{align} \]</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>xs</strong> (<em>array-like</em><em> (</em><em>ns</em><em>,</em><em>d</em><em>)</em>) – samples in the source domain</p></li>
-<li><p><strong>xt</strong> (<em>array-like</em><em> (</em><em>nt</em><em>,</em><em>d</em><em>)</em>) – samples in the target domain</p></li>
-<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>,</em><em>optional</em>) – regularization added to the diagonals of covariances (&gt;0)</p></li>
-<li><p><strong>ws</strong> (<em>array-like</em><em> (</em><em>ns</em><em>,</em><em>1</em><em>)</em><em>, </em><em>optional</em>) – weights for the source samples</p></li>
-<li><p><strong>wt</strong> (<em>array-like</em><em> (</em><em>ns</em><em>,</em><em>1</em><em>)</em><em>, </em><em>optional</em>) – weights for the target samples</p></li>
-<li><p><strong>bias</strong> (<em>boolean</em><em>, </em><em>optional</em>) – estimate bias <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> else <span class="math notranslate nohighlight">\(\mathbf{b} = 0\)</span> (default:True)</p></li>
-<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – record log if True</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>A</strong> (<em>(d, d) array-like</em>) – Linear operator</p></li>
-<li><p><strong>b</strong> (<em>(1, d) array-like</em>) – bias</p></li>
-<li><p><strong>log</strong> (<em>dict</em>) – log dictionary return only if log==True in parameters</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-<p class="rubric" id="references-ot-mapping-linear">References</p>
-<dl class="footnote brackets">
-<dt class="label" id="id1"><span class="brackets">14</span></dt>
-<dd><p>Knott, M. and Smith, C. S. “On the optimal mapping of
-distributions”, Journal of Optimization Theory and Applications
-Vol 43, 1984</p>
-</dd>
-<dt class="label" id="id2"><span class="brackets">15</span></dt>
-<dd><p>Peyré, G., &amp; Cuturi, M. (2017). “Computational Optimal
-Transport”, 2018.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<section id="examples-using-ot-da-ot-mapping-linear">
-<h3>Examples using <code class="docutils literal notranslate"><span class="pre">ot.da.OT_mapping_linear</span></code><a class="headerlink" href="#examples-using-ot-da-ot-mapping-linear" title="Permalink to this heading"></a></h3>
-<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Linear OT mapping estimation"><img alt="Linear OT mapping estimation" src="../_images/sphx_glr_plot_otda_linear_mapping_thumb.png" />
-<p><a class="reference internal" href="../auto_examples/domain-adaptation/plot_otda_linear_mapping.html#sphx-glr-auto-examples-domain-adaptation-plot-otda-linear-mapping-py"><span class="std std-ref">Linear OT mapping estimation</span></a></p>
-  <div class="sphx-glr-thumbnail-title">Linear OT mapping estimation</div>
-</div></div><div class="sphx-glr-clear"></div><dl class="py function">
 <dt class="sig sig-object py" id="ot.da.distribution_estimation_uniform">
 <span class="sig-prename descclassname"><span class="pre">ot.da.</span></span><span class="sig-name descname"><span class="pre">distribution_estimation_uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/da.html#distribution_estimation_uniform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.da.distribution_estimation_uniform" title="Permalink to this definition"></a></dt>
 <dd><p>estimates a uniform distribution from an array of samples <span class="math notranslate nohighlight">\(\mathbf{X}\)</span></p>
@@ -285,13 +233,13 @@ or bandwidth for sim=’gauss’) used to compute the Laplacian.</p></li>
 </dl>
 <p class="rubric" id="references-emd-laplace">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id3"><span class="brackets">5</span></dt>
+<dt class="label" id="id1"><span class="brackets">5</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE
 Transactions on Pattern Analysis and Machine Intelligence,
 vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id4"><span class="brackets">30</span></dt>
+<dt class="label" id="id2"><span class="brackets">30</span></dt>
 <dd><p>R. Flamary, N. Courty, D. Tuia, A. Rakotomamonjy,
 “Optimal transport with Laplacian regularization: Applications to domain adaptation and shape matching,”
 in NIPS Workshop on Optimal Transport and Machine Learning OTML, 2014.</p>
@@ -364,7 +312,7 @@ and the update of <span class="math notranslate nohighlight">\(\mathbf{L}\)</spa
 </dl>
 <p class="rubric" id="references-joint-ot-mapping-kernel">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id5"><span class="brackets">8</span></dt>
+<dt class="label" id="id3"><span class="brackets">8</span></dt>
 <dd><p>M. Perrot, N. Courty, R. Flamary, A. Habrard,
 “Mapping estimation for discrete optimal transport”,
 Neural Information Processing Systems (NIPS), 2016.</p>
@@ -434,7 +382,7 @@ and the update of <span class="math notranslate nohighlight">\(\mathbf{L}\)</spa
 </dl>
 <p class="rubric" id="references-joint-ot-mapping-linear">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id6"><span class="brackets">8</span></dt>
+<dt class="label" id="id4"><span class="brackets">8</span></dt>
 <dd><p>M. Perrot, N. Courty, R. Flamary, A. Habrard,
 “Mapping estimation for discrete optimal transport”,
 Neural Information Processing Systems (NIPS), 2016.</p>
@@ -499,12 +447,12 @@ gradient as proposed in <a class="reference internal" href="#references-sinkhorn
 </dl>
 <p class="rubric" id="references-sinkhorn-l1l2-gl">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id7"><span class="brackets">5</span></dt>
+<dt class="label" id="id5"><span class="brackets">5</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE Transactions
 on Pattern Analysis and Machine Intelligence , vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id8"><span class="brackets">7</span></dt>
+<dt class="label" id="id6"><span class="brackets">7</span></dt>
 <dd><p>Rakotomamonjy, A., Flamary, R., &amp; Courty, N. (2015).
 Generalized conditional gradient: analysis of convergence and
 applications. arXiv preprint arXiv:1510.06567.</p>
@@ -567,13 +515,13 @@ gradient as proposed in <a class="reference internal" href="#references-sinkhorn
 </dl>
 <p class="rubric" id="references-sinkhorn-lpl1-mm">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id9"><span class="brackets">5</span></dt>
+<dt class="label" id="id7"><span class="brackets">5</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE
 Transactions on Pattern Analysis and Machine Intelligence ,
 vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id10"><span class="brackets">7</span></dt>
+<dt class="label" id="id8"><span class="brackets">7</span></dt>
 <dd><p>Rakotomamonjy, A., Flamary, R., &amp; Courty, N. (2015).
 Generalized conditional gradient: analysis of convergence
 and applications. arXiv preprint arXiv:1510.06567.</p>
@@ -593,7 +541,6 @@ and applications. arXiv preprint arXiv:1510.06567.</p>
 </dd></dl>
 
 <div class="sphx-glr-clear"></div></section>
-</section>
 <section id="classes">
 <h2>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -764,7 +711,7 @@ class label</p>
 </dl>
 <p class="rubric" id="references-basetransport-transform-labels">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id11"><span class="brackets">27</span></dt>
+<dt class="label" id="id9"><span class="brackets">27</span></dt>
 <dd><p>Ievgen Redko, Nicolas Courty, Rémi Flamary, Devis Tuia
 “Optimal transport for multi-source domain adaptation under target shift”,
 International Conference on Artificial Intelligence and Statistics (AISTATS), 2019.</p>
@@ -844,17 +791,17 @@ from a domain into another one. Currently the only possible option is
 
 <p class="rubric" id="references-emdlaplacetransport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id12"><span class="brackets">1</span></dt>
+<dt class="label" id="id10"><span class="brackets">1</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE Transactions
 on Pattern Analysis and Machine Intelligence , vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id13"><span class="brackets">2</span></dt>
+<dt class="label" id="id11"><span class="brackets">2</span></dt>
 <dd><p>R. Flamary, N. Courty, D. Tuia, A. Rakotomamonjy,
 “Optimal transport with Laplacian regularization: Applications to domain adaptation and shape matching,”
 in NIPS Workshop on Optimal Transport and Machine Learning OTML, 2014.</p>
 </dd>
-<dt class="label" id="id14"><span class="brackets">6</span></dt>
+<dt class="label" id="id12"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging Sciences, 7(3), 1853-1882.</p>
 </dd>
@@ -930,12 +877,12 @@ algorithm if it has not converged.</p></li>
 
 <p class="rubric" id="references-emdtransport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id15"><span class="brackets">1</span></dt>
+<dt class="label" id="id13"><span class="brackets">1</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE Transactions
 on Pattern Analysis and Machine Intelligence , vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id16"><span class="brackets">6</span></dt>
+<dt class="label" id="id14"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging
 Sciences, 7(3), 1853-1882.</p>
@@ -1046,13 +993,13 @@ from a domain into another one. Currently the only possible option is
 
 <p class="rubric" id="references-jcpottransport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id17"><span class="brackets">1</span></dt>
+<dt class="label" id="id15"><span class="brackets">1</span></dt>
 <dd><p>Ievgen Redko, Nicolas Courty, Rémi Flamary, Devis Tuia
 “Optimal transport for multi-source domain adaptation under target shift”,
 International Conference on Artificial Intelligence and Statistics (AISTATS),
 vol. 89, p.849-858, 2019.</p>
 </dd>
-<dt class="label" id="id18"><span class="brackets">6</span></dt>
+<dt class="label" id="id16"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging
 Sciences, 7(3), 1853-1882.</p>
@@ -1142,7 +1089,7 @@ class label</p>
 </dl>
 <p class="rubric" id="references-jcpottransport-transform-labels">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id19"><span class="brackets">27</span></dt>
+<dt class="label" id="id17"><span class="brackets">27</span></dt>
 <dd><p>Ievgen Redko, Nicolas Courty, Rémi Flamary, Devis Tuia
 “Optimal transport for multi-source domain adaptation under target shift”,
 International Conference on Artificial Intelligence and Statistics (AISTATS), 2019.</p>
@@ -1186,12 +1133,12 @@ and <span class="math notranslate nohighlight">\(\mathcal{N}(\mu_t,\Sigma_t)\)</
 </dl>
 <p class="rubric" id="references-lineartransport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id20"><span class="brackets">14</span></dt>
+<dt class="label" id="id18"><span class="brackets">14</span></dt>
 <dd><p>Knott, M. and Smith, C. S. “On the optimal mapping of
 distributions”, Journal of Optimization Theory and Applications
 Vol 43, 1984</p>
 </dd>
-<dt class="label" id="id21"><span class="brackets">15</span></dt>
+<dt class="label" id="id19"><span class="brackets">15</span></dt>
 <dd><p>Peyré, G., &amp; Cuturi, M. (2017). “Computational Optimal
 Transport”, 2018.</p>
 </dd>
@@ -1347,7 +1294,7 @@ can occur with large metric values.</p></li>
 
 <p class="rubric">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id22"><span class="brackets">8</span></dt>
+<dt class="label" id="id20"><span class="brackets">8</span></dt>
 <dd><p>M. Perrot, N. Courty, R. Flamary, A. Habrard,
 “Mapping estimation for discrete optimal transport”,
 Neural Information Processing Systems (NIPS), 2016.</p>
@@ -1462,18 +1409,18 @@ and target samples of different classes will exhibit an infinite cost
 
 <p class="rubric" id="references-sinkhornl1l2transport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id23"><span class="brackets">1</span></dt>
+<dt class="label" id="id21"><span class="brackets">1</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE
 Transactions on Pattern Analysis and Machine Intelligence ,
 vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id24"><span class="brackets">2</span></dt>
+<dt class="label" id="id22"><span class="brackets">2</span></dt>
 <dd><p>Rakotomamonjy, A., Flamary, R., &amp; Courty, N. (2015).
 Generalized conditional gradient: analysis of convergence
 and applications. arXiv preprint arXiv:1510.06567.</p>
 </dd>
-<dt class="label" id="id25"><span class="brackets">6</span></dt>
+<dt class="label" id="id23"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging
 Sciences, 7(3), 1853-1882.</p>
@@ -1556,18 +1503,18 @@ limit_max.</p></li>
 
 <p class="rubric" id="references-sinkhornlpl1transport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id26"><span class="brackets">1</span></dt>
+<dt class="label" id="id24"><span class="brackets">1</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE
 Transactions on Pattern Analysis and Machine Intelligence ,
 vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id27"><span class="brackets">2</span></dt>
+<dt class="label" id="id25"><span class="brackets">2</span></dt>
 <dd><p>Rakotomamonjy, A., Flamary, R., &amp; Courty, N. (2015).
 Generalized conditional gradient: analysis of convergence
 and applications. arXiv preprint arXiv:1510.06567.</p>
 </dd>
-<dt class="label" id="id28"><span class="brackets">6</span></dt>
+<dt class="label" id="id26"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging
 Sciences, 7(3), 1853-1882.</p>
@@ -1661,17 +1608,17 @@ by this variable</p></li>
 
 <p class="rubric" id="references-sinkhorntransport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id29"><span class="brackets">1</span></dt>
+<dt class="label" id="id27"><span class="brackets">1</span></dt>
 <dd><p>N. Courty; R. Flamary; D. Tuia; A. Rakotomamonjy,
 “Optimal Transport for Domain Adaptation,” in IEEE Transactions
 on Pattern Analysis and Machine Intelligence , vol.PP, no.99, pp.1-1</p>
 </dd>
-<dt class="label" id="id30"><span class="brackets">2</span></dt>
+<dt class="label" id="id28"><span class="brackets">2</span></dt>
 <dd><p>M. Cuturi, Sinkhorn Distances : Lightspeed Computation of Optimal
 Transport, Advances in Neural Information Processing Systems (NIPS)
 26, 2013</p>
 </dd>
-<dt class="label" id="id31"><span class="brackets">6</span></dt>
+<dt class="label" id="id29"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging
 Sciences, 7(3), 1853-1882.</p>
@@ -1783,12 +1730,12 @@ and target samples of different classes will exhibit an infinite cost
 
 <p class="rubric" id="references-unbalancedsinkhorntransport">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id32"><span class="brackets">1</span></dt>
+<dt class="label" id="id30"><span class="brackets">1</span></dt>
 <dd><p>Chizat, L., Peyré, G., Schmitzer, B., &amp; Vialard, F. X. (2016).
 Scaling algorithms for unbalanced transport problems. arXiv preprint
 arXiv:1607.05816.</p>
 </dd>
-<dt class="label" id="id33"><span class="brackets">6</span></dt>
+<dt class="label" id="id31"><span class="brackets">6</span></dt>
 <dd><p>Ferradans, S., Papadakis, N., Peyré, G., &amp; Aujol, J. F. (2014).
 Regularized discrete optimal transport. SIAM Journal on Imaging
 Sciences, 7(3), 1853-1882.</p>
