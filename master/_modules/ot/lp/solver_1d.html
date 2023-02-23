@@ -30,15 +30,19 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> POT Python Optimal Transport
-            <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
                 0.8.3dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -68,7 +72,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
           <li class="breadcrumb-item"><a href="../lp.html">ot.lp</a></li>
       <li class="breadcrumb-item active">ot.lp.solver_1d</li>
@@ -136,7 +140,7 @@
 <span class="sd">    distributions</span>
 
 <span class="sd">    .. math:</span>
-<span class="sd">        OT_{loss} = \int_0^1 |cdf_u^{-1}(q)  cdf_v^{-1}(q)|^p dq</span>
+<span class="sd">        OT_{loss} = \int_0^1 |cdf_u^{-1}(q) - cdf_v^{-1}(q)|^p dq</span>
 
 <span class="sd">    It is formally the p-Wasserstein distance raised to the power p.</span>
 <span class="sd">    We do so in a vectorized way by first building the individual quantile functions then integrating them.</span>
@@ -448,6 +452,631 @@
         <span class="n">log_emd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;G&#39;</span><span class="p">:</span> <span class="n">G</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">log_emd</span>
     <span class="k">return</span> <span class="n">cost</span></div>
+
+
+<span class="k">def</span> <span class="nf">roll_cols</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">shifts</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utils functions which allow to shift the order of each row of a 2d matrix</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : (nr, nc) ndarray</span>
+<span class="sd">        Matrix to shift</span>
+<span class="sd">    shifts: int or (nr,) ndarray</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Shifted array</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; M = np.array([[1,2,3],[4,5,6],[7,8,9]])</span>
+<span class="sd">    &gt;&gt;&gt; roll_cols(M, 2)</span>
+<span class="sd">    array([[2, 3, 1],</span>
+<span class="sd">           [5, 6, 4],</span>
+<span class="sd">           [8, 9, 7]])</span>
+<span class="sd">    &gt;&gt;&gt; roll_cols(M, np.array([[1],[2],[1]]))</span>
+<span class="sd">    array([[3, 1, 2],</span>
+<span class="sd">           [5, 6, 4],</span>
+<span class="sd">           [9, 7, 8]])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://stackoverflow.com/questions/66596699/how-to-shift-columns-or-rows-in-a-tensor-with-different-offsets-in-pytorch</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+
+    <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">arange1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_cols</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">)),</span> <span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">arange2</span> <span class="o">=</span> <span class="p">(</span><span class="n">arange1</span> <span class="o">-</span> <span class="n">shifts</span><span class="p">)</span> <span class="o">%</span> <span class="n">n_cols</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">arange2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">derivative_cost_on_circle</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Computes the left and right derivative of the cost (Equation (6.3) and (6.4) of [1])</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    theta: array-like, shape (n_batch, n)</span>
+<span class="sd">        Cuts on the circle</span>
+<span class="sd">    u_values: array-like, shape (n_batch, n)</span>
+<span class="sd">        locations of the first empirical distribution</span>
+<span class="sd">    v_values: array-like, shape (n_batch, n)</span>
+<span class="sd">        locations of the second empirical distribution</span>
+<span class="sd">    u_cdf: array-like, shape (n_batch, n)</span>
+<span class="sd">        cdf of the first empirical distribution</span>
+<span class="sd">    v_cdf: array-like, shape (n_batch, n)</span>
+<span class="sd">        cdf of the second empirical distribution</span>
+<span class="sd">    p: float, optional = 2</span>
+<span class="sd">        Power p used for computing the Wasserstein distance</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dCp: array-like, shape (n_batch, 1)</span>
+<span class="sd">        The batched right derivative</span>
+<span class="sd">    dCm: array-like, shape (n_batch, 1)</span>
+<span class="sd">        The batched left derivative</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ---------</span>
+<span class="sd">    .. [44] Delon, Julie, Julien Salomon, and Andrei Sobolevski. &quot;Fast transport optimization for Monge costs on the circle.&quot; SIAM Journal on Applied Mathematics 70.7 (2010): 2239-2258.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">)</span>
+
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v_values</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">m_batch</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf</span> <span class="o">-</span> <span class="p">(</span><span class="n">theta</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+
+    <span class="n">mask_p</span> <span class="o">=</span> <span class="n">v_cdf_theta</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">mask_n</span> <span class="o">=</span> <span class="n">v_cdf_theta</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+    <span class="n">v_values</span><span class="p">[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">theta</span><span class="p">)[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">v_values</span><span class="p">[</span><span class="n">mask_p</span><span class="p">]</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">theta</span><span class="p">)[</span><span class="n">mask_p</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_n</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_p</span><span class="p">):</span>
+        <span class="n">v_cdf_theta</span><span class="p">[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">v_cdf_theta2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v_cdf_theta</span><span class="p">)</span>
+    <span class="n">v_cdf_theta2</span><span class="p">[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">shift</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">v_cdf_theta2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">roll_cols</span><span class="p">(</span><span class="n">v_cdf_theta</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">roll_cols</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">v_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v_values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+        <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
+        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="n">u_cdf</span> <span class="o">=</span> <span class="n">u_cdf</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf_theta</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+    <span class="c1"># quantiles of F_u evaluated in F_v^\theta</span>
+    <span class="n">u_index</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf_theta</span><span class="p">)</span>
+    <span class="n">u_icdf_theta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">u_index</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Deal with 1</span>
+    <span class="n">u_cdfm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">u_cdf</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">u_cdf</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">u_valuesm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">u_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">u_values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+        <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
+        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="n">u_cdfm</span> <span class="o">=</span> <span class="n">u_cdfm</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf_theta</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+    <span class="n">u_indexm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">u_cdfm</span><span class="p">,</span> <span class="n">v_cdf_theta</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+    <span class="n">u_icdfm_theta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_valuesm</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">u_indexm</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">dCp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_icdf_theta</span> <span class="o">-</span> <span class="n">v_values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]),</span> <span class="n">p</span><span class="p">)</span>
+                 <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_icdf_theta</span> <span class="o">-</span> <span class="n">v_values</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">dCm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_icdfm_theta</span> <span class="o">-</span> <span class="n">v_values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]),</span> <span class="n">p</span><span class="p">)</span>
+                 <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_icdfm_theta</span> <span class="o">-</span> <span class="n">v_values</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dCp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dCm</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">ot_cost_on_circle</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Computes the the cost (Equation (6.2) of [1])</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    theta: array-like, shape (n_batch, n)</span>
+<span class="sd">        Cuts on the circle</span>
+<span class="sd">    u_values: array-like, shape (n_batch, n)</span>
+<span class="sd">        locations of the first empirical distribution</span>
+<span class="sd">    v_values: array-like, shape (n_batch, n)</span>
+<span class="sd">        locations of the second empirical distribution</span>
+<span class="sd">    u_cdf: array-like, shape (n_batch, n)</span>
+<span class="sd">        cdf of the first empirical distribution</span>
+<span class="sd">    v_cdf: array-like, shape (n_batch, n)</span>
+<span class="sd">        cdf of the second empirical distribution</span>
+<span class="sd">    p: float, optional = 2</span>
+<span class="sd">        Power p used for computing the Wasserstein distance</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ot_cost: array-like, shape (n_batch,)</span>
+<span class="sd">        OT cost evaluated at theta</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ---------</span>
+<span class="sd">    .. [44] Delon, Julie, Julien Salomon, and Andrei Sobolevski. &quot;Fast transport optimization for Monge costs on the circle.&quot; SIAM Journal on Applied Mathematics 70.7 (2010): 2239-2258.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">)</span>
+
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v_values</span><span class="p">)</span>
+
+    <span class="n">m_batch</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_batch</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf</span> <span class="o">-</span> <span class="p">(</span><span class="n">theta</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+
+    <span class="n">mask_p</span> <span class="o">=</span> <span class="n">v_cdf_theta</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">mask_n</span> <span class="o">=</span> <span class="n">v_cdf_theta</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+    <span class="n">v_values</span><span class="p">[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">theta</span><span class="p">)[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">v_values</span><span class="p">[</span><span class="n">mask_p</span><span class="p">]</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">theta</span><span class="p">)[</span><span class="n">mask_p</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_n</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_p</span><span class="p">):</span>
+        <span class="n">v_cdf_theta</span><span class="p">[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Put negative values at the end</span>
+    <span class="n">v_cdf_theta2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v_cdf_theta</span><span class="p">)</span>
+    <span class="n">v_cdf_theta2</span><span class="p">[</span><span class="n">mask_n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">shift</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">v_cdf_theta2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">roll_cols</span><span class="p">(</span><span class="n">v_cdf_theta</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">roll_cols</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">v_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v_values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Compute absciss</span>
+    <span class="n">cdf_axis</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf_theta</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">cdf_axis_pad</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="n">cdf_axis</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">cdf_axis_pad</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">cdf_axis_pad</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+        <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
+        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="n">u_cdf</span> <span class="o">=</span> <span class="n">u_cdf</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf_theta</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="n">cdf_axis</span> <span class="o">=</span> <span class="n">cdf_axis</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+    <span class="c1"># Compute icdf</span>
+    <span class="n">u_index</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">u_cdf</span><span class="p">,</span> <span class="n">cdf_axis</span><span class="p">)</span>
+    <span class="n">u_icdf</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">u_index</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">v_values</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v_values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">v_index</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">v_cdf_theta</span><span class="p">,</span> <span class="n">cdf_axis</span><span class="p">)</span>
+    <span class="n">v_icdf</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="n">v_index</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">ot_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_icdf</span> <span class="o">-</span> <span class="n">v_icdf</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ot_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_icdf</span> <span class="o">-</span> <span class="n">v_icdf</span><span class="p">),</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ot_cost</span>
+
+
+<div class="viewcode-block" id="binary_search_circle"><a class="viewcode-back" href="../../../all.html#ot.binary_search_circle">[docs]</a><span class="k">def</span> <span class="nf">binary_search_circle</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">v_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="n">Lm</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">Lp</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tm</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the Wasserstein distance on the circle using the Binary search algorithm proposed in [44].</span>
+<span class="sd">    Samples need to be in :math:`S^1\cong [0,1[`. If they are on :math:`\mathbb{R}`,</span>
+<span class="sd">    takes the value modulo 1.</span>
+<span class="sd">    If the values are on :math:`S^1\subset\mathbb{R}^2`, it is required to first find the coordinates</span>
+<span class="sd">    using e.g. the atan2 function.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W_p^p(u,v) = \inf_{\theta\in\mathbb{R}}\int_0^1 |F_u^{-1}(q)  - (F_v-\theta)^{-1}(q)|^p\ \mathrm{d}q</span>
+
+<span class="sd">    where:</span>
+
+<span class="sd">    - :math:`F_u` and :math:`F_v` are respectively the cdfs of :math:`u` and :math:`v`</span>
+
+<span class="sd">    For values :math:`x=(x_1,x_2)\in S^1`, it is required to first get their coordinates with</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        u = \frac{\pi + \mathrm{atan2}(-x_2,-x_1)}{2\pi}</span>
+
+<span class="sd">    using e.g. ot.utils.get_coordinate_circle(x)</span>
+
+<span class="sd">    The function runs on backend but tensorflow is not supported.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u_values : ndarray, shape (n, ...)</span>
+<span class="sd">        samples in the source domain (coordinates on [0,1[)</span>
+<span class="sd">    v_values : ndarray, shape (n, ...)</span>
+<span class="sd">        samples in the target domain (coordinates on [0,1[)</span>
+<span class="sd">    u_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    v_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    p : float, optional (default=1)</span>
+<span class="sd">        Power p used for computing the Wasserstein distance</span>
+<span class="sd">    Lm : int, optional</span>
+<span class="sd">        Lower bound dC</span>
+<span class="sd">    Lp : int, optional</span>
+<span class="sd">        Upper bound dC</span>
+<span class="sd">    tm: float, optional</span>
+<span class="sd">        Lower bound theta</span>
+<span class="sd">    tp: float, optional</span>
+<span class="sd">        Upper bound theta</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Stopping condition</span>
+<span class="sd">    require_sort: bool, optional</span>
+<span class="sd">        If True, sort the values.</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        If True, returns also the optimal theta</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float</span>
+<span class="sd">        Cost associated to the optimal transportation</span>
+<span class="sd">    log: dict, optional</span>
+<span class="sd">        log dictionary returned only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; u = np.array([[0.2,0.5,0.8]])%1</span>
+<span class="sd">    &gt;&gt;&gt; v = np.array([[0.4,0.5,0.7]])%1</span>
+<span class="sd">    &gt;&gt;&gt; binary_search_circle(u.T, v.T, p=1)</span>
+<span class="sd">    array([0.1])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [44] Delon, Julie, Julien Salomon, and Andrei Sobolevski. &quot;Fast transport optimization for Monge costs on the circle.&quot; SIAM Journal on Applied Mathematics 70.7 (2010): 2239-2258.</span>
+<span class="sd">    .. Matlab Code: https://users.mccme.ru/ansobol/otarie/software.html</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;The OT loss is only valid for p&gt;=1, </span><span class="si">{p}</span><span class="s2"> was given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;u and v must have the same number of batchs </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                                                                              <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="n">u_values</span> <span class="o">=</span> <span class="n">u_values</span> <span class="o">%</span> <span class="mi">1</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">v_values</span> <span class="o">%</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">u_values</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">u_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">u_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">v_values</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">v_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">v_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">require_sort</span><span class="p">:</span>
+        <span class="n">u_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">v_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">u_cdf</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">v_cdf</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">u_values</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">Lm</span><span class="p">,</span> <span class="n">Lp</span><span class="p">)</span>
+
+    <span class="n">tm</span> <span class="o">=</span> <span class="n">tm</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">u_values</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">tm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tm</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">tp</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">u_values</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+    <span class="n">tc</span> <span class="o">=</span> <span class="p">(</span><span class="n">tm</span> <span class="o">+</span> <span class="n">tp</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="n">done</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">m</span><span class="p">))</span>
+
+    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">):</span>
+        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">dCp</span><span class="p">,</span> <span class="n">dCm</span> <span class="o">=</span> <span class="n">derivative_cost_on_circle</span><span class="p">(</span><span class="n">tc</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="p">((</span><span class="n">dCp</span> <span class="o">*</span> <span class="n">dCm</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">tp</span> <span class="o">-</span> <span class="n">tm</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">eps</span> <span class="o">/</span> <span class="n">L</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+            <span class="c1"># can probably be improved by computing only relevant values</span>
+            <span class="n">dCptp</span><span class="p">,</span> <span class="n">dCmtp</span> <span class="o">=</span> <span class="n">derivative_cost_on_circle</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="n">dCptm</span><span class="p">,</span> <span class="n">dCmtm</span> <span class="o">=</span> <span class="n">derivative_cost_on_circle</span><span class="p">(</span><span class="n">tm</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="n">Ctm</span> <span class="o">=</span> <span class="n">ot_cost_on_circle</span><span class="p">(</span><span class="n">tm</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">Ctp</span> <span class="o">=</span> <span class="n">ot_cost_on_circle</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">mask_end</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dCptm</span> <span class="o">-</span> <span class="n">dCmtp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.001</span><span class="p">)</span>
+            <span class="n">tc</span><span class="p">[</span><span class="n">mask_end</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">Ctp</span> <span class="o">-</span> <span class="n">Ctm</span> <span class="o">+</span> <span class="n">tm</span> <span class="o">*</span> <span class="n">dCptm</span> <span class="o">-</span> <span class="n">tp</span> <span class="o">*</span> <span class="n">dCmtp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">dCptm</span> <span class="o">-</span> <span class="n">dCmtp</span><span class="p">))[</span><span class="n">mask_end</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">done</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">):</span>
+            <span class="n">tm</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dCp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tc</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dCp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">tp</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dCp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tc</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dCp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">tc</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tm</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tp</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="n">w</span> <span class="o">=</span> <span class="n">ot_cost_on_circle</span><span class="p">(</span><span class="n">tc</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;optimal_theta&quot;</span><span class="p">:</span> <span class="n">tc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]}</span>
+    <span class="k">return</span> <span class="n">w</span></div>
+
+
+<span class="k">def</span> <span class="nf">wasserstein1_circle</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">v_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the 1-Wasserstein distance on the circle using the level median [45].</span>
+<span class="sd">    Samples need to be in :math:`S^1\cong [0,1[`. If they are on :math:`\mathbb{R}`,</span>
+<span class="sd">    takes the value modulo 1.</span>
+<span class="sd">    If the values are on :math:`S^1\subset\mathbb{R}^2`, first find the coordinates</span>
+<span class="sd">    using e.g. the atan2 function.</span>
+<span class="sd">    The function runs on backend but tensorflow is not supported.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W_1(u,v) = \int_0^1 |F_u(t)-F_v(t)-LevMed(F_u-F_v)|\ \mathrm{d}t</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u_values : ndarray, shape (n, ...)</span>
+<span class="sd">        samples in the source domain (coordinates on [0,1[)</span>
+<span class="sd">    v_values : ndarray, shape (n, ...)</span>
+<span class="sd">        samples in the target domain (coordinates on [0,1[)</span>
+<span class="sd">    u_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    v_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    require_sort: bool, optional</span>
+<span class="sd">        If True, sort the values.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float</span>
+<span class="sd">        Cost associated to the optimal transportation</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; u = np.array([[0.2,0.5,0.8]])%1</span>
+<span class="sd">    &gt;&gt;&gt; v = np.array([[0.4,0.5,0.7]])%1</span>
+<span class="sd">    &gt;&gt;&gt; wasserstein1_circle(u.T, v.T)</span>
+<span class="sd">    array([0.1])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [45] Hundrieser, Shayan, Marcel Klatt, and Axel Munk. &quot;The statistics of circular optimal transport.&quot; Directional Statistics for Innovative Applications: A Bicentennial Tribute to Florence Nightingale. Singapore: Springer Nature Singapore, 2022. 57-82.</span>
+<span class="sd">    .. Code R: https://gitlab.gwdg.de/shundri/circularOT/-/tree/master/</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;u and v must have the same number of batchs </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                                                                              <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="n">u_values</span> <span class="o">=</span> <span class="n">u_values</span> <span class="o">%</span> <span class="mi">1</span>
+    <span class="n">v_values</span> <span class="o">=</span> <span class="n">v_values</span> <span class="o">%</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">u_values</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">u_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">u_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">v_values</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">v_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">v_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">require_sort</span><span class="p">:</span>
+        <span class="n">u_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">v_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_values</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Code inspired from https://gitlab.gwdg.de/shundri/circularOT/-/tree/master/</span>
+    <span class="n">values_sorted</span><span class="p">,</span> <span class="n">values_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort2</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">cdf_diff</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">u_weights</span><span class="p">,</span> <span class="o">-</span><span class="n">v_weights</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="n">values_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">cdf_diff_sorted</span><span class="p">,</span> <span class="n">cdf_diff_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort2</span><span class="p">(</span><span class="n">cdf_diff</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">values_sorted</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="n">values_sorted</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="n">value</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">values_sorted</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="o">...</span><span class="p">]</span> <span class="o">-</span> <span class="n">values_sorted</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">weight_sorted</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">cdf_diff_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">sum_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">weight_sorted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span>
+    <span class="n">sum_weights</span><span class="p">[</span><span class="n">sum_weights</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">inds</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">sum_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">levMed</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">cdf_diff_sorted</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">cdf_diff</span> <span class="o">-</span> <span class="n">levMed</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="wasserstein_circle"><a class="viewcode-back" href="../../../all.html#ot.wasserstein_circle">[docs]</a><span class="k">def</span> <span class="nf">wasserstein_circle</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">v_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                       <span class="n">Lm</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">Lp</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tm</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the Wasserstein distance on the circle using either [45] for p=1 or</span>
+<span class="sd">    the binary search algorithm proposed in [44] otherwise.</span>
+<span class="sd">    Samples need to be in :math:`S^1\cong [0,1[`. If they are on :math:`\mathbb{R}`,</span>
+<span class="sd">    takes the value modulo 1.</span>
+<span class="sd">    If the values are on :math:`S^1\subset\mathbb{R}^2`, it requires to first find the coordinates</span>
+<span class="sd">    using e.g. the atan2 function.</span>
+
+<span class="sd">    General loss returned:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        OT_{loss} = \inf_{\theta\in\mathbb{R}}\int_0^1 |cdf_u^{-1}(q)  - (cdf_v-\theta)^{-1}(q)|^p\ \mathrm{d}q</span>
+
+<span class="sd">    For p=1, [45]</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W_1(u,v) = \int_0^1 |F_u(t)-F_v(t)-LevMed(F_u-F_v)|\ \mathrm{d}t</span>
+
+<span class="sd">    For values :math:`x=(x_1,x_2)\in S^1`, it is required to first get their coordinates with</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        u = \frac{\pi + \mathrm{atan2}(-x_2,-x_1)}{2\pi}</span>
+
+<span class="sd">    using e.g. ot.utils.get_coordinate_circle(x)</span>
+
+<span class="sd">    The function runs on backend but tensorflow is not supported.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u_values : ndarray, shape (n, ...)</span>
+<span class="sd">        samples in the source domain (coordinates on [0,1[)</span>
+<span class="sd">    v_values : ndarray, shape (n, ...)</span>
+<span class="sd">        samples in the target domain (coordinates on [0,1[)</span>
+<span class="sd">    u_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    v_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    p : float, optional (default=1)</span>
+<span class="sd">        Power p used for computing the Wasserstein distance</span>
+<span class="sd">    Lm : int, optional</span>
+<span class="sd">        Lower bound dC. For p&gt;1.</span>
+<span class="sd">    Lp : int, optional</span>
+<span class="sd">        Upper bound dC. For p&gt;1.</span>
+<span class="sd">    tm: float, optional</span>
+<span class="sd">        Lower bound theta. For p&gt;1.</span>
+<span class="sd">    tp: float, optional</span>
+<span class="sd">        Upper bound theta. For p&gt;1.</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Stopping condition. For p&gt;1.</span>
+<span class="sd">    require_sort: bool, optional</span>
+<span class="sd">        If True, sort the values.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float</span>
+<span class="sd">        Cost associated to the optimal transportation</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; u = np.array([[0.2,0.5,0.8]])%1</span>
+<span class="sd">    &gt;&gt;&gt; v = np.array([[0.4,0.5,0.7]])%1</span>
+<span class="sd">    &gt;&gt;&gt; wasserstein_circle(u.T, v.T)</span>
+<span class="sd">    array([0.1])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [44] Hundrieser, Shayan, Marcel Klatt, and Axel Munk. &quot;The statistics of circular optimal transport.&quot; Directional Statistics for Innovative Applications: A Bicentennial Tribute to Florence Nightingale. Singapore: Springer Nature Singapore, 2022. 57-82.</span>
+<span class="sd">    .. [45] Delon, Julie, Julien Salomon, and Andrei Sobolevski. &quot;Fast transport optimization for Monge costs on the circle.&quot; SIAM Journal on Applied Mathematics 70.7 (2010): 2239-2258.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;The OT loss is only valid for p&gt;=1, </span><span class="si">{p}</span><span class="s2"> was given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">wasserstein1_circle</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">,</span> <span class="n">require_sort</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">binary_search_circle</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">,</span>
+                                <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">Lm</span><span class="o">=</span><span class="n">Lm</span><span class="p">,</span> <span class="n">Lp</span><span class="o">=</span><span class="n">Lp</span><span class="p">,</span> <span class="n">tm</span><span class="o">=</span><span class="n">tm</span><span class="p">,</span> <span class="n">tp</span><span class="o">=</span><span class="n">tp</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+                                <span class="n">require_sort</span><span class="o">=</span><span class="n">require_sort</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="semidiscrete_wasserstein2_unif_circle"><a class="viewcode-back" href="../../../all.html#ot.semidiscrete_wasserstein2_unif_circle">[docs]</a><span class="k">def</span> <span class="nf">semidiscrete_wasserstein2_unif_circle</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the closed-form for the 2-Wasserstein distance between samples and a uniform distribution on :math:`S^1`</span>
+<span class="sd">    Samples need to be in :math:`S^1\cong [0,1[`. If they are on :math:`\mathbb{R}`,</span>
+<span class="sd">    takes the value modulo 1.</span>
+<span class="sd">    If the values are on :math:`S^1\subset\mathbb{R}^2`, it is required to first find the coordinates</span>
+<span class="sd">    using e.g. the atan2 function.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W_2^2(\mu_n, \nu) = \sum_{i=1}^n \alpha_i x_i^2 - \left(\sum_{i=1}^n \alpha_i x_i\right)^2 + \sum_{i=1}^n \alpha_i x_i \left(1-\alpha_i-2\sum_{k=1}^{i-1}\alpha_k\right) + \frac{1}{12}</span>
+
+<span class="sd">    where:</span>
+
+<span class="sd">    - :math:`\nu=\mathrm{Unif}(S^1)` and :math:`\mu_n  = \sum_{i=1}^n \alpha_i \delta_{x_i}`</span>
+
+<span class="sd">    For values :math:`x=(x_1,x_2)\in S^1`, it is required to first get their coordinates with</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        u = \frac{\pi + \mathrm{atan2}(-x_2,-x_1)}{2\pi},</span>
+
+<span class="sd">    using e.g. ot.utils.get_coordinate_circle(x)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    u_values: ndarray, shape (n, ...)</span>
+<span class="sd">        Samples</span>
+<span class="sd">    u_weights : ndarray, shape (n, ...), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float</span>
+<span class="sd">        Cost associated to the optimal transportation</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; x0 = np.array([[0], [0.2], [0.4]])</span>
+<span class="sd">    &gt;&gt;&gt; semidiscrete_wasserstein2_unif_circle(x0)</span>
+<span class="sd">    array([0.02111111])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [46] Bonet, C., Berg, P., Courty, N., Septier, F., Drumetz, L., &amp; Pham, M. T. (2023). Spherical sliced-wasserstein. International Conference on Learning Representations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">u_values</span> <span class="o">=</span> <span class="n">u_values</span> <span class="o">%</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">u_values</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">u_weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">u_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">u_values</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">u_cdf</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">u_cdf</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="n">u_cdf</span><span class="p">,</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+
+    <span class="n">cpt1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u_weights</span> <span class="o">*</span> <span class="n">u_values</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">u_mean</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u_weights</span> <span class="o">*</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">ns</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">u_weights</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">u_cdf</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">cpt2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u_values</span> <span class="o">*</span> <span class="n">u_weights</span> <span class="o">*</span> <span class="n">ns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cpt1</span> <span class="o">-</span> <span class="n">u_mean</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">cpt2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">12</span></div>
 </pre></div>
 
            </div>
