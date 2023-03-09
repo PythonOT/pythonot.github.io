@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.gromov._gw &mdash; POT Python Optimal Transport 0.8.3dev documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.8.3dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../.github/CONTRIBUTING.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../.github/CODE_OF_CONDUCT.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.gromov._gw</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.gromov._gw</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Gromov-Wasserstein and Fused-Gromov-Wasserstein conditional gradient solvers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Erwan Vautier &lt;erwan.vautier@gmail.com&gt;</span>
+<span class="c1">#         Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
+<span class="c1">#         Rémi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Titouan Vayer &lt;titouan.vayer@irisa.fr&gt;</span>
+<span class="c1">#         Cédric Vincent-Cuaz &lt;cedvincentcuaz@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">UndefinedParameter</span><span class="p">,</span> <span class="n">list_to_array</span>
+<span class="kn">from</span> <span class="nn">..optim</span> <span class="kn">import</span> <span class="n">cg</span><span class="p">,</span> <span class="n">line_search_armijo</span><span class="p">,</span> <span class="n">solve_1d_linesearch_quad</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">check_random_state</span>
+<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">NumpyBackend</span>
+
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">init_matrix</span><span class="p">,</span> <span class="n">gwloss</span><span class="p">,</span> <span class="n">gwggrad</span>
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">update_square_loss</span><span class="p">,</span> <span class="n">update_kl_loss</span>
+
+
+<div class="viewcode-block" id="gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the gromov-wasserstein transport between :math:`(\mathbf{C_1}, \mathbf{p})` and :math:`(\mathbf{C_2}, \mathbf{q})`</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{GW} = \mathop{\arg \min}_\mathbf{T} \quad \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{\gamma}^T \mathbf{1} &amp;= \mathbf{q}</span>
+
+<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{p}`: distribution in the source space</span>
+<span class="sd">    - :math:`\mathbf{q}`: distribution in the target space</span>
+<span class="sd">    - `L`: loss function to account for the misfit between the similarity matrices</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
+<span class="sd">        which can lead to copy overhead on GPU arrays.</span>
+<span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
+<span class="sd">        numpy to limit memory overhead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space</span>
+<span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">        Distribution in the source space</span>
+<span class="sd">    q : array-like, shape (nt,)</span>
+<span class="sd">        Distribution in the target space</span>
+<span class="sd">    loss_fun : str</span>
+<span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    armijo : bool, optional</span>
+<span class="sd">        If True the step of the line-search is found via an armijo research. Else closed form is used.</span>
+<span class="sd">        If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol_rel : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    tol_abs : float, optional</span>
+<span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    T : array-like, shape (`ns`, `nt`)</span>
+<span class="sd">        Coupling between the two spaces that minimizes:</span>
+
+<span class="sd">            :math:`\sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}`</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Convergence information and loss.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    .. [13] Mémoli, Facundo. Gromov–Wasserstein distances and the</span>
+<span class="sd">        metric approach to object matching. Foundations of computational</span>
+<span class="sd">        mathematics 11.4 (2011): 417-487.</span>
+
+<span class="sd">    .. [47] Chowdhury, S., &amp; Mémoli, F. (2019). The gromov–wasserstein</span>
+<span class="sd">        distance between networks and stable network invariants.</span>
+<span class="sd">        Information and Inference: A Journal of the IMA, 8(4), 757-787.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span> <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">G0_</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">C1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C10</span><span class="p">)</span>
+    <span class="n">C2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C20</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">symmetric</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0_</span><span class="p">)</span>
+        <span class="c1"># Check marginals of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+    <span class="c1"># cg for GW is implemented using numpy on CPU</span>
+    <span class="n">np_</span> <span class="o">=</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+
+    <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">constCt</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span> <span class="o">+</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constCt</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+        <span class="n">armijo</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># there is no closed form line-search with KL</span>
+
+    <span class="k">if</span> <span class="n">armijo</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">line_search</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">line_search_armijo</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">line_search</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">solve_gromov_linesearch</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;gw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the gromov-wasserstein discrepancy between :math:`(\mathbf{C_1}, \mathbf{p})` and :math:`(\mathbf{C_2}, \mathbf{q})`</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        GW = \min_\mathbf{T} \quad \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{\gamma}^T \mathbf{1} &amp;= \mathbf{q}</span>
+
+<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{p}`: distribution in the source space</span>
+<span class="sd">    - :math:`\mathbf{q}`: distribution in the target space</span>
+<span class="sd">    - `L`: loss function to account for the misfit between the similarity</span>
+<span class="sd">      matrices</span>
+
+<span class="sd">    Note that when using backends, this loss function is differentiable wrt the</span>
+<span class="sd">    matrices (C1, C2) and weights (p, q) for quadratic loss using the gradients from [38]_.</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
+<span class="sd">        which can lead to copy overhead on GPU arrays.</span>
+<span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
+<span class="sd">        numpy to limit memory overhead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space</span>
+<span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">    q :  array-like, shape (nt,)</span>
+<span class="sd">        Distribution in the target space.</span>
+<span class="sd">    loss_fun :  str</span>
+<span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    armijo : bool, optional</span>
+<span class="sd">        If True the step of the line-search is found via an armijo research. Else closed form is used.</span>
+<span class="sd">        If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol_rel : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    tol_abs : float, optional</span>
+<span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gw_dist : float</span>
+<span class="sd">        Gromov-Wasserstein distance</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        convergence information and Coupling marix</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    .. [13] Mémoli, Facundo. Gromov–Wasserstein distances and the</span>
+<span class="sd">        metric approach to object matching. Foundations of computational</span>
+<span class="sd">        mathematics 11.4 (2011): 417-487.</span>
+
+<span class="sd">    .. [38] C. Vincent-Cuaz, T. Vayer, R. Flamary, M. Corneli, N. Courty, Online</span>
+<span class="sd">        Graph Dictionary Learning, International Conference on Machine Learning</span>
+<span class="sd">        (ICML), 2021.</span>
+
+<span class="sd">    .. [47] Chowdhury, S., &amp; Mémoli, F. (2019). The gromov–wasserstein</span>
+<span class="sd">        distance between networks and stable network invariants.</span>
+<span class="sd">        Information and Inference: A Journal of the IMA, 8(4), 757-787.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># simple get_backend as the full one will be handled in gromov_wasserstein</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+
+    <span class="n">T</span><span class="p">,</span> <span class="n">log_gw</span> <span class="o">=</span> <span class="n">gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+    <span class="n">gw</span> <span class="o">=</span> <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;gw_dist&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
+        <span class="n">gC1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+        <span class="n">gC2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
+        <span class="n">gw</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">gw</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">),</span>
+                              <span class="p">(</span><span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]),</span>
+                               <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]),</span> <span class="n">gC1</span><span class="p">,</span> <span class="n">gC2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gw</span><span class="p">,</span> <span class="n">log_gw</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gw</span></div>
+
+
+<div class="viewcode-block" id="fused_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                             <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the FGW transport between two graphs (see :ref:`[24] &lt;references-fused-gromov-wasserstein&gt;`)</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = \mathop{\arg \min}_\gamma \quad (1 - \alpha) \langle \gamma, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{\gamma}^T \mathbf{1} &amp;= \mathbf{q}</span>
+
+<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`ns`, `nt`) metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{p}` and :math:`\mathbf{q}` are source and target weights (sum to 1)</span>
+<span class="sd">    - `L` is a loss function to account for the misfit between the similarity matrices</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
+<span class="sd">        which can lead to copy overhead on GPU arrays.</span>
+<span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
+<span class="sd">        numpy to limit memory overhead.</span>
+<span class="sd">    The algorithm used for solving the problem is conditional gradient as discussed in :ref:`[24] &lt;references-fused-gromov-wasserstein&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (ns, nt)</span>
+<span class="sd">        Metric cost matrix between features across domains</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the target space</span>
+<span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">        Distribution in the source space</span>
+<span class="sd">    q : array-like, shape (nt,)</span>
+<span class="sd">        Distribution in the target space</span>
+<span class="sd">    loss_fun : str, optional</span>
+<span class="sd">        Loss function used for the solver</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
+<span class="sd">    armijo : bool, optional</span>
+<span class="sd">        If True the step of the line-search is found via an armijo research. Else closed form is used.</span>
+<span class="sd">        If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol_rel : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    tol_abs : float, optional</span>
+<span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : array-like, shape (`ns`, `nt`)</span>
+<span class="sd">        Optimal transportation matrix for the given parameters.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Log dictionary return only if log==True in parameters.</span>
+
+
+<span class="sd">    .. _references-fused-gromov-wasserstein:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain</span>
+<span class="sd">        and Courty Nicolas &quot;Optimal Transport for structured data with</span>
+<span class="sd">        application on graphs&quot;, International Conference on Machine Learning</span>
+<span class="sd">        (ICML). 2019.</span>
+
+<span class="sd">    .. [47] Chowdhury, S., &amp; Mémoli, F. (2019). The gromov–wasserstein</span>
+<span class="sd">        distance between networks and stable network invariants.</span>
+<span class="sd">        Information and Inference: A Journal of the IMA, 8(4), 757-787.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">C10</span><span class="p">,</span> <span class="n">C20</span><span class="p">,</span> <span class="n">M0</span><span class="p">,</span> <span class="n">G0_</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">C1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C10</span><span class="p">)</span>
+    <span class="n">C2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C20</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">symmetric</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0_</span><span class="p">)</span>
+        <span class="c1"># Check marginals of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">G0</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+    <span class="c1"># cg for GW is implemented using numpy on CPU</span>
+    <span class="n">np_</span> <span class="o">=</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+
+    <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">constCt</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span> <span class="o">=</span> <span class="n">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">)</span> <span class="o">+</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constCt</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">np_</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+        <span class="n">armijo</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># there is no closed form line-search with KL</span>
+
+    <span class="k">if</span> <span class="n">armijo</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">line_search</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">line_search_armijo</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">line_search</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">solve_gromov_linesearch</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;fgw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="fused_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.fused_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                              <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the FGW distance between two graphs see (see :ref:`[24] &lt;references-fused-gromov-wasserstein2&gt;`)</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\gamma \quad (1 - \alpha) \langle \gamma, \mathbf{M} \rangle_F + \alpha \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{\gamma}^T \mathbf{1} &amp;= \mathbf{q}</span>
+
+<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`ns`, `nt`) metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{p}` and :math:`\mathbf{q}` are source and target weights (sum to 1)</span>
+<span class="sd">    - `L` is a loss function to account for the misfit between the similarity matrices</span>
+
+<span class="sd">    The algorithm used for solving the problem is conditional gradient as</span>
+<span class="sd">    discussed in :ref:`[24] &lt;references-fused-gromov-wasserstein2&gt;`</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
+<span class="sd">        which can lead to copy overhead on GPU arrays.</span>
+<span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
+<span class="sd">        numpy to limit memory overhead.</span>
+
+<span class="sd">    Note that when using backends, this loss function is differentiable wrt the</span>
+<span class="sd">    matrices (C1, C2, M) and weights (p, q) for quadratic loss using the gradients from [38]_.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (ns, nt)</span>
+<span class="sd">        Metric cost matrix between features across domains</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the source space.</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the target space.</span>
+<span class="sd">    p :  array-like, shape (ns,)</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">    q :  array-like, shape (nt,)</span>
+<span class="sd">        Distribution in the target space.</span>
+<span class="sd">    loss_fun : str, optional</span>
+<span class="sd">        Loss function used for the solver.</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
+<span class="sd">    armijo : bool, optional</span>
+<span class="sd">        If True the step of the line-search is found via an armijo research.</span>
+<span class="sd">        Else closed form is used. If there are convergence issues use False.</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        Record log if True.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol_rel : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    tol_abs : float, optional</span>
+<span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        Parameters can be directly passed to the ot.optim.cg solver.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fgw-distance : float</span>
+<span class="sd">        Fused gromov wasserstein distance for the given parameters.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Log dictionary return only if log==True in parameters.</span>
+
+
+<span class="sd">    .. _references-fused-gromov-wasserstein2:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain</span>
+<span class="sd">        and Courty Nicolas</span>
+<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
+
+<span class="sd">    .. [38] C. Vincent-Cuaz, T. Vayer, R. Flamary, M. Corneli, N. Courty, Online</span>
+<span class="sd">        Graph Dictionary Learning, International Conference on Machine Learning</span>
+<span class="sd">        (ICML), 2021.</span>
+
+<span class="sd">    .. [47] Chowdhury, S., &amp; Mémoli, F. (2019). The gromov–wasserstein</span>
+<span class="sd">        distance between networks and stable network invariants.</span>
+<span class="sd">        Information and Inference: A Journal of the IMA, 8(4), 757-787.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">T</span><span class="p">,</span> <span class="n">log_fgw</span> <span class="o">=</span> <span class="n">fused_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">armijo</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">fgw_dist</span> <span class="o">=</span> <span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;fgw_dist&#39;</span><span class="p">]</span>
+    <span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
+        <span class="n">gC1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+        <span class="n">gC2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
+        <span class="n">fgw_dist</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">fgw_dist</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">),</span>
+                                    <span class="p">(</span><span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]),</span>
+                                     <span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]),</span>
+                                     <span class="n">alpha</span> <span class="o">*</span> <span class="n">gC1</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">gC2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fgw_dist</span><span class="p">,</span> <span class="n">log_fgw</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fgw_dist</span></div>
+
+
+<div class="viewcode-block" id="solve_gromov_linesearch"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.solve_gromov_linesearch">[docs]</a><span class="k">def</span> <span class="nf">solve_gromov_linesearch</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span>
+                            <span class="n">alpha_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solve the linesearch in the FW iterations</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    G : array-like, shape(ns,nt)</span>
+<span class="sd">        The transport map at a given iteration of the FW</span>
+<span class="sd">    deltaG : array-like (ns,nt)</span>
+<span class="sd">        Difference between the optimal map found by linearization in the FW algorithm and the value at a given iteration</span>
+<span class="sd">    cost_G : float</span>
+<span class="sd">        Value of the cost at `G`</span>
+<span class="sd">    C1 : array-like (ns,ns), optional</span>
+<span class="sd">        Structure matrix in the source domain.</span>
+<span class="sd">    C2 : array-like (nt,nt), optional</span>
+<span class="sd">        Structure matrix in the target domain.</span>
+<span class="sd">    M : array-like (ns,nt)</span>
+<span class="sd">        Cost matrix between the features.</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization parameter.</span>
+<span class="sd">    alpha_min : float, optional</span>
+<span class="sd">        Minimum value for alpha</span>
+<span class="sd">    alpha_max : float, optional</span>
+<span class="sd">        Maximum value for alpha</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        The optimal step size of the FW</span>
+<span class="sd">    fc : int</span>
+<span class="sd">        nb of function call. Useless here</span>
+<span class="sd">    cost_G : float</span>
+<span class="sd">        The value of the cost for the next iteration</span>
+
+
+<span class="sd">    .. _references-solve-linesearch:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain and Courty Nicolas</span>
+<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">dot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">),</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dot</span> <span class="o">*</span> <span class="n">deltaG</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">deltaG</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dot</span> <span class="o">*</span> <span class="n">G</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">G</span><span class="p">),</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">deltaG</span><span class="p">))</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">solve_1d_linesearch_quad</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alpha_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
+
+    <span class="c1"># the new cost is deduced from the line search quadratic function</span>
+    <span class="n">cost_G</span> <span class="o">=</span> <span class="n">cost_G</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">alpha</span>
+
+    <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cost_G</span></div>
+
+
+<div class="viewcode-block" id="gromov_barycenters"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov_barycenters">[docs]</a><span class="k">def</span> <span class="nf">gromov_barycenters</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">init_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the gromov-wasserstein barycenters of `S` measured similarity matrices :math:`(\mathbf{C}_s)_{1 \leq s \leq S}`</span>
+
+<span class="sd">    The function solves the following optimization problem with block coordinate descent:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{C} = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad \sum_s \lambda_s \mathrm{GW}(\mathbf{C}, \mathbf{C}_s, \mathbf{p}, \mathbf{p}_s)</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}_s`: metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{p}_s`: distribution</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    N : int</span>
+<span class="sd">        Size of the targeted barycenter</span>
+<span class="sd">    Cs : list of S array-like of shape (ns, ns)</span>
+<span class="sd">        Metric cost matrices</span>
+<span class="sd">    ps : list of S array-like of shape (ns,)</span>
+<span class="sd">        Sample weights in the `S` spaces</span>
+<span class="sd">    p : array-like, shape (N,)</span>
+<span class="sd">        Weights in the targeted barycenter</span>
+<span class="sd">    lambdas : list of float</span>
+<span class="sd">        List of the `S` spaces&#39; weights</span>
+<span class="sd">    loss_fun : callable</span>
+<span class="sd">        tensor-matrix multiplication function based on specific loss function</span>
+<span class="sd">    symmetric : bool, optional.</span>
+<span class="sd">        Either structures are to be assumed symmetric or not. Default value is True.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
+<span class="sd">    update : callable</span>
+<span class="sd">        function(:math:`\mathbf{p}`, lambdas, :math:`\mathbf{T}`, :math:`\mathbf{Cs}`) that updates</span>
+<span class="sd">        :math:`\mathbf{C}` according to a specific Kernel with the `S` :math:`\mathbf{T}_s` couplings</span>
+<span class="sd">        calculated at each iteration</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        Record log if True.</span>
+<span class="sd">    init_C : bool | array-like, shape(N,N)</span>
+<span class="sd">        Random initial value for the :math:`\mathbf{C}` matrix provided by user.</span>
+<span class="sd">    random_state : int or RandomState instance, optional</span>
+<span class="sd">        Fix the seed for reproducibility</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    C : array-like, shape (`N`, `N`)</span>
+<span class="sd">        Similarity matrix in the barycenter space (permutated arbitrarily)</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Log dictionary of error during iterations. Return only if `log=True` in parameters.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">ps</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">ps</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">,</span> <span class="o">*</span><span class="n">ps</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+
+    <span class="c1"># Initialization of C : random SPD matrix (if not provided by user)</span>
+    <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">generator</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">xalea</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xalea</span><span class="p">,</span> <span class="n">xalea</span><span class="p">)</span>
+        <span class="n">C</span> <span class="o">/=</span> <span class="n">C</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+        <span class="n">armijo</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">error</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">err</span> <span class="o">&gt;</span> <span class="n">tol</span> <span class="ow">and</span> <span class="n">cpt</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">):</span>
+        <span class="n">Cprev</span> <span class="o">=</span> <span class="n">C</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">gromov_wasserstein</span><span class="p">(</span><span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span>
+                                <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">update_square_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">update_kl_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we can speed up the process by checking for the error only all</span>
+            <span class="c1"># the 10th iterations</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="n">Cprev</span><span class="p">)</span>
+            <span class="n">error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">C</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;err&quot;</span><span class="p">:</span> <span class="n">error</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">C</span></div>
+
+
+<div class="viewcode-block" id="fgw_barycenters"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.fgw_barycenters">[docs]</a><span class="k">def</span> <span class="nf">fgw_barycenters</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">fixed_structure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fixed_features</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the fgw barycenter as presented eq (5) in :ref:`[24] &lt;references-fgw-barycenters&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    N : int</span>
+<span class="sd">        Desired number of samples of the target barycenter</span>
+<span class="sd">    Ys: list of array-like, each element has shape (ns,d)</span>
+<span class="sd">        Features of all samples</span>
+<span class="sd">    Cs : list of array-like, each element has shape (ns,ns)</span>
+<span class="sd">        Structure matrices of all samples</span>
+<span class="sd">    ps : list of array-like, each element has shape (ns,)</span>
+<span class="sd">        Masses of all samples.</span>
+<span class="sd">    lambdas : list of float</span>
+<span class="sd">        List of the `S` spaces&#39; weights</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        Alpha parameter for the fgw distance</span>
+<span class="sd">    fixed_structure : bool</span>
+<span class="sd">        Whether to fix the structure of the barycenter during the updates</span>
+<span class="sd">    fixed_features : bool</span>
+<span class="sd">        Whether to fix the feature of the barycenter during the updates</span>
+<span class="sd">    loss_fun : str</span>
+<span class="sd">        Loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either structures are to be assumed symmetric or not. Default value is True.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        Record log if True.</span>
+<span class="sd">    init_C : array-like, shape (N,N), optional</span>
+<span class="sd">        Initialization for the barycenters&#39; structure matrix. If not set</span>
+<span class="sd">        a random init is used.</span>
+<span class="sd">    init_X : array-like, shape (N,d), optional</span>
+<span class="sd">        Initialization for the barycenters&#39; features. If not set a</span>
+<span class="sd">        random init is used.</span>
+<span class="sd">    random_state : int or RandomState instance, optional</span>
+<span class="sd">        Fix the seed for reproducibility</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : array-like, shape (`N`, `d`)</span>
+<span class="sd">        Barycenters&#39; features</span>
+<span class="sd">    C : array-like, shape (`N`, `N`)</span>
+<span class="sd">        Barycenters&#39; structure matrix</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Only returned when log=True. It contains the keys:</span>
+
+<span class="sd">        - :math:`\mathbf{T}`: list of (`N`, `ns`) transport matrices</span>
+<span class="sd">        - :math:`(\mathbf{M}_s)_s`: all distance matrices between the feature of the barycenter and the other features :math:`(dist(\mathbf{X}, \mathbf{Y}_s))_s` shape (`N`, `ns`)</span>
+
+
+<span class="sd">    .. _references-fgw-barycenters:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain</span>
+<span class="sd">        and Courty Nicolas</span>
+<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">ps</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">ps</span><span class="p">)</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">,</span> <span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="o">*</span><span class="n">ps</span><span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># dimension on the node features</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">N</span>
+
+    <span class="k">if</span> <span class="n">fixed_structure</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UndefinedParameter</span><span class="p">(</span><span class="s1">&#39;If C is fixed it must be initialized&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">generator</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">xalea</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xalea</span><span class="p">,</span> <span class="n">xalea</span><span class="p">)</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+
+    <span class="k">if</span> <span class="n">fixed_features</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">init_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UndefinedParameter</span><span class="p">(</span><span class="s1">&#39;If X is fixed it must be initialized&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">init_X</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">init_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">init_X</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">ps</span><span class="p">]</span>
+
+    <span class="n">Ms</span> <span class="o">=</span> <span class="p">[</span><span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ys</span><span class="p">))]</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+        <span class="n">armijo</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">err_feature</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">err_structure</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err_feature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err_structure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;Ts_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">while</span> <span class="p">((</span><span class="n">err_feature</span> <span class="o">&gt;</span> <span class="n">tol</span> <span class="ow">or</span> <span class="n">err_structure</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">)</span> <span class="ow">and</span> <span class="n">cpt</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">):</span>
+        <span class="n">Cprev</span> <span class="o">=</span> <span class="n">C</span>
+        <span class="n">Xprev</span> <span class="o">=</span> <span class="n">X</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fixed_features</span><span class="p">:</span>
+            <span class="n">Ys_temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">Ys</span><span class="p">]</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">update_feature_matrix</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span> <span class="n">Ys_temp</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">Ms</span> <span class="o">=</span> <span class="p">[</span><span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ys</span><span class="p">))]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fixed_structure</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
+                <span class="n">T_temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">T</span><span class="p">]</span>
+                <span class="n">C</span> <span class="o">=</span> <span class="n">update_structure_matrix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T_temp</span><span class="p">,</span> <span class="n">Cs</span><span class="p">)</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">fused_gromov_wasserstein</span><span class="p">(</span><span class="n">Ms</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">p</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span>
+                                      <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
+        <span class="c1"># T is N,ns</span>
+        <span class="n">err_feature</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Xprev</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">d</span><span class="p">)))</span>
+        <span class="n">err_structure</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="n">Cprev</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err_feature&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err_feature</span><span class="p">)</span>
+            <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err_structure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err_structure</span><span class="p">)</span>
+            <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;Ts_iter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err_structure</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err_feature</span><span class="p">))</span>
+
+        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>  <span class="c1"># from target to Ys</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;Ms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ms</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">log_</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">C</span></div>
+
+
+<div class="viewcode-block" id="update_structure_matrix"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.update_structure_matrix">[docs]</a><span class="k">def</span> <span class="nf">update_structure_matrix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Updates :math:`\mathbf{C}` according to the L2 Loss kernel with the `S` :math:`\mathbf{T}_s` couplings.</span>
+
+<span class="sd">    It is calculated at each iteration</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : array-like, shape (N,)</span>
+<span class="sd">        Masses in the targeted barycenter.</span>
+<span class="sd">    lambdas : list of float</span>
+<span class="sd">        List of the `S` spaces&#39; weights.</span>
+<span class="sd">    T : list of S array-like of shape (ns, N)</span>
+<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
+<span class="sd">    Cs : list of S array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrices.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    C : array-like, shape (`nt`, `nt`)</span>
+<span class="sd">        Updated :math:`\mathbf{C}` matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
+        <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span>
+            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+        <span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+    <span class="p">])</span>
+    <span class="n">ppt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tmpsum</span> <span class="o">/</span> <span class="n">ppt</span></div>
+
+
+<div class="viewcode-block" id="update_feature_matrix"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.update_feature_matrix">[docs]</a><span class="k">def</span> <span class="nf">update_feature_matrix</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Updates the feature with respect to the `S` :math:`\mathbf{T}_s` couplings.</span>
+
+
+<span class="sd">    See &quot;Solving the barycenter problem with Block Coordinate Descent (BCD)&quot;</span>
+<span class="sd">    in :ref:`[24] &lt;references-update-feature-matrix&gt;` calculated at each iteration</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : array-like, shape (N,)</span>
+<span class="sd">        masses in the targeted barycenter</span>
+<span class="sd">    lambdas : list of float</span>
+<span class="sd">        List of the `S` spaces&#39; weights</span>
+<span class="sd">    Ts : list of S array-like, shape (ns,N)</span>
+<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration</span>
+<span class="sd">    Ys : list of S array-like, shape (d,ns)</span>
+<span class="sd">        The features.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : array-like, shape (`d`, `N`)</span>
+
+
+<span class="sd">    .. _references-update-feature-matrix:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain and Courty Nicolas</span>
+<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">Ts</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ts</span><span class="p">)</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span>
+    <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
+        <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ts</span><span class="p">))</span>
+    <span class="p">])</span>
+    <span class="k">return</span> <span class="n">tmpsum</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing -->
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      versions
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+      
+      
+      <dl>
+        <dt>Versions</dt>
+
+        <dd><a href="https://pythonot.github.io/">Release</a></dd>
+        
+        <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+       
+        
+        
+      </dl>
+      
+
+    
+      
+      <dl>
+        <dt>On GitHub</dt>
+        <dd>
+          <a href="https://github.com/PythonOT/POT">Code on Github</a>
+        </dd>
+        
+      </dl>
+      
+    
+      
+      
+
+      <hr>
+      
+
+
+</div>
+</div>
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
