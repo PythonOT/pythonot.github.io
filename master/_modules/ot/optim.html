@@ -14,7 +14,6 @@
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
@@ -119,6 +118,9 @@
 <span class="sd">    Find an approximate minimum of :math:`f(x_k + \alpha \cdot p_k)` that satisfies the</span>
 <span class="sd">    armijo conditions.</span>
 
+<span class="sd">    .. note:: If the loss function f returns a float (resp. a 1d array) then</span>
+<span class="sd">        the returned alpha and fa are float (resp. 1d arrays).</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    f : callable</span>
@@ -129,7 +131,7 @@
 <span class="sd">        descent direction</span>
 <span class="sd">    gfk : array-like</span>
 <span class="sd">        gradient of `f` at :math:`x_k`</span>
-<span class="sd">    old_fval : float</span>
+<span class="sd">    old_fval : float or 1d array</span>
 <span class="sd">        loss value at :math:`x_k`</span>
 <span class="sd">    args : tuple, optional</span>
 <span class="sd">        arguments given to `f`</span>
@@ -145,42 +147,59 @@
 <span class="sd">        If let to its default value None, a backend test will be conducted.</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    alpha : float</span>
+<span class="sd">    alpha : float or 1d array</span>
 <span class="sd">        step that satisfy armijo conditions</span>
 <span class="sd">    fc : int</span>
 <span class="sd">        nb of function call</span>
-<span class="sd">    fa : float</span>
+<span class="sd">    fa : float or 1d array</span>
 <span class="sd">        loss value at step alpha</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">xk</span><span class="p">,</span> <span class="n">pk</span><span class="p">,</span> <span class="n">gfk</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xk</span><span class="p">,</span> <span class="n">pk</span><span class="p">,</span> <span class="n">gfk</span><span class="p">)</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xk</span><span class="p">,</span> <span class="n">pk</span><span class="p">)</span>
+        <span class="n">xk0</span><span class="p">,</span> <span class="n">pk0</span> <span class="o">=</span> <span class="n">xk</span><span class="p">,</span> <span class="n">pk</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xk0</span><span class="p">,</span> <span class="n">pk0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xk0</span><span class="p">,</span> <span class="n">pk0</span> <span class="o">=</span> <span class="n">xk</span><span class="p">,</span> <span class="n">pk</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xk</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">xk</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xk</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
 
+    <span class="n">xk</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">xk</span><span class="p">)</span>
+    <span class="n">pk</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">pk</span><span class="p">)</span>
+    <span class="n">gfk</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">gfk</span><span class="p">)</span>
+
     <span class="n">fc</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">phi</span><span class="p">(</span><span class="n">alpha1</span><span class="p">):</span>
+        <span class="c1"># The callable function operates on nx backend</span>
         <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">xk</span> <span class="o">+</span> <span class="n">alpha1</span> <span class="o">*</span> <span class="n">pk</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">alpha10</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alpha1</span><span class="p">)</span>
+        <span class="n">fval</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">xk0</span> <span class="o">+</span> <span class="n">alpha10</span> <span class="o">*</span> <span class="n">pk0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">fval</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="c1"># prevent bug from nx.to_numpy that can look for .cpu or .gpu</span>
+            <span class="k">return</span> <span class="n">fval</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">fval</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">old_fval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">phi0</span> <span class="o">=</span> <span class="n">phi</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">old_fval</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="c1"># prevent bug from nx.to_numpy that can look for .cpu or .gpu</span>
         <span class="n">phi0</span> <span class="o">=</span> <span class="n">old_fval</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">phi0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">old_fval</span><span class="p">)</span>
 
-    <span class="n">derphi0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pk</span> <span class="o">*</span> <span class="n">gfk</span><span class="p">)</span>  <span class="c1"># Quickfix for matrices</span>
+    <span class="n">derphi0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pk</span> <span class="o">*</span> <span class="n">gfk</span><span class="p">)</span>  <span class="c1"># Quickfix for matrices</span>
     <span class="n">alpha</span><span class="p">,</span> <span class="n">phi1</span> <span class="o">=</span> <span class="n">scalar_search_armijo</span><span class="p">(</span>
         <span class="n">phi</span><span class="p">,</span> <span class="n">phi0</span><span class="p">,</span> <span class="n">derphi0</span><span class="p">,</span> <span class="n">c1</span><span class="o">=</span><span class="n">c1</span><span class="p">,</span> <span class="n">alpha0</span><span class="o">=</span><span class="n">alpha0</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phi0</span>
+        <span class="k">return</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">phi0</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xk0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">alpha_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phi1</span></div>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xk0</span><span class="p">),</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">phi1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xk0</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="generic_conditional_gradient"><a class="viewcode-back" href="../../gen_modules/ot.optim.html#ot.optim.generic_conditional_gradient">[docs]</a><span class="k">def</span> <span class="nf">generic_conditional_gradient</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">reg1</span><span class="p">,</span> <span class="n">reg2</span><span class="p">,</span> <span class="n">lp_solver</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
