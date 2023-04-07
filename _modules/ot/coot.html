@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.coot &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.9.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.coot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.coot</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">CO-Optimal Transport solver</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Quang Huy Tran &lt;quang-huy.tran@univ-ubs.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span>
+
+
+<div class="viewcode-block" id="co_optimal_transport"><a class="viewcode-back" href="../../gen_modules/ot.coot.html#ot.coot.co_optimal_transport">[docs]</a><span class="k">def</span> <span class="nf">co_optimal_transport</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">wx_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wx_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wy_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wy_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">M_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">M_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nits_bcd</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol_bcd</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">eval_bcd</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="n">nits_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">tol_sinkhorn</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">method_sinkhorn</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span>
+                         <span class="n">early_stopping_tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the CO-Optimal Transport between two matrices.</span>
+
+<span class="sd">    Return the sample and feature transport plans between</span>
+<span class="sd">    :math:`(\mathbf{X}, \mathbf{w}_{xs}, \mathbf{w}_{xf})` and</span>
+<span class="sd">    :math:`(\mathbf{Y}, \mathbf{w}_{ys}, \mathbf{w}_{yf})`.</span>
+
+<span class="sd">    The function solves the following CO-Optimal Transport (COOT) problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{COOT}_{\alpha, \varepsilon} = \mathop{\arg \min}_{\mathbf{P}, \mathbf{Q}}</span>
+<span class="sd">        &amp;\quad \sum_{i,j,k,l}</span>
+<span class="sd">        (\mathbf{X}_{i,k} - \mathbf{Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l}</span>
+<span class="sd">        + \alpha_s \sum_{i,j} \mathbf{P}_{i,j} \mathbf{M^{(s)}}_{i, j} \\</span>
+<span class="sd">        &amp;+ \alpha_f \sum_{k, l} \mathbf{Q}_{k,l} \mathbf{M^{(f)}}_{k, l}</span>
+<span class="sd">        + \varepsilon_s \mathbf{KL}(\mathbf{P} | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \varepsilon_f \mathbf{KL}(\mathbf{Q} | \mathbf{w}_{xf} \mathbf{w}_{yf}^T)</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{X}`: Data matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{Y}`: Data matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{M^{(s)}}`: Additional sample matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(f)}}`: Additional feature matrix</span>
+<span class="sd">    - :math:`\mathbf{w}_{xs}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{xf}`: Distribution of the features in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{ys}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{w}_{yf}`: Distribution of the features in the target space</span>
+
+<span class="sd">    .. note:: This function allows epsilon to be zero.</span>
+<span class="sd">              In that case, the :any:`ot.lp.emd` solver of POT will be used.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        First input matrix.</span>
+<span class="sd">    Y : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Second input matrix.</span>
+<span class="sd">    wx_samp : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wx_feat : (n_feature_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_samp : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_feat : (n_feature_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    epsilon : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where epsilon contains 0. In that case, the EMD solver is used instead of</span>
+<span class="sd">        Sinkhorn solver. If epsilon is scalar, then the same epsilon is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    alpha : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M_samp : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix with respect to the linear term on sample coupling.</span>
+<span class="sd">    M_feat : (n_feature_x, n_feature_y), float, optional (default = None)</span>
+<span class="sd">        Feature matrix with respect to the linear term on feature coupling.</span>
+<span class="sd">    warmstart : dictionary, optional (default = None)</span>
+<span class="sd">        Contains 4 keys:</span>
+<span class="sd">            - &quot;duals_sample&quot; and &quot;duals_feature&quot; whose values are</span>
+<span class="sd">              tuples of 2 vectors of size (n_sample_x, n_sample_y) and (n_feature_x, n_feature_y).</span>
+<span class="sd">              Initialization of sample and feature dual vectors</span>
+<span class="sd">              if using Sinkhorn algorithm. Zero vectors by default.</span>
+
+<span class="sd">            - &quot;pi_sample&quot; and &quot;pi_feature&quot; whose values are matrices</span>
+<span class="sd">              of size (n_sample_x, n_sample_y) and (n_feature_x, n_feature_y).</span>
+<span class="sd">              Initialization of sample and feature couplings.</span>
+<span class="sd">              Uniform distributions by default.</span>
+<span class="sd">    nits_bcd : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations to solve COOT.</span>
+<span class="sd">    tol_bcd : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    eval_bcd : int, optional (default = 1)</span>
+<span class="sd">        Multiplier of iteration at which the COOT cost is evaluated. For example,</span>
+<span class="sd">        if `eval_bcd = 8`, then the cost is calculated at iterations 8, 16, 24, etc...</span>
+<span class="sd">    nits_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_sinkhorn : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of Sinkhorn algorithm to stop the Sinkhorn scheme for</span>
+<span class="sd">        entropic optimal transport problem (if any) in each BCD iteration.</span>
+<span class="sd">        Only triggered when Sinkhorn solver is used.</span>
+<span class="sd">    method_sinkhorn : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Method used in POT&#39;s `ot.sinkhorn` solver.</span>
+<span class="sd">        Only support &quot;sinkhorn&quot; and &quot;sinkhorn_log&quot;.</span>
+<span class="sd">    early_stopping_tol : float, optional (default = 1e-6)</span>
+<span class="sd">        Tolerance for the early stopping. If the absolute difference between</span>
+<span class="sd">        the last 2 recorded COOT distances is under this tolerance, then stop BCD scheme.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and 4 dual vectors, including</span>
+<span class="sd">        2 from sample and 2 from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pi_samp : (n_sample_x, n_sample_y) array-like, float</span>
+<span class="sd">        Sample coupling matrix.</span>
+<span class="sd">    pi_feat : (n_feature_x, n_feature_y) array-like, float</span>
+<span class="sd">        Feature coupling matrix.</span>
+<span class="sd">    log : dictionary, optional</span>
+<span class="sd">        Returned if `log` is True. The keys are:</span>
+<span class="sd">            duals_sample : (n_sample_x, n_sample_y) tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the sample coupling.</span>
+<span class="sd">            duals_feature : (n_feature_x, n_feature_y) tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the feature coupling.</span>
+<span class="sd">            distances : list, float</span>
+<span class="sd">                List of COOT distances.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [49] I. Redko, T. Vayer, R. Flamary, and N. Courty, CO-Optimal Transport,</span>
+<span class="sd">        Advances in Neural Information Processing ny_sampstems, 33 (2020).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">compute_kl</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+        <span class="n">kl</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)))</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">kl</span>
+
+    <span class="c1"># Main function</span>
+
+    <span class="k">if</span> <span class="n">method_sinkhorn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="s2">&quot;sinkhorn_log&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Method </span><span class="si">{}</span><span class="s2"> is not supported in CO-Optimal Transport.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method_sinkhorn</span><span class="p">))</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">epsilon</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">epsilon</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Epsilon must be either a scalar or an indexable object of length 2.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">epsilon</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">epsilon</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">alpha_samp</span><span class="p">,</span> <span class="n">alpha_feat</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">alpha</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Alpha must be either a scalar or an indexable object of length 2.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alpha_samp</span><span class="p">,</span> <span class="n">alpha_feat</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">alpha</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># constant input variables</span>
+    <span class="k">if</span> <span class="n">M_samp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_samp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">M_samp</span><span class="p">,</span> <span class="n">alpha_samp</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">M_feat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_feat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">M_feat</span><span class="p">,</span> <span class="n">alpha_feat</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+    <span class="n">nx_samp</span><span class="p">,</span> <span class="n">nx_feat</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ny_samp</span><span class="p">,</span> <span class="n">ny_feat</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># measures on rows and columns</span>
+    <span class="k">if</span> <span class="n">wx_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_samp</span>
+    <span class="k">if</span> <span class="n">wx_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_feat</span>
+    <span class="k">if</span> <span class="n">wy_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_samp</span>
+    <span class="k">if</span> <span class="n">wy_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_feat</span>
+
+    <span class="n">wxy_samp</span> <span class="o">=</span> <span class="n">wx_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">wy_samp</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">wxy_feat</span> <span class="o">=</span> <span class="n">wx_feat</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">wy_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="c1"># pre-calculate cost constants</span>
+    <span class="n">XY_sqr</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">@</span> <span class="n">wx_feat</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">Y</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">@</span>
+                                            <span class="n">wy_feat</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">alpha_samp</span> <span class="o">*</span> <span class="n">M_samp</span>
+    <span class="n">XY_sqr_T</span> <span class="o">=</span> <span class="p">((</span><span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">@</span> <span class="n">wx_samp</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="p">((</span><span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                                                <span class="o">**</span> <span class="mi">2</span> <span class="o">@</span> <span class="n">wy_samp</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">alpha_feat</span> <span class="o">*</span> <span class="n">M_feat</span>
+
+    <span class="c1"># initialize coupling and dual vectors</span>
+    <span class="k">if</span> <span class="n">warmstart</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span> <span class="o">=</span> <span class="n">wxy_samp</span><span class="p">,</span> <span class="n">wxy_feat</span>  <span class="c1"># shape nx_samp x ny_samp and nx_feat x ny_feat</span>
+        <span class="n">duals_samp</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nx_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">ny_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">))</span>  <span class="c1"># shape nx_samp, ny_samp</span>
+        <span class="n">duals_feat</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nx_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">ny_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">))</span>  <span class="c1"># shape nx_feat, ny_feat</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span> <span class="o">=</span> <span class="n">warmstart</span><span class="p">[</span><span class="s2">&quot;pi_sample&quot;</span><span class="p">],</span> <span class="n">warmstart</span><span class="p">[</span><span class="s2">&quot;pi_feature&quot;</span><span class="p">]</span>
+        <span class="n">duals_samp</span><span class="p">,</span> <span class="n">duals_feat</span> <span class="o">=</span> <span class="n">warmstart</span><span class="p">[</span><span class="s2">&quot;duals_sample&quot;</span><span class="p">],</span> <span class="n">warmstart</span><span class="p">[</span><span class="s2">&quot;duals_feature&quot;</span><span class="p">]</span>
+
+    <span class="c1"># initialize log</span>
+    <span class="n">list_coot</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)]</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">tol_bcd</span> <span class="o">+</span> <span class="mf">1e-3</span>
+
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nits_bcd</span><span class="p">):</span>
+        <span class="n">pi_samp_prev</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">)</span>
+
+        <span class="c1"># update sample coupling</span>
+        <span class="n">ot_cost</span> <span class="o">=</span> <span class="n">XY_sqr</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span> <span class="o">@</span> <span class="n">pi_feat</span> <span class="o">@</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># size nx_samp x ny_samp</span>
+        <span class="k">if</span> <span class="n">eps_samp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pi_samp</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">wy_samp</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="n">ot_cost</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">eps_samp</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method_sinkhorn</span><span class="p">,</span>
+                                         <span class="n">numItermax</span><span class="o">=</span><span class="n">nits_ot</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_sinkhorn</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">duals_samp</span><span class="p">)</span>
+            <span class="n">duals_samp</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]),</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="n">eps_samp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pi_samp</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span>
+                <span class="n">a</span><span class="o">=</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">wy_samp</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="n">ot_cost</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">nits_ot</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">duals_samp</span> <span class="o">=</span> <span class="p">(</span><span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">])</span>
+        <span class="c1"># update feature coupling</span>
+        <span class="n">ot_cost</span> <span class="o">=</span> <span class="n">XY_sqr_T</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">pi_samp</span> <span class="o">@</span> <span class="n">Y</span>  <span class="c1"># size nx_feat x ny_feat</span>
+        <span class="k">if</span> <span class="n">eps_feat</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pi_feat</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">wx_feat</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">wy_feat</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="n">ot_cost</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">eps_feat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method_sinkhorn</span><span class="p">,</span>
+                                         <span class="n">numItermax</span><span class="o">=</span><span class="n">nits_ot</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_sinkhorn</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">duals_feat</span><span class="p">)</span>
+            <span class="n">duals_feat</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]),</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="n">eps_feat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pi_feat</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span>
+                <span class="n">a</span><span class="o">=</span><span class="n">wx_feat</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">wy_feat</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="n">ot_cost</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">nits_ot</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">duals_feat</span> <span class="o">=</span> <span class="p">(</span><span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">%</span> <span class="n">eval_bcd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># update error</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pi_samp</span> <span class="o">-</span> <span class="n">pi_samp_prev</span><span class="p">))</span>
+
+            <span class="c1"># COOT part</span>
+            <span class="n">coot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ot_cost</span> <span class="o">*</span> <span class="n">pi_feat</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">alpha_samp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">coot</span> <span class="o">=</span> <span class="n">coot</span> <span class="o">+</span> <span class="n">alpha_samp</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M_samp</span> <span class="o">*</span> <span class="n">pi_samp</span><span class="p">)</span>
+            <span class="c1"># Entropic part</span>
+            <span class="k">if</span> <span class="n">eps_samp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">coot</span> <span class="o">=</span> <span class="n">coot</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="n">compute_kl</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="n">wxy_samp</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">eps_feat</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">coot</span> <span class="o">=</span> <span class="n">coot</span> <span class="o">+</span> <span class="n">eps_feat</span> <span class="o">*</span> <span class="n">compute_kl</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="n">wxy_feat</span><span class="p">)</span>
+            <span class="n">list_coot</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coot</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">tol_bcd</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">list_coot</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">list_coot</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">early_stopping_tol</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;CO-Optimal Transport cost at iteration </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">coot</span><span class="p">))</span>
+
+    <span class="c1"># sanity check</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;There is NaN in coupling.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dict_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;duals_sample&quot;</span><span class="p">:</span> <span class="n">duals_samp</span><span class="p">,</span>
+                    <span class="s2">&quot;duals_feature&quot;</span><span class="p">:</span> <span class="n">duals_feat</span><span class="p">,</span>
+                    <span class="s2">&quot;distances&quot;</span><span class="p">:</span> <span class="n">list_coot</span><span class="p">[</span><span class="mi">1</span><span class="p">:]}</span>
+
+        <span class="k">return</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">dict_log</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span></div>
+
+
+<div class="viewcode-block" id="co_optimal_transport2"><a class="viewcode-back" href="../../gen_modules/ot.coot.html#ot.coot.co_optimal_transport2">[docs]</a><span class="k">def</span> <span class="nf">co_optimal_transport2</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">wx_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wx_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wy_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wy_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">M_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">M_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">early_stopping_tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+                          <span class="n">nits_bcd</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol_bcd</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">eval_bcd</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                          <span class="n">nits_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">tol_sinkhorn</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+                          <span class="n">method_sinkhorn</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the CO-Optimal Transport distance between two measures.</span>
+
+<span class="sd">    Returns the CO-Optimal Transport distance between</span>
+<span class="sd">    :math:`(\mathbf{X}, \mathbf{w}_{xs}, \mathbf{w}_{xf})` and</span>
+<span class="sd">    :math:`(\mathbf{Y}, \mathbf{w}_{ys}, \mathbf{w}_{yf})`.</span>
+
+<span class="sd">    The function solves the following CO-Optimal Transport (COOT) problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{COOT}_{\alpha, \varepsilon} = \mathop{\arg \min}_{\mathbf{P}, \mathbf{Q}}</span>
+<span class="sd">        &amp;\quad \sum_{i,j,k,l}</span>
+<span class="sd">        (\mathbf{X}_{i,k} - \mathbf{Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l}</span>
+<span class="sd">        + \alpha_1 \sum_{i,j} \mathbf{P}_{i,j} \mathbf{M^{(s)}}_{i, j} \\</span>
+<span class="sd">        &amp;+ \alpha_2 \sum_{k, l} \mathbf{Q}_{k,l} \mathbf{M^{(f)}}_{k, l}</span>
+<span class="sd">        + \varepsilon_1 \mathbf{KL}(\mathbf{P} | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \varepsilon_2 \mathbf{KL}(\mathbf{Q} | \mathbf{w}_{xf} \mathbf{w}_{yf}^T)</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{X}`: Data matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{Y}`: Data matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{M^{(s)}}`: Additional sample matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(f)}}`: Additional feature matrix</span>
+<span class="sd">    - :math:`\mathbf{w}_{xs}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{xf}`: Distribution of the features in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{ys}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{w}_{yf}`: Distribution of the features in the target space</span>
+
+<span class="sd">    .. note:: This function allows epsilon to be zero.</span>
+<span class="sd">              In that case, the :any:`ot.lp.emd` solver of POT will be used.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        First input matrix.</span>
+<span class="sd">    Y : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Second input matrix.</span>
+<span class="sd">    wx_samp : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wx_feat : (n_feature_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_samp : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_feat : (n_feature_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    epsilon : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where epsilon contains 0. In that case, the EMD solver is used instead of</span>
+<span class="sd">        Sinkhorn solver. If epsilon is scalar, then the same epsilon is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    alpha : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M_samp : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix with respect to the linear term on sample coupling.</span>
+<span class="sd">    M_feat : (n_feature_x, n_feature_y), float, optional (default = None)</span>
+<span class="sd">        Feature matrix with respect to the linear term on feature coupling.</span>
+<span class="sd">    warmstart : dictionary, optional (default = None)</span>
+<span class="sd">        Contains 4 keys:</span>
+<span class="sd">            - &quot;duals_sample&quot; and &quot;duals_feature&quot; whose values are</span>
+<span class="sd">            tuples of 2 vectors of size (n_sample_x, n_sample_y) and (n_feature_x, n_feature_y).</span>
+<span class="sd">            Initialization of sample and feature dual vectors</span>
+<span class="sd">            if using Sinkhorn algorithm. Zero vectors by default.</span>
+
+<span class="sd">            - &quot;pi_sample&quot; and &quot;pi_feature&quot; whose values are matrices</span>
+<span class="sd">            of size (n_sample_x, n_sample_y) and (n_feature_x, n_feature_y).</span>
+<span class="sd">            Initialization of sample and feature couplings.</span>
+<span class="sd">            Uniform distributions by default.</span>
+<span class="sd">    nits_bcd : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations to solve COOT.</span>
+<span class="sd">    tol_bcd : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    eval_bcd : int, optional (default = 1)</span>
+<span class="sd">        Multiplier of iteration at which the COOT cost is evaluated. For example,</span>
+<span class="sd">        if `eval_bcd = 8`, then the cost is calculated at iterations 8, 16, 24, etc...</span>
+<span class="sd">    nits_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_sinkhorn : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of Sinkhorn algorithm to stop the Sinkhorn scheme for</span>
+<span class="sd">        entropic optimal transport problem (if any) in each BCD iteration.</span>
+<span class="sd">        Only triggered when Sinkhorn solver is used.</span>
+<span class="sd">    method_sinkhorn : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Method used in POT&#39;s `ot.sinkhorn` solver.</span>
+<span class="sd">        Only support &quot;sinkhorn&quot; and &quot;sinkhorn_log&quot;.</span>
+<span class="sd">    early_stopping_tol : float, optional (default = 1e-6)</span>
+<span class="sd">        Tolerance for the early stopping. If the absolute difference between</span>
+<span class="sd">        the last 2 recorded COOT distances is under this tolerance, then stop BCD scheme.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and 4 dual vectors, including</span>
+<span class="sd">        2 from sample and 2 from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        CO-Optimal Transport distance.</span>
+<span class="sd">    dict</span>
+<span class="sd">        Contains logged informations from :any:`co_optimal_transport` solver.</span>
+<span class="sd">        Only returned if `log` parameter is True</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [47] I. Redko, T. Vayer, R. Flamary, and N. Courty, CO-Optimal Transport,</span>
+<span class="sd">        Advances in Neural Information Processing ny_sampstems, 33 (2020).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">co_optimal_transport</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">wx_samp</span><span class="o">=</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">wx_feat</span><span class="o">=</span><span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_samp</span><span class="o">=</span><span class="n">wy_samp</span><span class="p">,</span>
+                                                      <span class="n">wy_feat</span><span class="o">=</span><span class="n">wy_feat</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">M_samp</span><span class="o">=</span><span class="n">M_samp</span><span class="p">,</span>
+                                                      <span class="n">M_feat</span><span class="o">=</span><span class="n">M_feat</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="n">nits_bcd</span><span class="o">=</span><span class="n">nits_bcd</span><span class="p">,</span>
+                                                      <span class="n">tol_bcd</span><span class="o">=</span><span class="n">tol_bcd</span><span class="p">,</span> <span class="n">eval_bcd</span><span class="o">=</span><span class="n">eval_bcd</span><span class="p">,</span> <span class="n">nits_ot</span><span class="o">=</span><span class="n">nits_ot</span><span class="p">,</span>
+                                                      <span class="n">tol_sinkhorn</span><span class="o">=</span><span class="n">tol_sinkhorn</span><span class="p">,</span> <span class="n">method_sinkhorn</span><span class="o">=</span><span class="n">method_sinkhorn</span><span class="p">,</span>
+                                                      <span class="n">early_stopping_tol</span><span class="o">=</span><span class="n">early_stopping_tol</span><span class="p">,</span>
+                                                      <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">nx_samp</span><span class="p">,</span> <span class="n">nx_feat</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ny_samp</span><span class="p">,</span> <span class="n">ny_feat</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># measures on rows and columns</span>
+    <span class="k">if</span> <span class="n">wx_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_samp</span>
+    <span class="k">if</span> <span class="n">wx_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_feat</span>
+    <span class="k">if</span> <span class="n">wy_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_samp</span>
+    <span class="k">if</span> <span class="n">wy_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_feat</span>
+
+    <span class="n">vx_samp</span><span class="p">,</span> <span class="n">vy_samp</span> <span class="o">=</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;duals_sample&quot;</span><span class="p">]</span>
+    <span class="n">vx_feat</span><span class="p">,</span> <span class="n">vy_feat</span> <span class="o">=</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;duals_feature&quot;</span><span class="p">]</span>
+
+    <span class="n">gradX</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span> <span class="o">*</span> <span class="p">(</span><span class="n">wx_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">wx_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">-</span> \
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">pi_samp</span> <span class="o">@</span> <span class="n">Y</span> <span class="o">@</span> <span class="n">pi_feat</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># shape (nx_samp, nx_feat)</span>
+    <span class="n">gradY</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Y</span> <span class="o">*</span> <span class="p">(</span><span class="n">wy_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">wy_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">-</span> \
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">pi_samp</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">X</span> <span class="o">@</span> <span class="n">pi_feat</span>  <span class="c1"># shape (ny_samp, ny_feat)</span>
+
+    <span class="n">coot</span> <span class="o">=</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;distances&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">coot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">coot</span><span class="p">,</span> <span class="p">(</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">),</span>
+                            <span class="p">(</span><span class="n">vx_samp</span><span class="p">,</span> <span class="n">vx_feat</span><span class="p">,</span> <span class="n">vy_samp</span><span class="p">,</span> <span class="n">vy_feat</span><span class="p">,</span> <span class="n">gradX</span><span class="p">,</span> <span class="n">gradY</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">coot</span><span class="p">,</span> <span class="n">dict_log</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">coot</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

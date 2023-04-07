@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.solvers &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.9.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.solvers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.solvers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">General OT solvers with unified API</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@polytechnique.edu&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">OTResult</span>
+<span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd2</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">.unbalanced</span> <span class="kn">import</span> <span class="n">mm_unbalanced</span><span class="p">,</span> <span class="n">sinkhorn_knopp_unbalanced</span><span class="p">,</span> <span class="n">lbfgsb_unbalanced</span>
+<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn_log</span>
+<span class="kn">from</span> <span class="nn">.partial</span> <span class="kn">import</span> <span class="n">partial_wasserstein_lagrange</span>
+<span class="kn">from</span> <span class="nn">.smooth</span> <span class="kn">import</span> <span class="n">smooth_ot_dual</span>
+
+
+<div class="viewcode-block" id="solve"><a class="viewcode-back" href="../../all.html#ot.solve">[docs]</a><span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span> <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">unbalanced_type</span><span class="o">=</span><span class="s1">&#39;KL&#39;</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plan_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solve the discrete optimal transport problem and return :any:`OTResult` object</span>
+
+<span class="sd">    The function solves the following general optimal transport problem</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad \sum_{i,j} T_{i,j}M_{i,j} + \lambda_r R(\mathbf{T}) +</span>
+<span class="sd">        \lambda_u U(\mathbf{T}\mathbf{1},\mathbf{a}) +</span>
+<span class="sd">        \lambda_u U(\mathbf{T}^T\mathbf{1},\mathbf{b})</span>
+
+<span class="sd">    The regularization is selected with :any:`reg` (:math:`\lambda_r`) and :any:`reg_type`. By</span>
+<span class="sd">    default ``reg=None`` and there is no regularization. The unbalanced marginal</span>
+<span class="sd">    penalization can be selected with :any:`unbalanced` (:math:`\lambda_u`) and</span>
+<span class="sd">    :any:`unbalanced_type`. By default ``unbalanced=None`` and the function</span>
+<span class="sd">    solves the exact optimal transport problem (respecting the marginals).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array_like, shape (dim_a, dim_b)</span>
+<span class="sd">        Loss matrix</span>
+<span class="sd">    a : array-like, shape (dim_a,), optional</span>
+<span class="sd">        Samples weights in the source domain (default is uniform)</span>
+<span class="sd">    b : array-like, shape (dim_b,), optional</span>
+<span class="sd">        Samples weights in the source domain (default is uniform)</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Regularization weight :math:`\lambda_r`, by default None (no reg., exact</span>
+<span class="sd">        OT)</span>
+<span class="sd">    reg_type : str, optional</span>
+<span class="sd">        Type of regularization :math:`R`  either &quot;KL&quot;, &quot;L2&quot;, &#39;entropy&#39;, by default &quot;KL&quot;</span>
+<span class="sd">    unbalanced : float, optional</span>
+<span class="sd">        Unbalanced penalization weight :math:`\lambda_u`, by default None</span>
+<span class="sd">        (balanced OT)</span>
+<span class="sd">    unbalanced_type : str, optional</span>
+<span class="sd">        Type of unbalanced penalization unction :math:`U`  either &quot;KL&quot;, &quot;L2&quot;, &#39;TV&#39;, by default &#39;KL&#39;</span>
+<span class="sd">    n_threads : int, optional</span>
+<span class="sd">        Number of OMP threads for exact OT solver, by default 1</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Maximum number of iteration, by default None (default values in each solvers)</span>
+<span class="sd">    plan_init : array_like, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of the OT plan for iterative methods, by default None</span>
+<span class="sd">    potentials_init : (array_like(dim_a,),array_like(dim_b,)), optional</span>
+<span class="sd">        Initialization of the OT dual potentials for iterative methods, by default None</span>
+<span class="sd">    tol : _type_, optional</span>
+<span class="sd">        Tolerance for solution precision, by default None (default values in each solvers)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information in the solver, by default False</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    res : OTResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.plan : OT plan :math:`\mathbf{T}`</span>
+<span class="sd">        - res.potentials : OT dual potentials</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+
+<span class="sd">        See :any:`OTResult` for more information.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    The following methods are available for solving the OT problems:</span>
+
+<span class="sd">    - **Classical exact OT problem** (default parameters):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\mathbf{T} \quad \langle \mathbf{T}, \mathbf{M} \rangle_F</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T}^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve(M, a, b)</span>
+
+<span class="sd">    - **Entropic regularized OT** (when ``reg!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\mathbf{T} \quad \langle \mathbf{T}, \mathbf{M} \rangle_F + \lambda R(\mathbf{T})</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T}^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # default is ``&quot;KL&quot;`` regularization (``reg_type=&quot;KL&quot;``)</span>
+<span class="sd">        res = ot.solve(M, a, b, reg=1.0)</span>
+<span class="sd">        # or for original Sinkhorn paper formulation [2]</span>
+<span class="sd">        res = ot.solve(M, a, b, reg=1.0, reg_type=&#39;entropy&#39;)</span>
+
+<span class="sd">    - **Quadratic regularized OT** (when ``reg!=None`` and ``reg_type=&quot;L2&quot;``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\mathbf{T} \quad \langle \mathbf{T}, \mathbf{M} \rangle_F + \lambda R(\mathbf{T})</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T}^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0,reg_type=&#39;L2&#39;)</span>
+
+<span class="sd">    - **Unbalanced OT** (when ``unbalanced!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad \sum_{i,j} T_{i,j}M_{i,j} + \lambda_u U(\mathbf{T}\mathbf{1},\mathbf{a}) + \lambda_u U(\mathbf{T}^T\mathbf{1},\mathbf{b})</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # default is ``&quot;KL&quot;``</span>
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0,unbalanced=1.0)</span>
+<span class="sd">        # quadratic unbalanced OT</span>
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0,unbalanced=1.0,unbalanced_type=&#39;L2&#39;)</span>
+<span class="sd">        # TV = partial OT</span>
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0,unbalanced=1.0,unbalanced_type=&#39;TV&#39;)</span>
+
+
+<span class="sd">    - **Regularized unbalanced regularized OT** (when ``unbalanced!=None`` and ``reg!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad \sum_{i,j} T_{i,j}M_{i,j} + \lambda_r R(\mathbf{T}) + \lambda_u U(\mathbf{T}\mathbf{1},\mathbf{a}) + \lambda_u U(\mathbf{T}^T\mathbf{1},\mathbf{b})</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # default is ``&quot;KL&quot;`` for both</span>
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0,unbalanced=1.0)</span>
+<span class="sd">        # quadratic unbalanced OT with KL regularization</span>
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0,unbalanced=1.0,unbalanced_type=&#39;L2&#39;)</span>
+<span class="sd">        # both quadratic</span>
+<span class="sd">        res = ot.solve(M,a,b,reg=1.0, reg_type=&#39;L2&#39;,unbalanced=1.0,unbalanced_type=&#39;L2&#39;)</span>
+
+
+<span class="sd">    .. _references-solve:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [2] M. Cuturi, Sinkhorn Distances : Lightspeed Computation</span>
+<span class="sd">        of Optimal Transport, Advances in Neural Information Processing</span>
+<span class="sd">        Systems (NIPS) 26, 2013</span>
+
+<span class="sd">    .. [10] Chizat, L., Peyré, G., Schmitzer, B., &amp; Vialard, F. X. (2016).</span>
+<span class="sd">        Scaling algorithms for unbalanced transport problems.</span>
+<span class="sd">        arXiv preprint arXiv:1607.05816.</span>
+
+<span class="sd">    .. [17] Blondel, M., Seguy, V., &amp; Rolet, A. (2018). Smooth and Sparse</span>
+<span class="sd">        Optimal Transport. Proceedings of the Twenty-First International</span>
+<span class="sd">        Conference on Artificial Intelligence and Statistics (AISTATS).</span>
+
+<span class="sd">    .. [34] Feydy, J., Séjourné, T., Vialard, F. X., Amari, S. I., Trouvé,</span>
+<span class="sd">        A., &amp; Peyré, G. (2019, April). Interpolating between optimal transport</span>
+<span class="sd">        and MMD using Sinkhorn divergences. In The 22nd International Conference</span>
+<span class="sd">        on Artificial Intelligence and Statistics (pp. 2681-2690). PMLR.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># detect backend</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">M</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="c1"># create uniform weights if not given</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># default values for solutions</span>
+    <span class="n">potentials</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">plan</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">reg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># exact OT</span>
+
+        <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Exact balanced OT</span>
+
+            <span class="c1"># default values for EMD solver</span>
+            <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000000</span>
+
+            <span class="n">value_linear</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="n">n_threads</span><span class="p">)</span>
+
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span>
+            <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>
+            <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;Converged&#39;</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">]:</span>  <span class="c1"># unbalanced exact OT</span>
+
+            <span class="c1"># default values for exact unbalanced OT</span>
+            <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+            <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-12</span>
+
+            <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span>
+                                      <span class="n">div</span><span class="o">=</span><span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                                      <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">)</span>
+
+            <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">unbalanced</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">err_a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span>
+                <span class="n">err_b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">unbalanced</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">err_a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">unbalanced</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">err_b</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;tv&#39;</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000000</span>
+
+            <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">partial_wasserstein_lagrange</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="n">unbalanced</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span>
+
+            <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+            <span class="n">err_a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span>
+            <span class="n">err_b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">unbalanced</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">err_a</span><span class="p">))</span> <span class="o">+</span>
+                                                                  <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">err_b</span><span class="p">))))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown unbalanced_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unbalanced_type</span><span class="p">)))</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># regularized OT</span>
+
+        <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Balanced regularized OT</span>
+
+            <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">]:</span>
+
+                <span class="c1"># default values for sinkhorn</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn_log</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                                         <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;entropy&#39;</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_v&#39;</span><span class="p">])</span>
+
+            <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;l2&#39;</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">smooth_ot_dual</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented reg_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)))</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># unbalanced AND regularized OT</span>
+
+            <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn_knopp_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">+</span> <span class="n">unbalanced</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">))</span>
+
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;logu&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;logv&#39;</span><span class="p">])</span>
+
+            <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="s1">&#39;entropy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">]:</span>
+
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-12</span>
+
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">regm_div</span><span class="o">=</span><span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+
+                <span class="n">value</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented reg_type=&quot;</span><span class="si">{}</span><span class="s1">&quot; and unbalanced_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="n">unbalanced_type</span><span class="p">)))</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">OTResult</span><span class="p">(</span><span class="n">potentials</span><span class="o">=</span><span class="n">potentials</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+                   <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
