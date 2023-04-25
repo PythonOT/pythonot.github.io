@@ -100,7 +100,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
-<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">Backend</span><span class="p">,</span> <span class="n">NumpyBackend</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">Backend</span><span class="p">,</span> <span class="n">NumpyBackend</span><span class="p">,</span> <span class="n">JaxBackend</span>
 
 <span class="n">__time_tic_toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
@@ -200,6 +200,85 @@
         <span class="k">return</span> <span class="n">w</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">w</span></div>
+
+
+<div class="viewcode-block" id="projection_sparse_simplex"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.projection_sparse_simplex">[docs]</a><span class="k">def</span> <span class="nf">projection_sparse_simplex</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">max_nz</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Projection of :math:`\mathbf{V}` onto the simplex with cardinality constraint (maximum number of non-zero elements) and then scaled by `z`.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        P\left(\mathbf{V}, max_nz, z\right) = \mathop{\arg \min}_{\substack{\mathbf{y} &gt;= 0 \\ \sum_i \mathbf{y}_i = z} \\ ||p||_0 \le \text{max_nz}} \quad \|\mathbf{y} - \mathbf{V}\|^2</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    V: 1-dim or 2-dim ndarray</span>
+<span class="sd">    z: float or array</span>
+<span class="sd">        If array, len(z) must be compatible with :math:`\mathbf{V}`</span>
+<span class="sd">    axis: None or int</span>
+<span class="sd">        - axis=None: project :math:`\mathbf{V}` by :math:`P(\mathbf{V}.\mathrm{ravel}(), max_nz, z)`</span>
+<span class="sd">        - axis=1: project each :math:`\mathbf{V}_i` by :math:`P(\mathbf{V}_i, max_nz, z_i)`</span>
+<span class="sd">        - axis=0: project each :math:`\mathbf{V}_{:, j}` by :math:`P(\mathbf{V}_{:, j}, max_nz, z_j)`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projection: ndarray, shape :math:`\mathbf{V}`.shape</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Sparse projections onto the simplex</span>
+<span class="sd">        Anastasios Kyrillidis, Stephen Becker, Volkan Cevher and, Christoph Koch</span>
+<span class="sd">        ICML 2013</span>
+<span class="sd">        https://arxiv.org/abs/1206.1529</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">V</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">projection_sparse_simplex</span><span class="p">(</span>
+            <span class="c1"># V[nx.newaxis, :], max_nz, z, axis=1).ravel()</span>
+            <span class="n">V</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">max_nz</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">V</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;V.ndim must be &lt;= 2&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># For each row of V, find top max_nz values; arrange the</span>
+        <span class="c1"># corresponding column indices such that their values are</span>
+        <span class="c1"># in a descending order.</span>
+        <span class="n">max_nz_indices</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">max_nz</span><span class="p">:]</span>
+        <span class="n">max_nz_indices</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">max_nz_indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">row_indices</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">row_indices</span> <span class="o">=</span> <span class="n">row_indices</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">row_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="c1"># Extract the top max_nz values for each row</span>
+        <span class="c1"># and then project to simplex.</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">V</span><span class="p">[</span><span class="n">row_indices</span><span class="p">,</span> <span class="n">max_nz_indices</span><span class="p">]</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">U</span><span class="p">))</span> <span class="o">*</span> <span class="n">z</span>
+        <span class="n">cssv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">z</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_nz</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="n">U</span> <span class="o">-</span> <span class="n">cssv</span> <span class="o">/</span> <span class="n">ind</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="c1"># rho = nx.count_nonzero(cond, axis=1)</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">cssv</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">U</span><span class="p">)),</span> <span class="n">rho</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">rho</span>
+        <span class="n">nz_projection</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">U</span> <span class="o">-</span> <span class="n">theta</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Put the projection of max_nz_values to their original column indices</span>
+        <span class="c1"># while keeping other values zero.</span>
+        <span class="n">sparse_projection</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">nz_projection</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">JaxBackend</span><span class="p">):</span>
+            <span class="c1"># in Jax, we need to use the `at` property of `jax.numpy.ndarray`</span>
+            <span class="c1"># to do in-place array modificatons.</span>
+            <span class="n">sparse_projection</span> <span class="o">=</span> <span class="n">sparse_projection</span><span class="o">.</span><span class="n">at</span><span class="p">[</span>
+                <span class="n">row_indices</span><span class="p">,</span> <span class="n">max_nz_indices</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">nz_projection</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sparse_projection</span><span class="p">[</span><span class="n">row_indices</span><span class="p">,</span> <span class="n">max_nz_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">nz_projection</span>
+        <span class="k">return</span> <span class="n">sparse_projection</span>
+
+    <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">projection_sparse_simplex</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">max_nz</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">projection_sparse_simplex</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">max_nz</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="unif"><a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.unif">[docs]</a><span class="k">def</span> <span class="nf">unif</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
