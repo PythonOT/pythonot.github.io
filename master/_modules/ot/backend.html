@@ -216,23 +216,27 @@
 <span class="n">str_type_error</span> <span class="o">=</span> <span class="s2">&quot;All array should be from the same type/backend. Current types are : </span><span class="si">{}</span><span class="s2">&quot;</span>
 
 
+<span class="c1"># Mapping between argument types and the existing backend</span>
+<span class="n">_BACKENDS</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="register_backend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.register_backend">[docs]</a><span class="k">def</span> <span class="nf">register_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">):</span>
+    <span class="n">_BACKENDS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="get_backend_list"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.get_backend_list">[docs]</a><span class="k">def</span> <span class="nf">get_backend_list</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the list of available backends&quot;&quot;&quot;</span>
-    <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">NumpyBackend</span><span class="p">(),</span> <span class="p">]</span>
+    <span class="k">return</span> <span class="n">_BACKENDS</span></div>
 
-    <span class="k">if</span> <span class="n">torch</span><span class="p">:</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TorchBackend</span><span class="p">())</span>
 
-    <span class="k">if</span> <span class="n">jax</span><span class="p">:</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JaxBackend</span><span class="p">())</span>
+<span class="k">def</span> <span class="nf">_check_args_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">is_instance</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">backend</span><span class="o">.</span><span class="n">__type__</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+    <span class="c1"># check that all arguments matched or not the type</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_instance</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">is_instance</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">cp</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CupyBackend</span><span class="p">())</span>
-
-    <span class="k">if</span> <span class="n">tf</span><span class="p">:</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TensorflowBackend</span><span class="p">())</span>
-
-    <span class="k">return</span> <span class="n">lst</span></div>
+    <span class="c1"># Oterwise return an error</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">str_type_error</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]))</span>
 
 
 <div class="viewcode-block" id="get_backend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.get_backend">[docs]</a><span class="k">def</span> <span class="nf">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -243,22 +247,12 @@
     <span class="c1"># check that some arrays given</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; The function takes at least one parameter&quot;</span><span class="p">)</span>
-    <span class="c1"># check all same type</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">str_type_error</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]))</span>
 
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">NumpyBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">torch_type</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">TorchBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">jax_type</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">JaxBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cp_type</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
-        <span class="k">return</span> <span class="n">CupyBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf_type</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">TensorflowBackend</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown type of non implemented backend.&quot;</span><span class="p">)</span></div>
+    <span class="k">for</span> <span class="n">backend</span> <span class="ow">in</span> <span class="n">_BACKENDS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_check_args_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">backend</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown type of non implemented backend.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.to_numpy">[docs]</a><span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -1403,6 +1397,9 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
 
 
+<span class="n">register_backend</span><span class="p">(</span><span class="n">NumpyBackend</span><span class="p">())</span>
+
+
 <div class="viewcode-block" id="JaxBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend">[docs]</a><span class="k">class</span> <span class="nc">JaxBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    JAX implementation of the backend</span>
@@ -1759,6 +1756,11 @@
 
 <div class="viewcode-block" id="JaxBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">jax</span><span class="p">:</span>
+    <span class="c1"># Only register jax backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">JaxBackend</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="TorchBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend">[docs]</a><span class="k">class</span> <span class="nc">TorchBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -2233,6 +2235,11 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
 
 
+<span class="k">if</span> <span class="n">torch</span><span class="p">:</span>
+    <span class="c1"># Only register torch backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">TorchBackend</span><span class="p">())</span>
+
+
 <div class="viewcode-block" id="CupyBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend">[docs]</a><span class="k">class</span> <span class="nc">CupyBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    CuPy implementation of the backend</span>
@@ -2613,6 +2620,11 @@
 
 <div class="viewcode-block" id="CupyBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">cp</span><span class="p">:</span>
+    <span class="c1"># Only register cp backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">CupyBackend</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="TensorflowBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend">[docs]</a><span class="k">class</span> <span class="nc">TensorflowBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -3015,6 +3027,11 @@
 
 <div class="viewcode-block" id="TensorflowBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">tf</span><span class="p">:</span>
+    <span class="c1"># Only register tensorflow backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">TensorflowBackend</span><span class="p">())</span>
 </pre></div>
 
            </div>
