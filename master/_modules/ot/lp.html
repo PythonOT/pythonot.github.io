@@ -287,7 +287,7 @@
     <span class="k">return</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="emd"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd">[docs]</a><span class="k">def</span> <span class="nf">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="emd"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd">[docs]</a><span class="k">def</span> <span class="nf">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the OT matrix</span>
 
 
@@ -344,6 +344,10 @@
 <span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
 <span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
 <span class="sd">        &quot;max&quot; selects the highest number possible.</span>
+<span class="sd">    check_marginals: bool, optional (default=True)</span>
+<span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
+<span class="sd">        check.</span>
+<span class="sd">    </span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -413,9 +417,10 @@
         <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
 
     <span class="c1"># ensure that same mass</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                   <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
-                                   <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                    <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
+                                    <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
@@ -453,7 +458,7 @@
 
 <div class="viewcode-block" id="emd2"><a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a><span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
          <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-         <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+         <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the loss</span>
 
 <span class="sd">    .. math::</span>
@@ -510,7 +515,11 @@
 <span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
 <span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
 <span class="sd">        &quot;max&quot; selects the highest number possible.</span>
-
+<span class="sd">    check_marginals: bool, optional (default=True)</span>
+<span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
+<span class="sd">        check.</span>
+<span class="sd">        </span>
+<span class="sd">    </span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    W: float, array-like</span>
@@ -577,8 +586,10 @@
         <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
 
     <span class="c1"># ensure that same mass</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                   <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                    <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
+                                    <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>

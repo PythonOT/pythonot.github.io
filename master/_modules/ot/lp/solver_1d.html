@@ -220,7 +220,7 @@
 
 
 <div class="viewcode-block" id="emd_1d"><a class="viewcode-back" href="../../../gen_modules/ot.lp.html#ot.emd_1d">[docs]</a><span class="k">def</span> <span class="nf">emd_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-           <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+           <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem between 1d measures and returns</span>
 <span class="sd">    the OT matrix</span>
 
@@ -267,6 +267,9 @@
 <span class="sd">    log: boolean, optional (default=False)</span>
 <span class="sd">        If True, returns a dictionary containing the cost.</span>
 <span class="sd">        Otherwise returns only the optimal transportation matrix.</span>
+<span class="sd">    check_marginals: bool, optional (default=True)</span>
+<span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
+<span class="sd">        check.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -321,11 +324,13 @@
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x_b</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="c1"># ensure that same mass</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
-        <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
+            <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span>
+        <span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 
     <span class="n">x_a_1d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
