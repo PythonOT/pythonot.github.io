@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.lp &mdash; POT Python Optimal Transport 0.9.1dev documentation</title>
+  <title>ot.lp &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
@@ -41,7 +41,7 @@
               <img src="../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.1dev
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -660,6 +660,183 @@ using e.g. the atan2 function.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ot.lp.dmmot_monge_1dgrid_loss">
+<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">dmmot_monge_1dgrid_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp/dmmot.html#dmmot_monge_1dgrid_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.lp.dmmot_monge_1dgrid_loss" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the discrete multi-marginal optimal transport of distributions A.</p>
+<p>This function operates on distributions whose supports are real numbers on
+the real line.</p>
+<p>The algorithm solves both primal and dual d-MMOT programs concurrently to
+produce the optimal transport plan as well as the total (minimal) cost.
+The cost is a ground cost, and the solution is independent of
+which Monge cost is desired.</p>
+<p>The algorithm accepts <span class="math notranslate nohighlight">\(d\)</span> distributions (i.e., histograms)
+<span class="math notranslate nohighlight">\(a_{1}, \ldots, a_{d} \in \mathbb{R}_{+}^{n}\)</span> with <span class="math notranslate nohighlight">\(e^{\prime}
+a_{j}=1\)</span> for all <span class="math notranslate nohighlight">\(j \in[d]\)</span>. Although the algorithm states that all
+histograms have the same number of bins, the algorithm can be easily
+adapted to accept as inputs <span class="math notranslate nohighlight">\(a_{i} \in \mathbb{R}_{+}^{n_{i}}\)</span>
+with <span class="math notranslate nohighlight">\(n_{i} \neq n_{j}\)</span> [50].</p>
+<p>The function solves the following optimization problem[51]:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}\begin{aligned}
+    \underset{\gamma\in\mathbb{R}^{n^{d}}_{+}} {\textrm{min}}
+    \sum_{i_1,\ldots,i_d} c(i_1,\ldots, i_d)\, \gamma(i_1,\ldots,i_d)
+    \quad \textrm{s.t.}
+    \sum_{i_2,\ldots,i_d} \gamma(i_1,\ldots,i_d) &amp;= a_1(i_i),
+    (\forall i_1\in[n])\\
+    \qquad\vdots\\
+    \sum_{i_1,\ldots,i_{d-1}} \gamma(i_1,\ldots,i_d) &amp;= a_{d}(i_{d}),
+    (\forall i_d\in[n]).
+    \end{aligned}
+\end{align}\end{split}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>nx.ndarray</em><em>, </em><em>shape</em><em> (</em><em>dim</em><em>, </em><em>n_hists</em><em>)</em>) – The input ndarray containing distributions of n bins in d dimensions.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, print debugging information during execution. Default=False.</p></li>
+<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, record log. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>obj</strong> (<em>float</em>) – the value of the primal objective function evaluated at the solution.</p></li>
+<li><p><strong>log</strong> (<em>dict</em>) – A dictionary containing the log of the discrete mmot problem:
+- ‘A’: a dictionary that maps tuples of indices to the corresponding
+primal variables. The tuples are the indices of the entries that are
+set to their minimum value during the algorithm.
+- ‘primal objective’: a float, the value of the objective function
+evaluated at the solution.
+- ‘dual’: a list of arrays, the dual variables corresponding to
+the input arrays. The i-th element of the list is the dual variable
+corresponding to the i-th dimension of the input arrays.
+- ‘dual objective’: a float, the value of the dual objective function
+evaluated at the solution.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id9" role="note">
+<span class="label"><span class="fn-bracket">[</span>55<span class="fn-bracket">]</span></span>
+<p>Ronak Mehta, Jeffery Kline, Vishnu Suresh Lokhande, Glenn Fung, &amp;
+Vikas Singh (2023). Efficient Discrete Multi Marginal Optimal
+Transport Regularization. In The Eleventh International
+Conference on Learning Representations.</p>
+</aside>
+<aside class="footnote brackets" id="id10" role="note">
+<span class="label"><span class="fn-bracket">[</span>56<span class="fn-bracket">]</span></span>
+<p>Jeffery Kline. Properties of the d-dimensional earth mover’s
+problem. Discrete Applied Mathematics, 265: 128-141, 2019.</p>
+</aside>
+<aside class="footnote brackets" id="id11" role="note">
+<span class="label"><span class="fn-bracket">[</span>58<span class="fn-bracket">]</span></span>
+<p>Leonid V Kantorovich. On the translocation of masses. Dokl. Akad.
+Nauk SSSR, 37:227-229, 1942.</p>
+</aside>
+</aside>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#ot.lp.dmmot_monge_1dgrid_optimize" title="ot.lp.dmmot_monge_1dgrid_optimize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.lp.dmmot_monge_1dgrid_optimize</span></code></a></dt><dd><p>Optimize the d-Dimensional Earth</p>
+</dd>
+</dl>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mover</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ot.lp.dmmot_monge_1dgrid_optimize">
+<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">dmmot_monge_1dgrid_optimize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">niters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_decay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.995</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp/dmmot.html#dmmot_monge_1dgrid_optimize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.lp.dmmot_monge_1dgrid_optimize" title="Permalink to this definition"></a></dt>
+<dd><p>Minimize the d-dimensional EMD using gradient descent.</p>
+<p>Discrete Multi-Marginal Optimal Transport (d-MMOT): Let <span class="math notranslate nohighlight">\(a_1, \ldots,
+a_d\in\mathbb{R}^n_{+}\)</span> be discrete probability distributions. Here,
+the d-MMOT is the LP,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}\begin{aligned}
+    \underset{x\in\mathbb{R}^{n^{d}}_{+}} {\textrm{min}}
+    \sum_{i_1,\ldots,i_d} c(i_1,\ldots, i_d)\, x(i_1,\ldots,i_d) \quad
+    \textrm{s.t.}
+    \sum_{i_2,\ldots,i_d} x(i_1,\ldots,i_d) &amp;= a_1(i_i),
+    (\forall i_1\in[n])\\
+    \qquad\vdots\\
+    \sum_{i_1,\ldots,i_{d-1}} x(i_1,\ldots,i_d) &amp;= a_{d}(i_{d}),
+    (\forall i_d\in[n]).
+    \end{aligned}
+\end{align}\end{split}\]</div>
+<p>The dual linear program of the d-MMOT problem is:</p>
+<div class="math notranslate nohighlight">
+\[\underset{z_j\in\mathbb{R}^n, j\in[d]}{\textrm{maximize}}\qquad\sum_{j}
+a_j'z_j\qquad \textrm{subject to}\qquad z_{1}(i_1)+\cdots+z_{d}(i_{d})
+\leq c(i_1,\ldots,i_{d}),\]</div>
+<p>where the indices in the constraints include all <span class="math notranslate nohighlight">\(i_j\in[n]\)</span>, :math:
+<cite>jin[d]</cite>. Denote by <span class="math notranslate nohighlight">\(\phi(a_1,\ldots,a_d)\)</span>, the optimal objective
+value of the LP in d-MMOT problem. Let <span class="math notranslate nohighlight">\(z^*\)</span> be an optimal solution
+to the dual program. Then,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+    \nabla \phi(a_1,\ldots,a_{d}) &amp;= z^*,
+    ~~\text{and for any $t\in \mathbb{R}$,}~~
+    \phi(a_1,a_2,\ldots,a_{d}) = \sum_{j}a_j'
+    (z_j^* + t\, \eta), \nonumber \\
+    \text{where } \eta &amp;:= (z_1^{*}(n)\,e, z^*_1(n)\,e, \cdots,
+    z^*_{d}(n)\,e)
+\end{align}\end{split}\]</div>
+<p>Using these dual variables naturally provided by the algorithm in
+ot.lp.dmmot_monge_1dgrid_loss, gradient steps move each input distribution
+to minimize their d-mmot distance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>nx.ndarray</em><em>, </em><em>shape</em><em> (</em><em>dim</em><em>, </em><em>n_hists</em><em>)</em>) – The input ndarray containing distributions of n bins in d dimensions.</p></li>
+<li><p><strong>niters</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default=100</em><em>)</em>) – The maximum number of iterations for the optimization algorithm.</p></li>
+<li><p><strong>lr_init</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default=1e-5</em><em>)</em>) – The initial learning rate (step size) for the optimization algorithm.</p></li>
+<li><p><strong>lr_decay</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default=0.995</em><em>)</em>) – The learning rate decay rate in each iteration.</p></li>
+<li><p><strong>print_rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default=100</em><em>)</em>) – The rate at which to print the objective value and gradient norm
+during the optimization algorithm.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, print debugging information during execution. Default=False.</p></li>
+<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, record log. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>a</strong> (<em>list of ndarrays, each of shape (n,)</em>) – The optimal solution as a list of n approximate barycenters, each of
+length vecsize.</p></li>
+<li><p><strong>log</strong> (<em>dict</em>) – log dictionary return only if log==True in parameters</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id12" role="note">
+<span class="label"><span class="fn-bracket">[</span>55<span class="fn-bracket">]</span></span>
+<p>Ronak Mehta, Jeffery Kline, Vishnu Suresh Lokhande, Glenn Fung, &amp;
+Vikas Singh (2023). Efficient Discrete Multi Marginal Optimal
+Transport Regularization. In The Eleventh International
+Conference on Learning Representations.</p>
+</aside>
+<aside class="footnote brackets" id="id13" role="note">
+<span class="label"><span class="fn-bracket">[</span>60<span class="fn-bracket">]</span></span>
+<p>Olvi L Mangasarian and RR Meyer. Nonlinear perturbation of linear
+programs. SIAM Journal on Control and Optimization, 17(6):745-752, 1979</p>
+</aside>
+<aside class="footnote brackets" id="id14" role="note">
+<span class="label"><span class="fn-bracket">[</span>59<span class="fn-bracket">]</span></span>
+<p>Michael C Ferris and Olvi L Mangasarian. Finite perturbation of
+convex programs. Applied Mathematics and Optimization, 23(1):263-273,
+1991.</p>
+</aside>
+</aside>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#ot.lp.dmmot_monge_1dgrid_loss" title="ot.lp.dmmot_monge_1dgrid_loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.lp.dmmot_monge_1dgrid_loss</span></code></a></dt><dd><p>d-Dimensional Earth Mover’s Solver</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">emd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_dual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#emd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
 <dd><p>Solves the Earth Movers distance problem and returns the OT matrix</p>
@@ -734,9 +911,9 @@ perform automatic conversion to numpy arrays</p>
 <span class="go">       [0. , 0.5]])</span>
 </pre></div>
 </div>
-<p class="rubric" id="id9">References</p>
+<p class="rubric" id="id15">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id10" role="note">
+<aside class="footnote brackets" id="id16" role="note">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
 <p>Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W. (2011,
 December).  Displacement interpolation using Lagrangian mass transport.
@@ -755,8 +932,8 @@ In ACM Transactions on Graphics (TOG) (Vol. 30, No. 6, p. 158). ACM.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id11">
-<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">emd2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_dual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#emd2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id11" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="id17">
+<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">emd2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_dual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#emd2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id17" title="Permalink to this definition"></a></dt>
 <dd><p>Solves the Earth Movers distance problem and returns the loss</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F\\s.t. \ \gamma \mathbf{1} = \mathbf{a}\\     \gamma^T \mathbf{1} = \mathbf{b}\\     \gamma \geq 0\end{aligned}\end{align} \]</div>
@@ -824,9 +1001,9 @@ perform automatic conversion to numpy arrays</p>
 <span class="go">0.0</span>
 </pre></div>
 </div>
-<p class="rubric" id="id12">References</p>
+<p class="rubric" id="id18">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id13" role="note">
+<aside class="footnote brackets" id="id19" role="note">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
 <p>Bonneel, N., Van De Panne, M., Paris, S., &amp; Heidrich, W.
 (2011, December).  Displacement interpolation using Lagrangian mass
@@ -861,7 +1038,7 @@ the loss</p>
 <li><p>a and b are the sample weights</p></li>
 </ul>
 <p>When ‘minkowski’ is used as a metric, <span class="math notranslate nohighlight">\(d(x, y) = |x - y|^p\)</span>.</p>
-<p>Uses the algorithm detailed in <a href="#id30"><span class="problematic" id="id14">[1]_</span></a></p>
+<p>Uses the algorithm detailed in <a href="#id36"><span class="problematic" id="id20">[1]_</span></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -907,7 +1084,7 @@ performs automatic conversion to numpy arrays</p>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id15" role="note">
+<aside class="footnote brackets" id="id21" role="note">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
 <p>Peyré, G., &amp; Cuturi, M. (2017). “Computational Optimal
 Transport”, 2018.</p>
@@ -916,7 +1093,7 @@ Transport”, 2018.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="#id11" title="ot.lp.emd2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.lp.emd2</span></code></a></dt><dd><p>EMD for multidimensional distributions</p>
+<dt><a class="reference internal" href="#id17" title="ot.lp.emd2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.lp.emd2</span></code></a></dt><dd><p>EMD for multidimensional distributions</p>
 </dd>
 <dt><a class="reference internal" href="#ot.lp.emd_1d" title="ot.lp.emd_1d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.lp.emd_1d</span></code></a></dt><dd><p>EMD for 1d distributions (returns the transportation matrix instead of the cost)</p>
 </dd>
@@ -940,7 +1117,7 @@ the OT matrix</p>
 <li><p>a and b are the sample weights</p></li>
 </ul>
 <p>When ‘minkowski’ is used as a metric, <span class="math notranslate nohighlight">\(d(x, y) = |x - y|^p\)</span>.</p>
-<p>Uses the algorithm detailed in <a href="#id31"><span class="problematic" id="id16">[1]_</span></a></p>
+<p>Uses the algorithm detailed in <a href="#id37"><span class="problematic" id="id22">[1]_</span></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -987,7 +1164,7 @@ performs automatic conversion to numpy arrays</p>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id17" role="note">
+<aside class="footnote brackets" id="id23" role="note">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
 <p>Peyré, G., &amp; Cuturi, M. (2017). “Computational Optimal
 Transport”, 2018.</p>
@@ -1005,8 +1182,8 @@ Transport”, 2018.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id18">
-<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">free_support_barycenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">measures_locations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measures_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_init</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#free_support_barycenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id18" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="id24">
+<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">free_support_barycenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">measures_locations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measures_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_init</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#free_support_barycenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id24" title="Permalink to this definition"></a></dt>
 <dd><p>Solves the free support (locations of the barycenters are optimized, not the weights) Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Wasserstein distance), formally:</p>
 <div class="math notranslate nohighlight">
 \[\min_\mathbf{X} \quad \sum_{i=1}^N w_i W_2^2(\mathbf{b}, \mathbf{X}, \mathbf{a}_i, \mathbf{X}_i)\]</div>
@@ -1051,13 +1228,13 @@ representing the weights of each discrete input measure</p></li>
 <dd class="field-odd"><p>(k,d) array-like</p>
 </dd>
 </dl>
-<p class="rubric" id="id19">References</p>
+<p class="rubric" id="id25">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id20" role="note">
+<aside class="footnote brackets" id="id26" role="note">
 <span class="label"><span class="fn-bracket">[</span>20<span class="fn-bracket">]</span></span>
 <p>Cuturi, Marco, and Arnaud Doucet. “Fast computation of Wasserstein barycenters.” International Conference on Machine Learning. 2014.</p>
 </aside>
-<aside class="footnote brackets" id="id21" role="note">
+<aside class="footnote brackets" id="id27" role="note">
 <span class="label"><span class="fn-bracket">[</span>43<span class="fn-bracket">]</span></span>
 <p>Álvarez-Esteban, Pedro C., et al. “A fixed-point approach to barycenters in Wasserstein space.” Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762.</p>
 </aside>
@@ -1065,8 +1242,8 @@ representing the weights of each discrete input measure</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id22">
-<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">generalized_free_support_barycenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples_bary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#generalized_free_support_barycenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id22" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="id28">
+<span class="sig-prename descclassname"><span class="pre">ot.lp.</span></span><span class="sig-name descname"><span class="pre">generalized_free_support_barycenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples_bary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numThreads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/lp.html#generalized_free_support_barycenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id28" title="Permalink to this definition"></a></dt>
 <dd><p>Solves the free support generalized Wasserstein barycenter problem: finding a barycenter (a discrete measure with
 a fixed amount of points of uniform weights) whose respective projections fit the input measures.
 More formally:</p>
@@ -1114,13 +1291,13 @@ inversion will fail. In this case one may set eps=1e-8 and get a solution anyway
 <dd class="field-odd"><p>(n_samples_bary,d) array-like</p>
 </dd>
 </dl>
-<p class="rubric" id="id23">References</p>
+<p class="rubric" id="id29">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id24" role="note">
+<aside class="footnote brackets" id="id30" role="note">
 <span class="label"><span class="fn-bracket">[</span>20<span class="fn-bracket">]</span></span>
 <p>Cuturi, M. and Doucet, A.. “Fast computation of Wasserstein barycenters.” International Conference on Machine Learning. 2014.</p>
 </aside>
-<aside class="footnote brackets" id="id25" role="note">
+<aside class="footnote brackets" id="id31" role="note">
 <span class="label"><span class="fn-bracket">[</span>42<span class="fn-bracket">]</span></span>
 <p>Delon, J., Gozlan, N., and Saint-Dizier, A.. Generalized Wasserstein barycenters between probability measures living on different subspaces. arXiv preprint arXiv:2105.09755, 2021.</p>
 </aside>
@@ -1167,7 +1344,7 @@ using e.g. the atan2 function.</p>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id26" role="note">
+<aside class="footnote brackets" id="id32" role="note">
 <span class="label"><span class="fn-bracket">[</span>46<span class="fn-bracket">]</span></span>
 <p>Bonet, C., Berg, P., Courty, N., Septier, F., Drumetz, L., &amp; Pham, M. T. (2023). Spherical sliced-wasserstein. International Conference on Learning Representations.</p>
 </aside>
@@ -1205,7 +1382,7 @@ the function, default is True</p></li>
 </dl>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id27" role="note">
+<aside class="footnote brackets" id="id33" role="note">
 <span class="label"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></span>
 <p>Peyré, G., &amp; Cuturi, M. (2018). Computational Optimal Transport.</p>
 </aside>
@@ -1264,11 +1441,11 @@ using e.g. the atan2 function.</p>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id28" role="note">
+<aside class="footnote brackets" id="id34" role="note">
 <span class="label"><span class="fn-bracket">[</span>44<span class="fn-bracket">]</span></span>
 <p>Hundrieser, Shayan, Marcel Klatt, and Axel Munk. “The statistics of circular optimal transport.” Directional Statistics for Innovative Applications: A Bicentennial Tribute to Florence Nightingale. Singapore: Springer Nature Singapore, 2022. 57-82.</p>
 </aside>
-<aside class="footnote brackets" id="id29" role="note">
+<aside class="footnote brackets" id="id35" role="note">
 <span class="label"><span class="fn-bracket">[</span>45<span class="fn-bracket">]</span></span>
 <p>Delon, Julie, Julien Salomon, and Andrei Sobolevski. “Fast transport optimization for Monge costs on the circle.” SIAM Journal on Applied Mathematics 70.7 (2010): 2239-2258.</p>
 </aside>
