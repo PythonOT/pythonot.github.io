@@ -104,7 +104,7 @@
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">cost_normalization</span><span class="p">,</span> <span class="n">label_normalization</span><span class="p">,</span> <span class="n">laplacian</span><span class="p">,</span> <span class="n">dots</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">check_params</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">deprecated</span>
 <span class="kn">from</span> <span class="nn">.unbalanced</span> <span class="kn">import</span> <span class="n">sinkhorn_unbalanced</span>
-<span class="kn">from</span> <span class="nn">.gaussian</span> <span class="kn">import</span> <span class="n">empirical_bures_wasserstein_mapping</span>
+<span class="kn">from</span> <span class="nn">.gaussian</span> <span class="kn">import</span> <span class="n">empirical_bures_wasserstein_mapping</span><span class="p">,</span> <span class="n">empirical_gaussian_gromov_wasserstein_mapping</span>
 <span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">cg</span>
 <span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">gcg</span>
 
@@ -1354,6 +1354,7 @@
 <span class="sd">            Returns self.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_backend</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">=</span> <span class="n">nx</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xt</span><span class="p">)</span>
@@ -1443,6 +1444,109 @@
             <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Xt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span>
 
             <span class="k">return</span> <span class="n">transp_Xt</span></div></div>
+
+
+<div class="viewcode-block" id="LinearGWTransport"><a class="viewcode-back" href="../../gen_modules/ot.da.html#ot.LinearGWTransport">[docs]</a><span class="k">class</span> <span class="nc">LinearGWTransport</span><span class="p">(</span><span class="n">LinearTransport</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; OT Gaussian Gromov-Wasserstein linear operator between empirical distributions</span>
+
+<span class="sd">    The function estimates the optimal linear operator that aligns the two</span>
+<span class="sd">    empirical distributions optimally wrt the Gromov-Wasserstein distance. This is equivalent to estimating the closed</span>
+<span class="sd">    form mapping between two Gaussian distributions :math:`\mathcal{N}(\mu_s,\Sigma_s)`</span>
+<span class="sd">    and :math:`\mathcal{N}(\mu_t,\Sigma_t)` as proposed in</span>
+<span class="sd">    :ref:`[57] &lt;references-lineargwtransport&gt;`.</span>
+
+<span class="sd">    The linear operator from source to target :math:`M`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        M(\mathbf{x})= \mathbf{A} \mathbf{x} + \mathbf{b}</span>
+
+<span class="sd">    where the matrix :math:`\mathbf{A}` and the vector :math:`\mathbf{b}` are</span>
+<span class="sd">    defined in :ref:`[57] &lt;references-lineargwtransport&gt;`.</span>
+
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sign_eigs : array-like (n_features), str, optional</span>
+<span class="sd">        sign of the eigenvalues of the mapping matrix, by default all signs will</span>
+<span class="sd">        be positive. If &#39;skewness&#39; is provided, the sign of the eigenvalues is</span>
+<span class="sd">        selected as the product of the sign of the skewness of the projected data.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    .. _references-lineargwtransport:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [57] Delon, J., Desolneux, A., &amp; Salmona, A. (2022). Gromov–Wasserstein</span>
+<span class="sd">    distances between Gaussian distributions. Journal of Applied Probability,</span>
+<span class="sd">    59(4), 1178-1198.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sign_eigs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">distribution_estimation</span><span class="o">=</span><span class="n">distribution_estimation_uniform</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign_eigs</span> <span class="o">=</span> <span class="n">sign_eigs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span> <span class="o">=</span> <span class="n">distribution_estimation</span>
+
+<div class="viewcode-block" id="LinearGWTransport.fit"><a class="viewcode-back" href="../../gen_modules/ot.da.html#ot.LinearGWTransport.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Xs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Xt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">yt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Build a coupling matrix from source and target sets of samples</span>
+<span class="sd">        :math:`(\mathbf{X_s}, \mathbf{y_s})` and :math:`(\mathbf{X_t}, \mathbf{y_t})`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Xs : array-like, shape (n_source_samples, n_features)</span>
+<span class="sd">            The training input samples.</span>
+<span class="sd">        ys : array-like, shape (n_source_samples,)</span>
+<span class="sd">            The class labels</span>
+<span class="sd">        Xt : array-like, shape (n_target_samples, n_features)</span>
+<span class="sd">            The training input samples.</span>
+<span class="sd">        yt : array-like, shape (n_target_samples,)</span>
+<span class="sd">            The class labels. If some target samples are unlabelled, fill the</span>
+<span class="sd">            :math:`\mathbf{y_t}`&#39;s elements with -1.</span>
+
+<span class="sd">            Warning: Note that, due to this convention -1 cannot be used as a</span>
+<span class="sd">            class label</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns self.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_backend</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">=</span> <span class="n">nx</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xt</span><span class="p">)</span>
+
+        <span class="c1"># coupling estimation</span>
+        <span class="n">returned_</span> <span class="o">=</span> <span class="n">empirical_gaussian_gromov_wasserstein_mapping</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span>
+                                                                  <span class="n">ws</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span>
+                                                                  <span class="n">wt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span>
+                                                                  <span class="n">sign_eigs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sign_eigs</span><span class="p">,</span>
+                                                                  <span class="n">log</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+
+        <span class="c1"># deal with the value of log</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">A_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_</span> <span class="o">=</span> <span class="n">returned_</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">A_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_</span><span class="p">,</span> <span class="o">=</span> <span class="n">returned_</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="c1"># re compute inverse mapping</span>
+        <span class="n">returned_1_</span> <span class="o">=</span> <span class="n">empirical_gaussian_gromov_wasserstein_mapping</span><span class="p">(</span><span class="n">Xt</span><span class="p">,</span> <span class="n">Xs</span><span class="p">,</span>
+                                                                    <span class="n">ws</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_t</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span>
+                                                                    <span class="n">wt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span>
+                                                                    <span class="n">sign_eigs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sign_eigs</span><span class="p">,</span>
+                                                                    <span class="n">log</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_1_</span> <span class="o">=</span> <span class="n">returned_1_</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">A1_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">B1_</span><span class="p">,</span> <span class="o">=</span> <span class="n">returned_1_</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div></div>
 
 
 <div class="viewcode-block" id="SinkhornTransport"><a class="viewcode-back" href="../../gen_modules/ot.da.html#ot.SinkhornTransport">[docs]</a><span class="k">class</span> <span class="nc">SinkhornTransport</span><span class="p">(</span><span class="n">BaseTransport</span><span class="p">):</span>

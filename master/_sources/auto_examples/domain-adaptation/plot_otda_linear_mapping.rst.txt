@@ -22,7 +22,7 @@
 Linear OT mapping estimation
 ============================
 
-.. GENERATED FROM PYTHON SOURCE LINES 10-23
+.. GENERATED FROM PYTHON SOURCE LINES 10-17
 
 .. code-block:: default
 
@@ -32,6 +32,18 @@ Linear OT mapping estimation
     # License: MIT License
 
     # sphinx_gallery_thumbnail_number = 2
+
+
+
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 18-25
+
+.. code-block:: default
+
     import os
     from pathlib import Path
 
@@ -46,12 +58,12 @@ Linear OT mapping estimation
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 24-26
+.. GENERATED FROM PYTHON SOURCE LINES 26-28
 
 Generate data
 -------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 26-51
+.. GENERATED FROM PYTHON SOURCE LINES 28-53
 
 .. code-block:: default
 
@@ -87,12 +99,12 @@ Generate data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 52-54
+.. GENERATED FROM PYTHON SOURCE LINES 54-56
 
 Plot data
 ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 54-60
+.. GENERATED FROM PYTHON SOURCE LINES 56-64
 
 .. code-block:: default
 
@@ -100,40 +112,42 @@ Plot data
     plt.figure(1, (5, 5))
     plt.plot(xs[:, 0], xs[:, 1], '+')
     plt.plot(xt[:, 0], xt[:, 1], 'o')
-
+    plt.legend(('Source', 'Target'))
+    plt.title('Source and target distributions')
+    plt.show()
 
 
 
 
 .. image-sg:: /auto_examples/domain-adaptation/images/sphx_glr_plot_otda_linear_mapping_001.png
-   :alt: plot otda linear mapping
+   :alt: Source and target distributions
    :srcset: /auto_examples/domain-adaptation/images/sphx_glr_plot_otda_linear_mapping_001.png
    :class: sphx-glr-single-img
 
 
-.. rst-class:: sphx-glr-script-out
-
- .. code-block:: none
-
-
-    [<matplotlib.lines.Line2D object at 0x7f0e90472590>]
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 61-63
+.. GENERATED FROM PYTHON SOURCE LINES 65-67
 
 Estimate linear mapping and transport
 -------------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 63-69
+.. GENERATED FROM PYTHON SOURCE LINES 67-79
 
 .. code-block:: default
 
 
+
+    # Gaussian (linear) Monge mapping estimation
     Ae, be = ot.gaussian.empirical_bures_wasserstein_mapping(xs, xt)
 
     xst = xs.dot(Ae) + be
 
+    # Gaussian (linear) GW mapping estimation
+    Agw, bgw = ot.gaussian.empirical_gaussian_gromov_wasserstein_mapping(xs, xt)
+
+    xstgw = xs.dot(Agw) + bgw
 
 
 
@@ -142,29 +156,37 @@ Estimate linear mapping and transport
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 70-72
+.. GENERATED FROM PYTHON SOURCE LINES 80-82
 
 Plot transported samples
 ------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 72-81
+.. GENERATED FROM PYTHON SOURCE LINES 82-99
 
 .. code-block:: default
 
 
-    plt.figure(1, (5, 5))
+    plt.figure(2, (10, 5))
     plt.clf()
+    plt.subplot(1, 2, 1)
     plt.plot(xs[:, 0], xs[:, 1], '+')
     plt.plot(xt[:, 0], xt[:, 1], 'o')
     plt.plot(xst[:, 0], xst[:, 1], '+')
-
+    plt.legend(('Source', 'Target', 'Transp. Monge'), loc=0)
+    plt.title('Transported samples with Monge')
+    plt.subplot(1, 2, 2)
+    plt.plot(xs[:, 0], xs[:, 1], '+')
+    plt.plot(xt[:, 0], xt[:, 1], 'o')
+    plt.plot(xstgw[:, 0], xstgw[:, 1], '+')
+    plt.legend(('Source', 'Target', 'Transp. GW'), loc=0)
+    plt.title('Transported samples with Gaussian GW')
     plt.show()
 
 
 
 
 .. image-sg:: /auto_examples/domain-adaptation/images/sphx_glr_plot_otda_linear_mapping_002.png
-   :alt: plot otda linear mapping
+   :alt: Transported samples with Monge, Transported samples with Gaussian GW
    :srcset: /auto_examples/domain-adaptation/images/sphx_glr_plot_otda_linear_mapping_002.png
    :class: sphx-glr-single-img
 
@@ -172,12 +194,12 @@ Plot transported samples
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 82-84
+.. GENERATED FROM PYTHON SOURCE LINES 100-102
 
 Load image data
 ---------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 84-111
+.. GENERATED FROM PYTHON SOURCE LINES 102-129
 
 .. code-block:: default
 
@@ -215,18 +237,18 @@ Load image data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 112-114
+.. GENERATED FROM PYTHON SOURCE LINES 130-132
 
 Estimate mapping and adapt
 ----------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 114-126
+.. GENERATED FROM PYTHON SOURCE LINES 132-156
 
 .. code-block:: default
 
 
+    # Monge mapping
     mapping = ot.da.LinearTransport()
-
     mapping.fit(Xs=X1, Xt=X2)
 
 
@@ -236,6 +258,17 @@ Estimate mapping and adapt
     I1t = minmax(mat2im(xst, I1.shape))
     I2t = minmax(mat2im(xts, I2.shape))
 
+    # gaussian GW mapping
+
+    mapping = ot.da.LinearGWTransport()
+    mapping.fit(Xs=X1, Xt=X2)
+
+
+    xstgw = mapping.transform(Xs=X1)
+    xtsgw = mapping.inverse_transform(Xt=X2)
+
+    I1tgw = minmax(mat2im(xstgw, I1.shape))
+    I2tgw = minmax(mat2im(xtsgw, I2.shape))
 
 
 
@@ -243,42 +276,53 @@ Estimate mapping and adapt
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 130-132
+
+.. GENERATED FROM PYTHON SOURCE LINES 160-162
 
 Plot transformed images
 -----------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 132-154
+.. GENERATED FROM PYTHON SOURCE LINES 162-194
 
 .. code-block:: default
 
 
-    plt.figure(2, figsize=(10, 7))
+    plt.figure(3, figsize=(14, 7))
 
-    plt.subplot(2, 2, 1)
+    plt.subplot(2, 3, 1)
     plt.imshow(I1)
     plt.axis('off')
     plt.title('Im. 1')
 
-    plt.subplot(2, 2, 2)
+    plt.subplot(2, 3, 4)
     plt.imshow(I2)
     plt.axis('off')
     plt.title('Im. 2')
 
-    plt.subplot(2, 2, 3)
+    plt.subplot(2, 3, 2)
     plt.imshow(I1t)
     plt.axis('off')
-    plt.title('Mapping Im. 1')
+    plt.title('Monge mapping Im. 1')
 
-    plt.subplot(2, 2, 4)
+    plt.subplot(2, 3, 5)
     plt.imshow(I2t)
     plt.axis('off')
-    plt.title('Inverse mapping Im. 2')
+    plt.title('Inverse Monge mapping Im. 2')
+
+    plt.subplot(2, 3, 3)
+    plt.imshow(I1tgw)
+    plt.axis('off')
+    plt.title('Gaussian GW mapping Im. 1')
+
+    plt.subplot(2, 3, 6)
+    plt.imshow(I2tgw)
+    plt.axis('off')
+    plt.title('Inverse Gaussian GW mapping Im. 2')
 
 
 
 .. image-sg:: /auto_examples/domain-adaptation/images/sphx_glr_plot_otda_linear_mapping_003.png
-   :alt: Im. 1, Im. 2, Mapping Im. 1, Inverse mapping Im. 2
+   :alt: Im. 1, Im. 2, Monge mapping Im. 1, Inverse Monge mapping Im. 2, Gaussian GW mapping Im. 1, Inverse Gaussian GW mapping Im. 2
    :srcset: /auto_examples/domain-adaptation/images/sphx_glr_plot_otda_linear_mapping_003.png
    :class: sphx-glr-single-img
 
@@ -288,14 +332,14 @@ Plot transformed images
  .. code-block:: none
 
 
-    Text(0.5, 1.0, 'Inverse mapping Im. 2')
+    Text(0.5, 1.0, 'Inverse Gaussian GW mapping Im. 2')
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.987 seconds)
+   **Total running time of the script:** ( 0 minutes  3.130 seconds)
 
 
 .. _sphx_glr_download_auto_examples_domain-adaptation_plot_otda_linear_mapping.py:
