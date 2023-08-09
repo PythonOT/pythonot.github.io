@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.gaussian &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+  <title>ot.gaussian &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -37,7 +37,7 @@
               <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.0
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -127,9 +127,9 @@
 <span class="sd">        mean of the source distribution</span>
 <span class="sd">    mt : array-like (d,)</span>
 <span class="sd">        mean of the target distribution</span>
-<span class="sd">    Cs : array-like (d,)</span>
+<span class="sd">    Cs : array-like (d,d)</span>
 <span class="sd">        covariance of the source distribution</span>
-<span class="sd">    Ct : array-like (d,)</span>
+<span class="sd">    Ct : array-like (d,d)</span>
 <span class="sd">        covariance of the target distribution</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
@@ -287,7 +287,7 @@
 <span class="sd">    where :</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        \mathbf{B}(\Sigma_s, \Sigma_t)^{2} = \text{Tr}\left(\Sigma_s^{1/2} + \Sigma_t^{1/2} - 2 \sqrt{\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2}} \right)</span>
+<span class="sd">        \mathbf{B}(\Sigma_s, \Sigma_t)^{2} = \text{Tr}\left(\Sigma_s + \Sigma_t - 2 \sqrt{\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2}} \right)</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -295,9 +295,9 @@
 <span class="sd">        mean of the source distribution</span>
 <span class="sd">    mt : array-like (d,)</span>
 <span class="sd">        mean of the target distribution</span>
-<span class="sd">    Cs : array-like (d,)</span>
+<span class="sd">    Cs : array-like (d,d)</span>
 <span class="sd">        covariance of the source distribution</span>
-<span class="sd">    Ct : array-like (d,)</span>
+<span class="sd">    Ct : array-like (d,d)</span>
 <span class="sd">        covariance of the target distribution</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
@@ -349,7 +349,7 @@
 <span class="sd">    where :</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        \mathbf{B}(\Sigma_s, \Sigma_t)^{2} = \text{Tr}\left(\Sigma_s^{1/2} + \Sigma_t^{1/2} - 2 \sqrt{\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2}} \right)</span>
+<span class="sd">        \mathbf{B}(\Sigma_s, \Sigma_t)^{2} = \text{Tr}\left(\Sigma_s + \Sigma_t - 2 \sqrt{\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2}} \right)</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -359,9 +359,9 @@
 <span class="sd">        samples in the target domain</span>
 <span class="sd">    reg : float,optional</span>
 <span class="sd">        regularization added to the diagonals of covariances (&gt;0)</span>
-<span class="sd">    ws : array-like (ns,1), optional</span>
+<span class="sd">    ws : array-like (ns), optional</span>
 <span class="sd">        weights for the source samples</span>
-<span class="sd">    wt : array-like (ns,1), optional</span>
+<span class="sd">    wt : array-like (ns), optional</span>
 <span class="sd">        weights for the target samples</span>
 <span class="sd">    bias: boolean, optional</span>
 <span class="sd">        estimate bias :math:`\mathbf{b}` else :math:`\mathbf{b} = 0` (default:True)</span>
@@ -416,6 +416,309 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">W</span> <span class="o">=</span> <span class="n">bures_wasserstein_distance</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">W</span></div>
+
+
+<div class="viewcode-block" id="gaussian_gromov_wasserstein_distance"><a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.gaussian_gromov_wasserstein_distance">[docs]</a><span class="k">def</span> <span class="nf">gaussian_gromov_wasserstein_distance</span><span class="p">(</span><span class="n">Cov_s</span><span class="p">,</span> <span class="n">Cov_t</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Return the Gaussian Gromov-Wasserstein value from [57].</span>
+
+<span class="sd">    This function return the closed form value of the Gaussian Gromov-Wasserstein</span>
+<span class="sd">    distance between two Gaussian distributions</span>
+<span class="sd">    :math:`\mathcal{N}(\mu_s,\Sigma_s)` and :math:`\mathcal{N}(\mu_t,\Sigma_t)`</span>
+<span class="sd">    when the OT plan is assumed to be also Gaussian. See [57] Theorem 4.1 for</span>
+<span class="sd">    more details.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cov_s : array-like (ds,ds)</span>
+<span class="sd">        covariance of the source distribution</span>
+<span class="sd">    Cov_t : array-like (dt,dt)</span>
+<span class="sd">        covariance of the target distribution</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G : float</span>
+<span class="sd">        Gaussian Gromov-Wasserstein distance</span>
+
+
+<span class="sd">    .. _references-gaussien_gromov_wasserstein_distance:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [57] Delon, J., Desolneux, A., &amp; Salmona, A. (2022). Gromov–Wasserstein</span>
+<span class="sd">    distances between Gaussian distributions. Journal of Applied Probability,</span>
+<span class="sd">    59(4), 1178-1198.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">Cov_s</span><span class="p">,</span> <span class="n">Cov_t</span><span class="p">)</span>
+
+    <span class="c1"># ensure that Cov_s is the largest covariance matrix</span>
+    <span class="c1"># that is m &gt;= n</span>
+    <span class="k">if</span> <span class="n">Cov_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Cov_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">Cov_s</span><span class="p">,</span> <span class="n">Cov_t</span> <span class="o">=</span> <span class="n">Cov_t</span><span class="p">,</span> <span class="n">Cov_s</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">Cov_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># compte and sort eigenvalues decerasingly</span>
+    <span class="n">d_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cov_s</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">d_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cov_t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="c1"># compute the gaussien Gromov-Wasserstein distance</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d_s</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d_t</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">d_s</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="n">d_t</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">d_s</span><span class="p">[</span><span class="n">n</span><span class="p">:])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;d_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;d_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_t</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">res</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="empirical_gaussian_gromov_wasserstein_distance"><a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.empirical_gaussian_gromov_wasserstein_distance">[docs]</a><span class="k">def</span> <span class="nf">empirical_gaussian_gromov_wasserstein_distance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                   <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return Gaussian Gromov-Wasserstein distance between samples.</span>
+
+<span class="sd">    The function estimates the Gaussian Gromov-Wasserstein distance between two</span>
+<span class="sd">    Gaussien distributions source :math:`\mu_s` and target :math:`\mu_t`, whose</span>
+<span class="sd">    parameters are estimated from the provided samples :math:`\mathcal{X}_s` and</span>
+<span class="sd">    :math:`\mathcal{X}_t`. See [57] Theorem 4.1 for more details.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs : array-like (ns,d)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    xt : array-like (nt,d)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    ws : array-like (ns,1), optional</span>
+<span class="sd">        weights for the source samples</span>
+<span class="sd">    wt : array-like (ns,1), optional</span>
+<span class="sd">        weights for the target samples</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G : float</span>
+<span class="sd">        Gaussian Gromov-Wasserstein distance</span>
+
+
+<span class="sd">    .. _references-gaussien_gromov_wasserstein:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [57] Delon, J., Desolneux, A., &amp; Salmona, A. (2022). Gromov–Wasserstein</span>
+<span class="sd">    distances between Gaussian distributions. Journal of Applied Probability,</span>
+<span class="sd">    59(4), 1178-1198.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ws</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span>
+    <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">wt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span>
+
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span> <span class="o">-</span> <span class="n">mxs</span>
+    <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">-</span> <span class="n">mxt</span>
+
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xs</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span>
+    <span class="n">Ct</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xt</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">G</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">gaussian_gromov_wasserstein_distance</span><span class="p">(</span><span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Cov_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cs</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Cov_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ct</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">gaussian_gromov_wasserstein_distance</span><span class="p">(</span><span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="gaussian_gromov_wasserstein_mapping"><a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.gaussian_gromov_wasserstein_mapping">[docs]</a><span class="k">def</span> <span class="nf">gaussian_gromov_wasserstein_mapping</span><span class="p">(</span><span class="n">mu_s</span><span class="p">,</span> <span class="n">mu_t</span><span class="p">,</span> <span class="n">Cov_s</span><span class="p">,</span> <span class="n">Cov_t</span><span class="p">,</span> <span class="n">sign_eigs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Return the Gaussian Gromov-Wasserstein mapping from [57].</span>
+
+<span class="sd">    This function return the closed form value of the Gaussian</span>
+<span class="sd">    Gromov-Wasserstein mapping between two Gaussian distributions</span>
+<span class="sd">    :math:`\mathcal{N}(\mu_s,\Sigma_s)` and :math:`\mathcal{N}(\mu_t,\Sigma_t)`</span>
+<span class="sd">    when the OT plan is assumed to be also Gaussian. See [57] Theorem 4.1 for</span>
+<span class="sd">    more details.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mu_s : array-like (ds,)</span>
+<span class="sd">        mean of the source distribution</span>
+<span class="sd">    mu_t : array-like (dt,)</span>
+<span class="sd">        mean of the target distribution</span>
+<span class="sd">    Cov_s : array-like (ds,ds)</span>
+<span class="sd">        covariance of the source distribution</span>
+<span class="sd">    Cov_t : array-like (dt,dt)</span>
+<span class="sd">        covariance of the target distribution</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A : (dt, ds) array-like</span>
+<span class="sd">        Linear operator</span>
+<span class="sd">    b : (1, dt) array-like</span>
+<span class="sd">        bias</span>
+
+
+<span class="sd">    .. _references-gaussien_gromov_wasserstein_mapping:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [57] Delon, J., Desolneux, A., &amp; Salmona, A. (2022). Gromov–Wasserstein</span>
+<span class="sd">    distances between Gaussian distributions. Journal of Applied Probability,</span>
+<span class="sd">    59(4), 1178-1198.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">mu_s</span><span class="p">,</span> <span class="n">mu_t</span><span class="p">,</span> <span class="n">Cov_s</span><span class="p">,</span> <span class="n">Cov_t</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">Cov_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">Cov_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># compte and sort eigenvalues/eigenvectors decreasingly</span>
+    <span class="n">d_s</span><span class="p">,</span> <span class="n">U_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cov_s</span><span class="p">)</span>
+    <span class="n">id_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d_s</span><span class="p">))</span>
+    <span class="n">d_s</span><span class="p">,</span> <span class="n">U_s</span> <span class="o">=</span> <span class="n">d_s</span><span class="p">[</span><span class="n">id_s</span><span class="p">],</span> <span class="n">U_s</span><span class="p">[:,</span> <span class="n">id_s</span><span class="p">]</span>
+
+    <span class="n">d_t</span><span class="p">,</span> <span class="n">U_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cov_t</span><span class="p">)</span>
+    <span class="n">id_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d_t</span><span class="p">))</span>
+    <span class="n">d_t</span><span class="p">,</span> <span class="n">U_t</span> <span class="o">=</span> <span class="n">d_t</span><span class="p">[</span><span class="n">id_t</span><span class="p">],</span> <span class="n">U_t</span><span class="p">[:,</span> <span class="n">id_t</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">sign_eigs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sign_eigs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">mu_s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;=</span> <span class="n">n</span><span class="p">:</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">sign_eigs</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_t</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_s</span><span class="p">[:</span><span class="n">n</span><span class="p">])),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="n">n</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">mu_s</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">sign_eigs</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_t</span><span class="p">[:</span><span class="n">m</span><span class="p">])</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_s</span><span class="p">)),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">mu_s</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U_s</span><span class="p">,</span> <span class="n">A</span><span class="p">),</span> <span class="n">U_t</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="c1"># compute the gaussien Gromov-Wasserstein dis</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">mu_t</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mu_s</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;d_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;d_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_t</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;U_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">U_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;U_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">U_t</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span></div>
+
+
+<div class="viewcode-block" id="empirical_gaussian_gromov_wasserstein_mapping"><a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.empirical_gaussian_gromov_wasserstein_mapping">[docs]</a><span class="k">def</span> <span class="nf">empirical_gaussian_gromov_wasserstein_mapping</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                  <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sign_eigs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return Gaussian Gromov-Wasserstein mapping between samples.</span>
+
+<span class="sd">    The function estimates the Gaussian Gromov-Wasserstein mapping between two</span>
+<span class="sd">    Gaussien distributions source :math:`\mu_s` and target :math:`\mu_t`, whose</span>
+<span class="sd">    parameters are estimated from the provided samples :math:`\mathcal{X}_s` and</span>
+<span class="sd">    :math:`\mathcal{X}_t`. See [57] Theorem 4.1 for more details.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs : array-like (ns,ds)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    xt : array-like (nt,dt)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    ws : array-like (ns,1), optional</span>
+<span class="sd">        weights for the source samples</span>
+<span class="sd">    wt : array-like (ns,1), optional</span>
+<span class="sd">        weights for the target samples</span>
+<span class="sd">    sign_eigs : array-like (min(ds,dt),) or string, optional</span>
+<span class="sd">        sign of the eigenvalues of the mapping matrix, by default all signs will</span>
+<span class="sd">        be positive. If &#39;skewness&#39; is provided, the sign of the eigenvalues is</span>
+<span class="sd">        selected as the product of the sign of the skewness of the projected data.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A : (dt, ds) array-like</span>
+<span class="sd">        Linear operator</span>
+<span class="sd">    b : (1, dt) array-like</span>
+<span class="sd">        bias</span>
+
+<span class="sd">    .. _references-empirical_gaussian_gromov_wasserstein_mapping:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [57] Delon, J., Desolneux, A., &amp; Salmona, A. (2022). Gromov–Wasserstein</span>
+<span class="sd">    distances between Gaussian distributions. Journal of Applied Probability,</span>
+<span class="sd">    59(4), 1178-1198.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">m</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># estimate mean and covariance</span>
+    <span class="n">mu_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ws</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span>
+    <span class="n">mu_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">wt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span>
+
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span> <span class="o">-</span> <span class="n">mu_s</span>
+    <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">-</span> <span class="n">mu_t</span>
+
+    <span class="n">Cov_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xs</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span>
+    <span class="n">Cov_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xt</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span>
+
+    <span class="c1"># compte and sort eigenvalues/eigenvectors decreasingly</span>
+    <span class="n">d_s</span><span class="p">,</span> <span class="n">U_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cov_s</span><span class="p">)</span>
+    <span class="n">id_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d_s</span><span class="p">))</span>
+    <span class="n">d_s</span><span class="p">,</span> <span class="n">U_s</span> <span class="o">=</span> <span class="n">d_s</span><span class="p">[</span><span class="n">id_s</span><span class="p">],</span> <span class="n">U_s</span><span class="p">[:,</span> <span class="n">id_s</span><span class="p">]</span>
+
+    <span class="n">d_t</span><span class="p">,</span> <span class="n">U_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cov_t</span><span class="p">)</span>
+    <span class="n">id_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d_t</span><span class="p">))</span>
+    <span class="n">d_t</span><span class="p">,</span> <span class="n">U_t</span> <span class="o">=</span> <span class="n">d_t</span><span class="p">[</span><span class="n">id_t</span><span class="p">],</span> <span class="n">U_t</span><span class="p">[:,</span> <span class="n">id_t</span><span class="p">]</span>
+
+    <span class="c1"># select the sign of the eigenvalues</span>
+    <span class="k">if</span> <span class="n">sign_eigs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sign_eigs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">mu_s</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">sign_eigs</span> <span class="o">==</span> <span class="s1">&#39;skewness&#39;</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">skew_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">U_s</span><span class="p">[:,</span> <span class="p">:</span><span class="n">size</span><span class="p">]))</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">ws</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">skew_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xt</span><span class="p">,</span> <span class="n">U_t</span><span class="p">[:,</span> <span class="p">:</span><span class="n">size</span><span class="p">]))</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">wt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">sign_eigs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">skew_t</span> <span class="o">*</span> <span class="n">skew_s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;=</span> <span class="n">n</span><span class="p">:</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">sign_eigs</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_t</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_s</span><span class="p">[:</span><span class="n">n</span><span class="p">])),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="n">n</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">mu_s</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">sign_eigs</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_t</span><span class="p">[:</span><span class="n">m</span><span class="p">])</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_s</span><span class="p">)),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">mu_s</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U_s</span><span class="p">,</span> <span class="n">A</span><span class="p">),</span> <span class="n">U_t</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="c1"># compute the gaussien Gromov-Wasserstein dis</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">mu_t</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mu_s</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;d_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;d_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_t</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;U_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">U_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;U_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">U_t</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Cov_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cov_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Cov_t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cov_t</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span></div>
 </pre></div>
 
            </div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.gromov._utils &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+  <title>ot.gromov._utils &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
@@ -37,7 +37,7 @@
               <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.0
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -105,7 +105,7 @@
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return loss matrices and tensors for Gromov-Wasserstein fast computation</span>
 
 <span class="sd">    Returns the value of :math:`\mathcal{L}(\mathbf{C_1}, \mathbf{C_2}) \otimes \mathbf{T}` with the</span>
-<span class="sd">    selected loss function as the loss function of Gromow-Wasserstein discrepancy.</span>
+<span class="sd">    selected loss function as the loss function of Gromov-Wasserstein discrepancy.</span>
 
 <span class="sd">    The matrices are computed as described in Proposition 1 in :ref:`[12] &lt;references-init-matrix&gt;`</span>
 
@@ -280,7 +280,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    loss : float</span>
-<span class="sd">        Gromov Wasserstein loss</span>
+<span class="sd">        Gromov-Wasserstein loss</span>
 
 
 <span class="sd">    .. _references-gwloss:</span>
@@ -320,7 +320,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    grad : array-like, shape (`ns`, `nt`)</span>
-<span class="sd">           Gromov Wasserstein gradient</span>
+<span class="sd">        Gromov-Wasserstein gradient</span>
 
 
 <span class="sd">    .. _references-gwggrad:</span>
@@ -409,11 +409,54 @@
     <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">tmpsum</span> <span class="o">/</span> <span class="n">ppt</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="update_feature_matrix"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_feature_matrix">[docs]</a><span class="k">def</span> <span class="nf">update_feature_matrix</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Updates the feature with respect to the `S` :math:`\mathbf{T}_s` couplings.</span>
+
+
+<span class="sd">    See &quot;Solving the barycenter problem with Block Coordinate Descent (BCD)&quot;</span>
+<span class="sd">    in :ref:`[24] &lt;references-update-feature-matrix&gt;` calculated at each iteration</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : array-like, shape (N,)</span>
+<span class="sd">        masses in the targeted barycenter</span>
+<span class="sd">    lambdas : list of float</span>
+<span class="sd">        List of the `S` spaces&#39; weights</span>
+<span class="sd">    Ts : list of S array-like, shape (ns,N)</span>
+<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration</span>
+<span class="sd">    Ys : list of S array-like, shape (d,ns)</span>
+<span class="sd">        The features.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : array-like, shape (`d`, `N`)</span>
+
+
+<span class="sd">    .. _references-update-feature-matrix:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain and Courty Nicolas</span>
+<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">Ts</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ts</span><span class="p">)</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span>
+    <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
+        <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ts</span><span class="p">))</span>
+    <span class="p">])</span>
+    <span class="k">return</span> <span class="n">tmpsum</span></div>
+
+
 <div class="viewcode-block" id="init_matrix_semirelaxed"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.init_matrix_semirelaxed">[docs]</a><span class="k">def</span> <span class="nf">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return loss matrices and tensors for semi-relaxed Gromov-Wasserstein fast computation</span>
 
 <span class="sd">    Returns the value of :math:`\mathcal{L}(\mathbf{C_1}, \mathbf{C_2}) \otimes \mathbf{T}` with the</span>
-<span class="sd">    selected loss function as the loss function of semi-relaxed Gromow-Wasserstein discrepancy.</span>
+<span class="sd">    selected loss function as the loss function of semi-relaxed Gromov-Wasserstein discrepancy.</span>
 
 <span class="sd">    The matrices are computed as described in Proposition 1 in :ref:`[12] &lt;references-init-matrix&gt;`</span>
 <span class="sd">    and adapted to the semi-relaxed problem where the second marginal is not a constant anymore.</span>

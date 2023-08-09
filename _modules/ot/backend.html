@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.backend &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+  <title>ot.backend &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -37,7 +37,7 @@
               <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.0
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -112,7 +112,7 @@
 <span class="sd">        np_config.enable_numpy_behavior()</span>
 
 <span class="sd">Performance</span>
-<span class="sd">--------</span>
+<span class="sd">-----------</span>
 
 <span class="sd">- CPU: Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz</span>
 <span class="sd">- GPU: Tesla V100-SXM2-32GB</span>
@@ -216,23 +216,27 @@
 <span class="n">str_type_error</span> <span class="o">=</span> <span class="s2">&quot;All array should be from the same type/backend. Current types are : </span><span class="si">{}</span><span class="s2">&quot;</span>
 
 
+<span class="c1"># Mapping between argument types and the existing backend</span>
+<span class="n">_BACKENDS</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="register_backend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.register_backend">[docs]</a><span class="k">def</span> <span class="nf">register_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">):</span>
+    <span class="n">_BACKENDS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="get_backend_list"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.get_backend_list">[docs]</a><span class="k">def</span> <span class="nf">get_backend_list</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the list of available backends&quot;&quot;&quot;</span>
-    <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">NumpyBackend</span><span class="p">(),</span> <span class="p">]</span>
+    <span class="k">return</span> <span class="n">_BACKENDS</span></div>
 
-    <span class="k">if</span> <span class="n">torch</span><span class="p">:</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TorchBackend</span><span class="p">())</span>
 
-    <span class="k">if</span> <span class="n">jax</span><span class="p">:</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JaxBackend</span><span class="p">())</span>
+<span class="k">def</span> <span class="nf">_check_args_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">is_instance</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">backend</span><span class="o">.</span><span class="n">__type__</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+    <span class="c1"># check that all arguments matched or not the type</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_instance</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">is_instance</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">cp</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CupyBackend</span><span class="p">())</span>
-
-    <span class="k">if</span> <span class="n">tf</span><span class="p">:</span>
-        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TensorflowBackend</span><span class="p">())</span>
-
-    <span class="k">return</span> <span class="n">lst</span></div>
+    <span class="c1"># Oterwise return an error</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">str_type_error</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]))</span>
 
 
 <div class="viewcode-block" id="get_backend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.get_backend">[docs]</a><span class="k">def</span> <span class="nf">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -243,22 +247,12 @@
     <span class="c1"># check that some arrays given</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; The function takes at least one parameter&quot;</span><span class="p">)</span>
-    <span class="c1"># check all same type</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">str_type_error</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]))</span>
 
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">NumpyBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">torch_type</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">TorchBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">jax_type</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">JaxBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cp_type</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
-        <span class="k">return</span> <span class="n">CupyBackend</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf_type</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">TensorflowBackend</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown type of non implemented backend.&quot;</span><span class="p">)</span></div>
+    <span class="k">for</span> <span class="n">backend</span> <span class="ow">in</span> <span class="n">_BACKENDS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_check_args_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">backend</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown type of non implemented backend.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="to_numpy"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.to_numpy">[docs]</a><span class="k">def</span> <span class="nf">to_numpy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -426,6 +420,15 @@
 <span class="sd">        This function follows the api from :any:`numpy.minimum`</span>
 
 <span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.minimum.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.sign"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Returns an element-wise indication of the sign of a number.</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.sign`</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.sign.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
@@ -659,6 +662,16 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="Backend.median"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the median of a tensor along given dimensions.</span>
+
+<span class="sd">        This function follows the api from :any:`numpy.median`</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.median.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="Backend.std"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes the standard deviation of a tensor along given dimensions.</span>
@@ -755,7 +768,7 @@
 
 <span class="sd">        This function follows the api from :any:`numpy.random.seed`</span>
 
-<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.random.seed.html</span>
+<span class="sd">        See: https://numpy.org/doc/stable/reference/random/generated/numpy.random.seed.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
@@ -765,7 +778,7 @@
 
 <span class="sd">        This function follows the api from :any:`numpy.random.rand`</span>
 
-<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.random.rand.html</span>
+<span class="sd">        See: https://numpy.org/doc/stable/reference/random/generated/numpy.random.rand.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
@@ -775,7 +788,7 @@
 
 <span class="sd">        This function follows the api from :any:`numpy.random.rand`</span>
 
-<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.random.rand.html</span>
+<span class="sd">        See: https://numpy.org/doc/stable/reference/random/generated/numpy.random.rand.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
@@ -893,7 +906,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Executes a benchmark of the given callable with the given arguments.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -936,6 +949,16 @@
 <span class="sd">        This function follows the api from :any:`scipy.linalg.sqrtm`.</span>
 
 <span class="sd">        See: https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.sqrtm.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.eigh"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.eigh">[docs]</a>    <span class="k">def</span> <span class="nf">eigh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the eigenvalues and eigenvectors of a symmetric tensor.</span>
+
+<span class="sd">        This function follows the api from :any:`scipy.linalg.eigh`.</span>
+
+<span class="sd">        See: https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.eigh.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
@@ -1034,6 +1057,22 @@
 
 <span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.transpose.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.detach"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detach tensors in arguments from the current graph.</span>
+
+<span class="sd">        See: https://pytorch.org/docs/stable/generated/torch.Tensor.detach.html</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Backend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Matrix product of two arrays.</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 
 
@@ -1111,6 +1150,9 @@
 
 <div class="viewcode-block" id="NumpyBackend.minimum"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.minimum">[docs]</a>    <span class="k">def</span> <span class="nf">minimum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.sign"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.dot"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.dot">[docs]</a>    <span class="k">def</span> <span class="nf">dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
@@ -1191,6 +1233,9 @@
 
 <div class="viewcode-block" id="NumpyBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.median"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.std"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
@@ -1288,15 +1333,15 @@
 <div class="viewcode-block" id="NumpyBackend.device_type"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.device_type">[docs]</a>    <span class="k">def</span> <span class="nf">device_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;CPU&quot;</span></div>
 
-    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">type_as</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span><span class="p">:</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">warmup_runs</span><span class="p">):</span>
-                <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
-                <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Numpy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bitsize</span><span class="p">(</span><span class="n">type_as</span><span class="p">))</span>
             <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_runs</span>
@@ -1312,7 +1357,11 @@
         <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+        <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.eigh"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.eigh">[docs]</a>    <span class="k">def</span> <span class="nf">eigh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.kl_div"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.kl_div">[docs]</a>    <span class="k">def</span> <span class="nf">kl_div</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-16</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">q</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span></div>
@@ -1362,7 +1411,18 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NumpyBackend.transpose"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.detach"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">args</span></div>
+
+<div class="viewcode-block" id="NumpyBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="n">register_backend</span><span class="p">(</span><span class="n">NumpyBackend</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="JaxBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend">[docs]</a><span class="k">class</span> <span class="nc">JaxBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -1465,6 +1525,9 @@
 <div class="viewcode-block" id="JaxBackend.minimum"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.minimum">[docs]</a>    <span class="k">def</span> <span class="nf">minimum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="JaxBackend.sign"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="JaxBackend.dot"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.dot">[docs]</a>    <span class="k">def</span> <span class="nf">dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
@@ -1541,6 +1604,9 @@
 
 <div class="viewcode-block" id="JaxBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.median"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JaxBackend.std"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
@@ -1648,17 +1714,17 @@
 <div class="viewcode-block" id="JaxBackend.device_type"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.device_type">[docs]</a>    <span class="k">def</span> <span class="nf">device_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype_device</span><span class="p">(</span><span class="n">type_as</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
         <span class="k">for</span> <span class="n">type_as</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span><span class="p">:</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">warmup_runs</span><span class="p">):</span>
-                <span class="n">a</span> <span class="o">=</span> <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">a</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
             <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
-                <span class="n">a</span> <span class="o">=</span> <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">a</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
             <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Jax&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bitsize</span><span class="p">(</span><span class="n">type_as</span><span class="p">))</span>
@@ -1677,6 +1743,9 @@
 <div class="viewcode-block" id="JaxBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="JaxBackend.eigh"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.eigh">[docs]</a>    <span class="k">def</span> <span class="nf">eigh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JaxBackend.kl_div"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.kl_div">[docs]</a>    <span class="k">def</span> <span class="nf">kl_div</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-16</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">q</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span></div>
@@ -1709,7 +1778,20 @@
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JaxBackend.transpose"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JaxBackend.detach"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">((</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">((</span><span class="n">a</span><span class="p">,))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="JaxBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">jax</span><span class="p">:</span>
+    <span class="c1"># Only register jax backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">JaxBackend</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="TorchBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend">[docs]</a><span class="k">class</span> <span class="nc">TorchBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -1761,10 +1843,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ValFunction</span> <span class="o">=</span> <span class="n">ValFunction</span>
 
     <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
@@ -1861,6 +1945,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">broadcast_tensors</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
+<div class="viewcode-block" id="TorchBackend.sign"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TorchBackend.dot"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.dot">[docs]</a>    <span class="k">def</span> <span class="nf">dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
@@ -1948,6 +2035,22 @@
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.median"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">packaging</span> <span class="kn">import</span> <span class="n">version</span>
+        <span class="c1"># Since version 1.11.0, interpolation is available</span>
+        <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;1.11.0&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s2">&quot;midpoint&quot;</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s2">&quot;midpoint&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Else, use numpy</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The median is being computed using numpy and the array has been detached &quot;</span>
+                      <span class="s2">&quot;in the Pytorch backend.&quot;</span><span class="p">)</span>
+        <span class="n">a_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">a_median</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">a_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">a_median</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TorchBackend.std"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2081,12 +2184,12 @@
 <div class="viewcode-block" id="TorchBackend.device_type"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.device_type">[docs]</a>    <span class="k">def</span> <span class="nf">device_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">type_as</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="s2">&quot;gpu&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">type_as</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span><span class="p">:</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">warmup_runs</span><span class="p">):</span>
-                <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;GPU&quot;</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
                 <span class="n">start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span><span class="n">enable_timing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -2095,7 +2198,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
-                <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;GPU&quot;</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
                 <span class="n">end</span><span class="o">.</span><span class="n">record</span><span class="p">()</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
@@ -2121,6 +2224,9 @@
 <div class="viewcode-block" id="TorchBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="TorchBackend.eigh"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.eigh">[docs]</a>    <span class="k">def</span> <span class="nf">eigh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TorchBackend.kl_div"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.kl_div">[docs]</a>    <span class="k">def</span> <span class="nf">kl_div</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-16</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">q</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span></div>
@@ -2155,7 +2261,20 @@
 <div class="viewcode-block" id="TorchBackend.transpose"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">axes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">ndim</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorchBackend.detach"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TorchBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">torch</span><span class="p">:</span>
+    <span class="c1"># Only register torch backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">TorchBackend</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="CupyBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend">[docs]</a><span class="k">class</span> <span class="nc">CupyBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
@@ -2251,6 +2370,9 @@
 <div class="viewcode-block" id="CupyBackend.minimum"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.minimum">[docs]</a>    <span class="k">def</span> <span class="nf">minimum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="CupyBackend.sign"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="CupyBackend.abs"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.abs">[docs]</a>    <span class="k">def</span> <span class="nf">abs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
@@ -2330,6 +2452,9 @@
 
 <div class="viewcode-block" id="CupyBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.median"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CupyBackend.std"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
@@ -2458,7 +2583,7 @@
 <div class="viewcode-block" id="CupyBackend.device_type"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.device_type">[docs]</a>    <span class="k">def</span> <span class="nf">device_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;GPU&quot;</span></div>
 
-    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">mempool</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">get_default_memory_pool</span><span class="p">()</span>
         <span class="n">pinned_mempool</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">get_default_pinned_memory_pool</span><span class="p">()</span>
 
@@ -2468,11 +2593,11 @@
             <span class="n">start_gpu</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
             <span class="n">end_gpu</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">warmup_runs</span><span class="p">):</span>
-                <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">start_gpu</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
             <span class="n">start_gpu</span><span class="o">.</span><span class="n">record</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
-                <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
             <span class="n">end_gpu</span><span class="o">.</span><span class="n">record</span><span class="p">()</span>
             <span class="n">end_gpu</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
             <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Cupy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_type</span><span class="p">(</span><span class="n">type_as</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bitsize</span><span class="p">(</span><span class="n">type_as</span><span class="p">))</span>
@@ -2493,7 +2618,10 @@
 
 <div class="viewcode-block" id="CupyBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">cp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="CupyBackend.eigh"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.eigh">[docs]</a>    <span class="k">def</span> <span class="nf">eigh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CupyBackend.kl_div"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.kl_div">[docs]</a>    <span class="k">def</span> <span class="nf">kl_div</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-16</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">cp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">q</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span></div>
@@ -2526,7 +2654,20 @@
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CupyBackend.transpose"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CupyBackend.detach"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">args</span></div>
+
+<div class="viewcode-block" id="CupyBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">cp</span><span class="p">:</span>
+    <span class="c1"># Only register cp backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">CupyBackend</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="TensorflowBackend"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend">[docs]</a><span class="k">class</span> <span class="nc">TensorflowBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
@@ -2558,6 +2699,8 @@
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2626,6 +2769,9 @@
 
 <div class="viewcode-block" id="TensorflowBackend.minimum"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.minimum">[docs]</a>    <span class="k">def</span> <span class="nf">minimum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.sign"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorflowBackend.dot"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.dot">[docs]</a>    <span class="k">def</span> <span class="nf">dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -2709,6 +2855,13 @@
 
 <div class="viewcode-block" id="TensorflowBackend.mean"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.median"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The median is being computed using numpy and the array has been detached &quot;</span>
+                      <span class="s2">&quot;in the Tensorflow backend.&quot;</span><span class="p">)</span>
+        <span class="n">a_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">a_median</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">a_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">a_median</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorflowBackend.std"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
@@ -2841,7 +2994,7 @@
 <div class="viewcode-block" id="TensorflowBackend.device_type"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.device_type">[docs]</a>    <span class="k">def</span> <span class="nf">device_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype_device</span><span class="p">(</span><span class="n">type_as</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
-    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_bench</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_runs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">device_contexts</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;/CPU:0&quot;</span><span class="p">)]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s1">&#39;GPU&#39;</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
@@ -2852,10 +3005,10 @@
                 <span class="k">for</span> <span class="n">type_as</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type_list__</span><span class="p">:</span>
                     <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
                     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">warmup_runs</span><span class="p">):</span>
-                        <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                        <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
                     <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
                     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
-                        <span class="n">res</span> <span class="o">=</span> <span class="n">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+                        <span class="n">res</span> <span class="o">=</span> <span class="nb">callable</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
                     <span class="n">_</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
                     <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
                     <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
@@ -2877,7 +3030,11 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorflowBackend.sqrtm"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.sqrtm">[docs]</a>    <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+        <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.eigh"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.eigh">[docs]</a>    <span class="k">def</span> <span class="nf">eigh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorflowBackend.kl_div"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.kl_div">[docs]</a>    <span class="k">def</span> <span class="nf">kl_div</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-16</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">tnp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">q</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span></div>
@@ -2910,7 +3067,20 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorflowBackend.transpose"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.detach"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TensorflowBackend.matmul"><a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.matmul">[docs]</a>    <span class="k">def</span> <span class="nf">matmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tnp</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="n">tf</span><span class="p">:</span>
+    <span class="c1"># Only register tensorflow backend if it is installed</span>
+    <span class="n">register_backend</span><span class="p">(</span><span class="n">TensorflowBackend</span><span class="p">())</span>
 </pre></div>
 
            </div>

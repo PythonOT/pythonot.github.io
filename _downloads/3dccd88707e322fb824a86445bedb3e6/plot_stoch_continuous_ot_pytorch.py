@@ -27,8 +27,8 @@ import ot.plot
 torch.manual_seed(42)
 np.random.seed(42)
 
-n_source_samples = 10000
-n_target_samples = 10000
+n_source_samples = 1000
+n_target_samples = 1000
 theta = 2 * np.pi / 20
 noise_level = 0.1
 
@@ -89,7 +89,7 @@ reg = 1
 optimizer = torch.optim.Adam(list(u.parameters()) + list(v.parameters()), lr=.005)
 
 # number of iteration
-n_iter = 1000
+n_iter = 500
 n_batch = 500
 
 
@@ -125,8 +125,8 @@ pl.xlabel("Iterations")
 
 
 # %%
-# Plot the density on arget for a given source sample
-# ---------------------------------------------------
+# Plot the density on target for a given source sample
+# ----------------------------------------------------
 
 
 nv = 100
@@ -155,7 +155,7 @@ Gg = Gg.reshape((nv, nv)).detach().numpy()
 pl.scatter(Xs[:nvisu, 0], Xs[:nvisu, 1], marker='+', zorder=2, alpha=0.05)
 pl.scatter(Xt[:nvisu, 0], Xt[:nvisu, 1], marker='o', zorder=2, alpha=0.05)
 pl.scatter(Xs[iv:iv + 1, 0], Xs[iv:iv + 1, 1], s=100, marker='+', label='Source sample', zorder=2, alpha=1, color='C0')
-pl.pcolormesh(XX, YY, Gg, cmap='Greens', label='Density of transported sourec sample')
+pl.pcolormesh(XX, YY, Gg, cmap='Greens', label='Density of transported source sample')
 pl.legend(loc=0)
 ax_bounds = pl.axis()
 pl.title('Density of transported source sample')
@@ -169,7 +169,7 @@ Gg = Gg.reshape((nv, nv)).detach().numpy()
 pl.scatter(Xs[:nvisu, 0], Xs[:nvisu, 1], marker='+', zorder=2, alpha=0.05)
 pl.scatter(Xt[:nvisu, 0], Xt[:nvisu, 1], marker='o', zorder=2, alpha=0.05)
 pl.scatter(Xs[iv:iv + 1, 0], Xs[iv:iv + 1, 1], s=100, marker='+', label='Source sample', zorder=2, alpha=1, color='C0')
-pl.pcolormesh(XX, YY, Gg, cmap='Greens', label='Density of transported sourec sample')
+pl.pcolormesh(XX, YY, Gg, cmap='Greens', label='Density of transported source sample')
 pl.legend(loc=0)
 ax_bounds = pl.axis()
 pl.title('Density of transported source sample')
@@ -183,7 +183,7 @@ Gg = Gg.reshape((nv, nv)).detach().numpy()
 pl.scatter(Xs[:nvisu, 0], Xs[:nvisu, 1], marker='+', zorder=2, alpha=0.05)
 pl.scatter(Xt[:nvisu, 0], Xt[:nvisu, 1], marker='o', zorder=2, alpha=0.05)
 pl.scatter(Xs[iv:iv + 1, 0], Xs[iv:iv + 1, 1], s=100, marker='+', label='Source sample', zorder=2, alpha=1, color='C0')
-pl.pcolormesh(XX, YY, Gg, cmap='Greens', label='Density of transported sourec sample')
+pl.pcolormesh(XX, YY, Gg, cmap='Greens', label='Density of transported source sample')
 pl.legend(loc=0)
 ax_bounds = pl.axis()
 pl.title('Density of transported source sample')

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.gromov._semirelaxed &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+  <title>ot.gromov._semirelaxed &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
@@ -37,7 +37,7 @@
               <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.0
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -103,20 +103,21 @@
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">init_matrix_semirelaxed</span><span class="p">,</span> <span class="n">gwloss</span><span class="p">,</span> <span class="n">gwggrad</span>
 
 
-<div class="viewcode-block" id="semirelaxed_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="semirelaxed_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns the semi-relaxed gromov-wasserstein divergence transport from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}`</span>
+<span class="sd">    Returns the semi-relaxed Gromov-Wasserstein divergence transport from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}` (see [48]).</span>
 
-<span class="sd">    The function solves the following optimization problem:</span>
+<span class="sd">    The function solves the following optimization problem using Conditional Gradient:</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        \mathbf{srGW} = \mathop{\arg \min}_\mathbf{T} \quad \sum_{i,j,k,l}</span>
+<span class="sd">        \mathbf{T}^* \in \mathop{\arg \min}_{\mathbf{T}} \quad \sum_{i,j,k,l}</span>
 <span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
 
-<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
 
-<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
+
 <span class="sd">    Where :</span>
 
 <span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
@@ -135,15 +136,16 @@
 <span class="sd">        Metric cost matrix in the source space</span>
 <span class="sd">    C2 : array-like, shape (nt, nt)</span>
 <span class="sd">        Metric cost matrix in the target space</span>
-<span class="sd">    p : array-like, shape (ns,)</span>
-<span class="sd">        Distribution in the source space</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
 <span class="sd">    loss_fun : str</span>
 <span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
 <span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
 <span class="sd">    symmetric : bool, optional</span>
 <span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
 <span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
-<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
@@ -177,11 +179,16 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
@@ -227,20 +234,21 @@
         <span class="k">return</span> <span class="n">semirelaxed_cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="semirelaxed_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="semirelaxed_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                     <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns the semi-relaxed gromov-wasserstein divergence from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}`</span>
+<span class="sd">    Returns the semi-relaxed Gromov-Wasserstein divergence from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}` (see [48]).</span>
 
-<span class="sd">    The function solves the following optimization problem:</span>
+<span class="sd">    The function solves the following optimization problem using Conditional Gradient:</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        srGW = \min_\mathbf{T} \quad \sum_{i,j,k,l}</span>
+<span class="sd">        \text{srGW} = \min_{\mathbf{T}} \quad \sum_{i,j,k,l}</span>
 <span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
 
-<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
 
-<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
+
 <span class="sd">    Where :</span>
 
 <span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
@@ -251,6 +259,7 @@
 
 <span class="sd">    Note that when using backends, this loss function is differentiable wrt the</span>
 <span class="sd">    matrices (C1, C2) but not yet for the weights p.</span>
+
 <span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
 <span class="sd">        from all compatible backends. However all the steps in the conditional</span>
 <span class="sd">        gradient are not differentiable.</span>
@@ -261,15 +270,16 @@
 <span class="sd">        Metric cost matrix in the source space</span>
 <span class="sd">    C2 : array-like, shape (nt, nt)</span>
 <span class="sd">        Metric cost matrix in the target space</span>
-<span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
 <span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
 <span class="sd">    loss_fun : str</span>
 <span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
 <span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
 <span class="sd">    symmetric : bool, optional</span>
 <span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
 <span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
-<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
@@ -300,7 +310,12 @@
 <span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
 <span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+    <span class="c1"># partial get_backend as the full one will be handled in gromov_wasserstein</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+
+    <span class="c1"># init marginals if set as None</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
     <span class="n">T</span><span class="p">,</span> <span class="n">log_srgw</span> <span class="o">=</span> <span class="n">semirelaxed_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
@@ -321,18 +336,19 @@
         <span class="k">return</span> <span class="n">srgw</span></div>
 
 
-<div class="viewcode-block" id="semirelaxed_fused_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fused_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                         <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="semirelaxed_fused_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fused_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Computes the semi-relaxed FGW transport between two graphs (see :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`)</span>
+<span class="sd">    Computes the semi-relaxed Fused Gromov-Wasserstein transport between two graphs (see [48]).</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        \gamma = \mathop{\arg \min}_\gamma \quad (1 - \alpha) \langle \gamma, \mathbf{M} \rangle_F +</span>
-<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+<span class="sd">        \mathbf{T}^* \in \mathop{\arg \min}_{\mathbf{T}} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) T_{i,j} T_{k,l}</span>
 
-<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
 
-<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
 
 <span class="sd">    where :</span>
 
@@ -355,15 +371,16 @@
 <span class="sd">        Metric cost matrix representative of the structure in the source space</span>
 <span class="sd">    C2 : array-like, shape (nt, nt)</span>
 <span class="sd">        Metric cost matrix representative of the structure in the target space</span>
-<span class="sd">    p : array-like, shape (ns,)</span>
-<span class="sd">        Distribution in the source space</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
 <span class="sd">    loss_fun : str</span>
 <span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
 <span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
 <span class="sd">    symmetric : bool, optional</span>
 <span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
 <span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
-<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
 <span class="sd">    alpha : float, optional</span>
 <span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
 <span class="sd">    G0: array-like, shape (ns,nt), optional</span>
@@ -403,11 +420,16 @@
     <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
@@ -455,18 +477,18 @@
         <span class="k">return</span> <span class="n">semirelaxed_cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="semirelaxed_fused_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fused_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<div class="viewcode-block" id="semirelaxed_fused_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fused_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                           <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Computes the semi-relaxed FGW divergence between two graphs (see :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein2&gt;`)</span>
+<span class="sd">    Computes the semi-relaxed FGW divergence between two graphs (see [48]).</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        \min_\gamma \quad (1 - \alpha) \langle \gamma, \mathbf{M} \rangle_F + \alpha \sum_{i,j,k,l}</span>
-<span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+<span class="sd">        \mathbf{srFGW}_{\alpha} = \min_{\mathbf{T}} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) T_{i,j} T_{k,l}</span>
 
-<span class="sd">        s.t. \ \mathbf{\gamma} \mathbf{1} &amp;= \mathbf{p}</span>
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
 
-<span class="sd">             \mathbf{\gamma} &amp;\geq 0</span>
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
 
 <span class="sd">    where :</span>
 
@@ -494,13 +516,14 @@
 <span class="sd">        Metric cost matrix representative of the structure in the target space.</span>
 <span class="sd">    p :  array-like, shape (ns,)</span>
 <span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
 <span class="sd">    loss_fun : str, optional</span>
 <span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
 <span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
 <span class="sd">    symmetric : bool, optional</span>
 <span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
 <span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
-<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
 <span class="sd">    alpha : float, optional</span>
 <span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
 <span class="sd">    G0: array-like, shape (ns,nt), optional</span>
@@ -520,7 +543,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    srfgw-divergence : float</span>
-<span class="sd">        Semi-relaxed Fused gromov wasserstein divergence for the given parameters.</span>
+<span class="sd">        Semi-relaxed Fused Gromov-Wasserstein divergence for the given parameters.</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        Log dictionary return only if log==True in parameters.</span>
 
@@ -537,7 +560,12 @@
 <span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
 <span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="c1"># partial get_backend as the full one will be handled in gromov_wasserstein</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+
+    <span class="c1"># init marginals if set as None</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
     <span class="n">T</span><span class="p">,</span> <span class="n">log_fgw</span> <span class="o">=</span> <span class="n">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -549,8 +577,15 @@
     <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
         <span class="n">gC1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
         <span class="n">gC2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
-        <span class="n">srfgw_dist</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">srfgw_dist</span><span class="p">,</span> <span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">),</span>
-                                      <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">gC1</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">gC2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">srfgw_dist</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">srfgw_dist</span><span class="p">,</span> <span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">gC1</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">gC2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lin_term</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
+            <span class="n">srgw_term</span> <span class="o">=</span> <span class="p">(</span><span class="n">srfgw_dist</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">lin_term</span><span class="p">)</span> <span class="o">/</span> <span class="n">alpha</span>
+            <span class="n">srfgw_dist</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">srfgw_dist</span><span class="p">,</span> <span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">gC1</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">gC2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">T</span><span class="p">,</span>
+                                           <span class="n">srgw_term</span> <span class="o">-</span> <span class="n">lin_term</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">srfgw_dist</span><span class="p">,</span> <span class="n">log_fgw</span>
@@ -561,7 +596,7 @@
 <div class="viewcode-block" id="solve_semirelaxed_gromov_linesearch"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.solve_semirelaxed_gromov_linesearch">[docs]</a><span class="k">def</span> <span class="nf">solve_semirelaxed_gromov_linesearch</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">ones_p</span><span class="p">,</span>
                                         <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Solve the linesearch in the FW iterations</span>
+<span class="sd">    Solve the linesearch in the Conditional Gradient iterations for the semi-relaxed Gromov-Wasserstein divergence.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -626,6 +661,506 @@
     <span class="n">cost_G</span> <span class="o">=</span> <span class="n">cost_G</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">alpha</span>
 
     <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cost_G</span></div>
+
+
+<div class="viewcode-block" id="entropic_semirelaxed_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">entropic_semirelaxed_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the entropic-regularized semi-relaxed gromov-wasserstein divergence</span>
+<span class="sd">    transport plan from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}`</span>
+<span class="sd">    estimated using a Mirror Descent algorithm following the KL geometry.</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{T}^* \in \mathop{\arg \min}_\mathbf{T} \quad \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{p}`: distribution in the source space</span>
+
+<span class="sd">    - `L`: loss function to account for the misfit between the similarity matrices</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. However all the steps in the conditional</span>
+<span class="sd">        gradient are not differentiable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
+<span class="sd">    loss_fun : str</span>
+<span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
+<span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
+<span class="sd">    epsilon : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on error computed on transport plans</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G : array-like, shape (`ns`, `nt`)</span>
+<span class="sd">        Coupling between the two spaces that minimizes:</span>
+
+<span class="sd">            :math:`\sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}`</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Convergence information and loss.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [48]  Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Check first marginal of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+
+    <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">fC2t</span> <span class="o">=</span> <span class="n">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+    <span class="n">ones_p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="n">qG</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">marginal_product</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2t</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span> <span class="o">+</span> <span class="n">marginal_product</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">constCt</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span><span class="p">,</span> <span class="n">fC2</span> <span class="o">=</span> <span class="n">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="n">qG</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">marginal_product_1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2t</span><span class="p">))</span>
+            <span class="n">marginal_product_2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2</span><span class="p">))</span>
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span> <span class="o">+</span> <span class="n">marginal_product_1</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span> <span class="o">+</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constCt</span> <span class="o">+</span> <span class="n">marginal_product_2</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span>
+
+    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mf">1e15</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">G0</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">err</span> <span class="o">&gt;</span> <span class="n">tol</span> <span class="ow">and</span> <span class="n">cpt</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">):</span>
+
+        <span class="n">Gprev</span> <span class="o">=</span> <span class="n">G</span>
+        <span class="c1"># compute the kernel</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">df</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">/</span> <span class="n">epsilon</span><span class="p">)</span>
+        <span class="n">scaling</span> <span class="o">=</span> <span class="n">p</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scaling</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">K</span>
+        <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we can speed up the process by checking for the error only all</span>
+            <span class="c1"># the 10th iterations</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">G</span> <span class="o">-</span> <span class="n">Gprev</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">qG</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">marginal_product</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2t</span><span class="p">))</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;srgw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span> <span class="o">+</span> <span class="n">marginal_product</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="entropic_semirelaxed_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">entropic_semirelaxed_gromov_wasserstein2</span><span class="p">(</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the entropic-regularized semi-relaxed gromov-wasserstein divergence</span>
+<span class="sd">    from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}`</span>
+<span class="sd">    estimated using a Mirror Descent algorithm following the KL geometry.</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{srGW} = \min_{\mathbf{T}} \quad \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{p}`: distribution in the source space</span>
+<span class="sd">    - `L`: loss function to account for the misfit between the similarity</span>
+<span class="sd">      matrices</span>
+
+<span class="sd">    Note that when using backends, this loss function is differentiable wrt the</span>
+<span class="sd">    matrices (C1, C2) but not yet for the weights p.</span>
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. However all the steps in the conditional</span>
+<span class="sd">        gradient are not differentiable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
+<span class="sd">    loss_fun : str</span>
+<span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
+<span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
+<span class="sd">    epsilon : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on error computed on transport plans</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    srgw : float</span>
+<span class="sd">        Semi-relaxed Gromov-Wasserstein divergence</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        convergence information and Coupling matrix</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [48]  Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">T</span><span class="p">,</span> <span class="n">log_srgw</span> <span class="o">=</span> <span class="n">entropic_semirelaxed_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">log_srgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">log_srgw</span><span class="p">[</span><span class="s1">&#39;srgw_dist&#39;</span><span class="p">],</span> <span class="n">log_srgw</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">log_srgw</span><span class="p">[</span><span class="s1">&#39;srgw_dist&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="entropic_semirelaxed_fused_gromov_wasserstein"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_fused_gromov_wasserstein">[docs]</a><span class="k">def</span> <span class="nf">entropic_semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the entropic-regularized semi-relaxed FGW transport between two graphs (see :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`)</span>
+<span class="sd">    estimated using a Mirror Descent algorithm following the KL geometry.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{T}^* \in \mathop{\arg \min}_{\mathbf{T}} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`ns`, `nt`) metric cost matrix between features</span>
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{p}` source weights (sum to 1)</span>
+<span class="sd">    - `L` is a loss function to account for the misfit between the similarity matrices</span>
+
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. However all the steps in the conditional</span>
+<span class="sd">        gradient are not differentiable.</span>
+
+<span class="sd">    The algorithm used for solving the problem is conditional gradient as discussed in :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (ns, nt)</span>
+<span class="sd">        Metric cost matrix between features across domains</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the target space</span>
+<span class="sd">    p : array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
+<span class="sd">    loss_fun : str</span>
+<span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
+<span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
+<span class="sd">    epsilon : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on error computed on transport plans</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G : array-like, shape (`ns`, `nt`)</span>
+<span class="sd">        Optimal transportation matrix for the given parameters.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Log dictionary return only if log==True in parameters.</span>
+
+
+<span class="sd">    .. _references-semirelaxed-fused-gromov-wasserstein:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [48] Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Check first marginal of G0</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+
+    <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">fC2t</span> <span class="o">=</span> <span class="n">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+    <span class="n">ones_p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">dM</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span>
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="n">qG</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">marginal_product</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2t</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span> <span class="o">+</span> <span class="n">marginal_product</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span> <span class="o">+</span> <span class="n">dM</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">constCt</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span><span class="p">,</span> <span class="n">fC2</span> <span class="o">=</span> <span class="n">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="n">qG</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">marginal_product_1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2t</span><span class="p">))</span>
+            <span class="n">marginal_product_2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2</span><span class="p">))</span>
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">gwggrad</span><span class="p">(</span><span class="n">constC</span> <span class="o">+</span> <span class="n">marginal_product_1</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span> <span class="o">+</span> <span class="n">gwggrad</span><span class="p">(</span><span class="n">constCt</span> <span class="o">+</span> <span class="n">marginal_product_2</span><span class="p">,</span> <span class="n">hC1t</span><span class="p">,</span> <span class="n">hC2t</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span> <span class="o">+</span> <span class="n">dM</span>
+
+    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mf">1e15</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">G0</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">err</span> <span class="o">&gt;</span> <span class="n">tol</span> <span class="ow">and</span> <span class="n">cpt</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">):</span>
+
+        <span class="n">Gprev</span> <span class="o">=</span> <span class="n">G</span>
+        <span class="c1"># compute the kernel</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">df</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">/</span> <span class="n">epsilon</span><span class="p">)</span>
+        <span class="n">scaling</span> <span class="o">=</span> <span class="n">p</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scaling</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">K</span>
+        <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we can speed up the process by checking for the error only all</span>
+            <span class="c1"># the 10th iterations</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">G</span> <span class="o">-</span> <span class="n">Gprev</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">qG</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">marginal_product</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">ones_p</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qG</span><span class="p">,</span> <span class="n">fC2t</span><span class="p">))</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;srfgw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">gwloss</span><span class="p">(</span><span class="n">constC</span> <span class="o">+</span> <span class="n">marginal_product</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">G</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="entropic_semirelaxed_fused_gromov_wasserstein2"><a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_fused_gromov_wasserstein2">[docs]</a><span class="k">def</span> <span class="nf">entropic_semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the entropic-regularized semi-relaxed FGW divergence between two graphs (see :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`)</span>
+<span class="sd">    estimated using a Mirror Descent algorithm following the KL geometry.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{srFGW}_{\alpha} = \min_{\mathbf{T}} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} &amp;= \mathbf{p}</span>
+
+<span class="sd">             \mathbf{T} &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`ns`, `nt`) metric cost matrix between features</span>
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+<span class="sd">    - :math:`\mathbf{p}` source weights (sum to 1)</span>
+<span class="sd">    - `L` is a loss function to account for the misfit between the similarity matrices</span>
+
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. However all the steps in the conditional</span>
+<span class="sd">        gradient are not differentiable.</span>
+
+<span class="sd">    The algorithm used for solving the problem is conditional gradient as discussed in :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (ns, nt)</span>
+<span class="sd">        Metric cost matrix between features across domains</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the source space.</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix representative of the structure in the target space.</span>
+<span class="sd">    p :  array-like, shape (ns,), optional</span>
+<span class="sd">        Distribution in the source space.</span>
+<span class="sd">        If let to its default value None, uniform distribution is taken.</span>
+<span class="sd">    loss_fun : str, optional</span>
+<span class="sd">        loss function used for the solver either &#39;square_loss&#39; or &#39;kl_loss&#39;.</span>
+<span class="sd">        &#39;kl_loss&#39; is not implemented yet and will raise an error.</span>
+<span class="sd">    epsilon : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
+<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
+<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
+<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on error computed on transport plans</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        Parameters can be directly passed to the ot.optim.cg solver.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    srfgw-divergence : float</span>
+<span class="sd">        Semi-relaxed Fused gromov wasserstein divergence for the given parameters.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Log dictionary return only if log==True in parameters.</span>
+
+
+<span class="sd">    .. _references-semirelaxed-fused-gromov-wasserstein2:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [48] Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">T</span><span class="p">,</span> <span class="n">log_srfgw</span> <span class="o">=</span> <span class="n">entropic_semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">log_srfgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">log_srfgw</span><span class="p">[</span><span class="s1">&#39;srfgw_dist&#39;</span><span class="p">],</span> <span class="n">log_srfgw</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">log_srfgw</span><span class="p">[</span><span class="s1">&#39;srfgw_dist&#39;</span><span class="p">]</span></div>
 </pre></div>
 
            </div>

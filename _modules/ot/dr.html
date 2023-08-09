@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.dr &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+  <title>ot.dr &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -37,7 +37,7 @@
               <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.0
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -90,22 +90,27 @@
 
 <span class="sd">.. warning::</span>
 <span class="sd">    Note that by default the module is not imported in :mod:`ot`. In order to</span>
-<span class="sd">    use it you need to explicitely import :mod:`ot.dr`</span>
+<span class="sd">    use it you need to explicitly import :mod:`ot.dr`</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
 <span class="c1">#         Minhui Huang &lt;mhhuang@ucdavis.edu&gt;</span>
 <span class="c1">#         Jakub Zadrozny &lt;jakub.r.zadrozny@gmail.com&gt;</span>
+<span class="c1">#         Antoine Collas &lt;antoine.collas@inria.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">linalg</span>
 <span class="kn">import</span> <span class="nn">autograd.numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.decomposition</span> <span class="kn">import</span> <span class="n">PCA</span>
 
 <span class="kn">import</span> <span class="nn">pymanopt</span>
 <span class="kn">import</span> <span class="nn">pymanopt.manifolds</span>
 <span class="kn">import</span> <span class="nn">pymanopt.optimizers</span>
+
+<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span> <span class="k">as</span> <span class="n">sinkhorn_bregman</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span> <span class="k">as</span> <span class="n">dist_utils</span>
 
 
 <div class="viewcode-block" id="dist"><a class="viewcode-back" href="../../gen_modules/ot.dr.html#ot.dr.dist">[docs]</a><span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">):</span>
@@ -168,7 +173,7 @@
 <span class="sd">    y : ndarray, shape (n,)</span>
 <span class="sd">        Labels for training samples.</span>
 <span class="sd">    p : int, optional</span>
-<span class="sd">        Size of dimensionnality reduction.</span>
+<span class="sd">        Size of dimensionality reduction.</span>
 <span class="sd">    reg : float, optional</span>
 <span class="sd">        Regularization term &gt;0 (ridge regularization)</span>
 
@@ -249,7 +254,7 @@
 <span class="sd">    y : ndarray, shape (n,)</span>
 <span class="sd">        Labels for training samples.</span>
 <span class="sd">    p : int, optional</span>
-<span class="sd">        Size of dimensionnality reduction.</span>
+<span class="sd">        Size of dimensionality reduction.</span>
 <span class="sd">    reg : float, optional</span>
 <span class="sd">        Regularization term &gt;0 (entropic regularization)</span>
 <span class="sd">    solver : None | str, optional</span>
@@ -260,7 +265,7 @@
 <span class="sd">    P0 : ndarray, shape (d, p)</span>
 <span class="sd">        Initial starting point for projection.</span>
 <span class="sd">    normalize : bool, optional</span>
-<span class="sd">        Normalise the Wasserstaiun distance by the average distance on P0 (default : False)</span>
+<span class="sd">        Normalize the Wasserstaiun distance by the average distance on P0 (default : False)</span>
 <span class="sd">    verbose : int, optional</span>
 <span class="sd">        Print information along iterations.</span>
 
@@ -459,6 +464,156 @@
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;RBCD Iteration: &#39;</span><span class="p">,</span> <span class="nb">iter</span><span class="p">,</span> <span class="s1">&#39; error&#39;</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> fval: &#39;</span><span class="p">,</span> <span class="n">f_val</span><span class="p">)</span>
 
         <span class="nb">iter</span> <span class="o">=</span> <span class="nb">iter</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">pi</span><span class="p">,</span> <span class="n">U</span></div>
+
+
+<div class="viewcode-block" id="ewca"><a class="viewcode-back" href="../../gen_modules/ot.dr.html#ot.dr.ewca">[docs]</a><span class="k">def</span> <span class="nf">ewca</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">U0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;BCD&#39;</span><span class="p">,</span> <span class="n">sinkhorn_method</span><span class="o">=</span><span class="s1">&#39;sinkhorn&#39;</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">maxiter_sink</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">maxiter_MM</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Entropic Wasserstein Component Analysis :ref:`[52] &lt;references-entropic-wasserstein-component_analysis&gt;`.</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{U} = \mathop{\arg \min}_\mathbf{U} \quad</span>
+<span class="sd">        W(\mathbf{X}, \mathbf{U}\mathbf{U}^T \mathbf{X})</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{U}` is a matrix in the Stiefel(`p`, `d`) manifold</span>
+<span class="sd">    - :math:`W` is entropic regularized Wasserstein distances</span>
+<span class="sd">    - :math:`\mathbf{X}` are samples</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : ndarray, shape (n, d)</span>
+<span class="sd">        Samples from measure :math:`\mu`.</span>
+<span class="sd">    U0 : ndarray, shape (d, k), optional</span>
+<span class="sd">        Initial starting point for projection.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Regularization term &gt;0 (entropic regularization).</span>
+<span class="sd">    k : int, optional</span>
+<span class="sd">        Subspace dimension.</span>
+<span class="sd">    method : str, optional</span>
+<span class="sd">        Eather &#39;BCD&#39; or &#39;MM&#39; (Block Coordinate Descent or Majorization-Minimization).</span>
+<span class="sd">        Prefer MM when d is large.</span>
+<span class="sd">    sinkhorn_method : str</span>
+<span class="sd">        Method used for the Sinkhorn solver, see :ref:`ot.bregman.sinkhorn` for more details.</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0).</span>
+<span class="sd">    maxiter : int, optional</span>
+<span class="sd">        Maximum number of iterations of the BCD/MM.</span>
+<span class="sd">    maxiter_sink : int, optional</span>
+<span class="sd">        Maximum number of iterations of the Sinkhorn solver.</span>
+<span class="sd">    maxiter_MM : int, optional</span>
+<span class="sd">        Maximum number of iterations of the MM (only used when method=&#39;MM&#39;).</span>
+<span class="sd">    verbose : int, optional</span>
+<span class="sd">        Print information along iterations.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pi : ndarray, shape (n, n)</span>
+<span class="sd">        Optimal transportation matrix for the given parameters.</span>
+<span class="sd">    U : ndarray, shape (d, k)</span>
+<span class="sd">        Matrix Stiefel manifold.</span>
+
+
+<span class="sd">    .. _references-entropic-wasserstein-component_analysis:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [52] Collas, A., Vayer, T., Flamary, F., &amp; Breloy, A. (2023).</span>
+<span class="sd">            Entropic Wasserstein Component Analysis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">U0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pca_fitted</span> <span class="o">=</span> <span class="n">PCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">pca_fitted</span><span class="o">.</span><span class="n">components_</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;MM&#39;</span><span class="p">:</span>
+            <span class="n">lambda_scm</span> <span class="o">=</span> <span class="n">pca_fitted</span><span class="o">.</span><span class="n">explained_variance_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">U0</span>
+
+    <span class="c1"># marginals</span>
+    <span class="n">u0</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+    <span class="c1"># print iterations</span>
+    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:4s}</span><span class="s1">|</span><span class="si">{:13s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">,</span> <span class="s1">&#39;Crit.&#39;</span><span class="p">,</span> <span class="s1">&#39;Thres.&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">40</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">pi</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pi</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">grassmann_distance</span><span class="p">(</span><span class="n">U1</span><span class="p">,</span> <span class="n">U2</span><span class="p">):</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="n">U1</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">U2</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
+        <span class="n">s</span><span class="p">[</span><span class="n">s</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="c1"># loop</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">crit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">sinkhorn_warmstart</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">it</span> <span class="o">&lt;</span> <span class="n">maxiter</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">crit</span> <span class="o">&gt;</span> <span class="n">stopThr</span><span class="p">):</span>
+        <span class="n">U_old</span> <span class="o">=</span> <span class="n">U</span>
+
+        <span class="c1"># Solve transport</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist_utils</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="n">X</span> <span class="o">@</span> <span class="n">U</span><span class="p">)</span> <span class="o">@</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">pi</span><span class="p">,</span> <span class="n">log_sinkhorn</span> <span class="o">=</span> <span class="n">sinkhorn_bregman</span><span class="p">(</span>
+            <span class="n">u0</span><span class="p">,</span> <span class="n">u0</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span>
+            <span class="n">numItermax</span><span class="o">=</span><span class="n">maxiter_sink</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">sinkhorn_method</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">sinkhorn_warmstart</span><span class="p">,</span>
+            <span class="n">warn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">key_warmstart</span> <span class="o">=</span> <span class="s1">&#39;warmstart&#39;</span>
+        <span class="k">if</span> <span class="n">key_warmstart</span> <span class="ow">in</span> <span class="n">log_sinkhorn</span><span class="p">:</span>
+            <span class="n">sinkhorn_warmstart</span> <span class="o">=</span> <span class="n">log_sinkhorn</span><span class="p">[</span><span class="n">key_warmstart</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">pi</span> <span class="o">&gt;=</span> <span class="mf">1e-300</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">compute_loss</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="c1"># Solve PCA</span>
+        <span class="n">pi_sym</span> <span class="o">=</span> <span class="p">(</span><span class="n">pi</span> <span class="o">+</span> <span class="n">pi</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;BCD&#39;</span><span class="p">:</span>
+            <span class="c1"># block coordinate descent</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi_sym</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">@</span> <span class="n">X</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;MM&#39;</span><span class="p">:</span>
+            <span class="c1"># majorization-minimization</span>
+            <span class="n">eig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">pi_sym</span><span class="p">)</span>
+            <span class="n">lambda_pi</span> <span class="o">=</span> <span class="n">eig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxiter_MM</span><span class="p">):</span>
+                <span class="n">X_proj</span> <span class="o">=</span> <span class="n">X</span> <span class="o">@</span> <span class="n">U</span>
+                <span class="n">X_T_X_proj</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">X_proj</span>
+
+                <span class="n">R</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">X_T_X_proj</span>
+                <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">lambda_pi</span>
+                <span class="k">if</span> <span class="n">alpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">R</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">R</span> <span class="o">-</span> <span class="n">lambda_scm</span> <span class="o">*</span> <span class="n">U</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">R</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">R</span>
+
+                <span class="n">R</span> <span class="o">=</span> <span class="n">R</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">pi_sym</span> <span class="o">@</span> <span class="n">X_proj</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">lambda_pi</span> <span class="o">*</span> <span class="n">X_T_X_proj</span><span class="p">)</span>
+                <span class="n">U</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39;, use &#39;BCD&#39; or &#39;MM&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># stop or not</span>
+        <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">crit</span> <span class="o">=</span> <span class="n">grassmann_distance</span><span class="p">(</span><span class="n">U_old</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+
+        <span class="c1"># print</span>
+        <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:4d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">crit</span><span class="p">,</span> <span class="n">stopThr</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">pi</span><span class="p">,</span> <span class="n">U</span></div>
 </pre></div>

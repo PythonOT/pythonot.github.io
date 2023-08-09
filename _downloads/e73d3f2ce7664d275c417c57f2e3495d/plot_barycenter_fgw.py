@@ -34,8 +34,8 @@ from ot.gromov import fgw_barycenters
 
 def find_thresh(C, inf=0.5, sup=3, step=10):
     """ Trick to find the adequate thresholds from where value of the C matrix are considered close enough to say that nodes are connected
-        Tthe threshold is found by a linesearch between values "inf" and "sup" with "step" thresholds tested.
-        The optimal threshold is the one which minimizes the reconstruction error between the shortest_path matrix coming from the thresholded adjency matrix
+        The threshold is found by a linesearch between values "inf" and "sup" with "step" thresholds tested.
+        The optimal threshold is the one which minimizes the reconstruction error between the shortest_path matrix coming from the thresholded adjacency matrix
         and the original matrix.
     Parameters
     ----------
@@ -51,15 +51,15 @@ def find_thresh(C, inf=0.5, sup=3, step=10):
     dist = []
     search = np.linspace(inf, sup, step)
     for thresh in search:
-        Cprime = sp_to_adjency(C, 0, thresh)
+        Cprime = sp_to_adjacency(C, 0, thresh)
         SC = shortest_path(Cprime, method='D')
         SC[SC == float('inf')] = 100
         dist.append(np.linalg.norm(SC - C))
     return search[np.argmin(dist)], dist
 
 
-def sp_to_adjency(C, threshinf=0.2, threshsup=1.8):
-    """ Thresholds the structure matrix in order to compute an adjency matrix.
+def sp_to_adjacency(C, threshinf=0.2, threshsup=1.8):
+    """ Thresholds the structure matrix in order to compute an adjacency matrix.
     All values between threshinf and threshsup are considered representing connected nodes and set to 1. Else are set to 0
     Parameters
     ----------
@@ -161,7 +161,7 @@ plt.show()
 
 #%% We compute the barycenter using FGW. Structure matrices are computed using the shortest_path distance in the graph
 # Features distances are the euclidean distances
-Cs = [shortest_path(nx.adjacency_matrix(x)) for x in X0]
+Cs = [shortest_path(nx.adjacency_matrix(x).todense()) for x in X0]
 ps = [np.ones(len(x.nodes())) / len(x.nodes()) for x in X0]
 Ys = [np.array([v for (k, v) in nx.get_node_attributes(x, 'attr_name').items()]).reshape(-1, 1) for x in X0]
 lambdas = np.array([np.ones(len(Ys)) / len(Ys)]).ravel()
@@ -174,7 +174,7 @@ A, C, log = fgw_barycenters(sizebary, Ys, Cs, ps, lambdas, alpha=0.95, log=True)
 # -------------------------
 
 #%% Create the barycenter
-bary = nx.from_numpy_array(sp_to_adjency(C, threshinf=0, threshsup=find_thresh(C, sup=100, step=100)[0]))
+bary = nx.from_numpy_array(sp_to_adjacency(C, threshinf=0, threshsup=find_thresh(C, sup=100, step=100)[0]))
 for i, v in enumerate(A.ravel()):
     bary.add_node(i, attr_name=v)
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.lp.solver_1d &mdash; POT Python Optimal Transport 0.9.0 documentation</title>
+  <title>ot.lp.solver_1d &mdash; POT Python Optimal Transport 0.9.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
@@ -37,7 +37,7 @@
               <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.0
+                0.9.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -123,7 +123,7 @@
     <span class="n">n</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
         <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
-        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="c1"># and avoid a warning related to non-contiguous arrays</span>
         <span class="n">cws</span> <span class="o">=</span> <span class="n">cws</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
         <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
@@ -220,7 +220,7 @@
 
 
 <div class="viewcode-block" id="emd_1d"><a class="viewcode-back" href="../../../gen_modules/ot.lp.html#ot.emd_1d">[docs]</a><span class="k">def</span> <span class="nf">emd_1d</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-           <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+           <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem between 1d measures and returns</span>
 <span class="sd">    the OT matrix</span>
 
@@ -231,6 +231,7 @@
 <span class="sd">        s.t. \gamma 1 = a,</span>
 <span class="sd">             \gamma^T 1= b,</span>
 <span class="sd">             \gamma\geq 0</span>
+
 <span class="sd">    where :</span>
 
 <span class="sd">    - d is the metric</span>
@@ -266,6 +267,9 @@
 <span class="sd">    log: boolean, optional (default=False)</span>
 <span class="sd">        If True, returns a dictionary containing the cost.</span>
 <span class="sd">        Otherwise returns only the optimal transportation matrix.</span>
+<span class="sd">    check_marginals: bool, optional (default=True)</span>
+<span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
+<span class="sd">        check.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -320,11 +324,13 @@
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x_b</span><span class="p">)</span> <span class="o">/</span> <span class="n">x_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="c1"># ensure that same mass</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
-        <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
+            <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span>
+        <span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 
     <span class="n">x_a_1d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
@@ -369,6 +375,7 @@
 <span class="sd">        s.t. \gamma 1 = a,</span>
 <span class="sd">             \gamma^T 1= b,</span>
 <span class="sd">             \gamma\geq 0</span>
+
 <span class="sd">    where :</span>
 
 <span class="sd">    - d is the metric</span>
@@ -487,7 +494,7 @@
 
     <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
-    <span class="n">arange1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_cols</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">)),</span> <span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">arange1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_cols</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">shifts</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">)),</span> <span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">arange2</span> <span class="o">=</span> <span class="p">(</span><span class="n">arange1</span> <span class="o">-</span> <span class="n">shifts</span><span class="p">)</span> <span class="o">%</span> <span class="n">n_cols</span>
 
     <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">arange2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -550,7 +557,7 @@
 
     <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
         <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
-        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="c1"># and avoid a warning related to non-contiguous arrays</span>
         <span class="n">u_cdf</span> <span class="o">=</span> <span class="n">u_cdf</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
         <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf_theta</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
 
@@ -564,7 +571,7 @@
 
     <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
         <span class="c1"># this is to ensure the best performance for torch searchsorted</span>
-        <span class="c1"># and avoid a warninng related to non-contiguous arrays</span>
+        <span class="c1"># and avoid a warning related to non-contiguous arrays</span>
         <span class="n">u_cdfm</span> <span class="o">=</span> <span class="n">u_cdfm</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
         <span class="n">v_cdf_theta</span> <span class="o">=</span> <span class="n">v_cdf_theta</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
 
@@ -686,7 +693,7 @@
 
 <span class="sd">    using e.g. ot.utils.get_coordinate_circle(x)</span>
 
-<span class="sd">    The function runs on backend but tensorflow is not supported.</span>
+<span class="sd">    The function runs on backend but tensorflow and jax are not supported.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -751,8 +758,8 @@
 
     <span class="k">if</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;u and v must have the same number of batchs </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                                                                                              <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="s2">&quot;u and v must have the same number of batches </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                                                                               <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 
     <span class="n">u_values</span> <span class="o">=</span> <span class="n">u_values</span> <span class="o">%</span> <span class="mi">1</span>
     <span class="n">v_values</span> <span class="o">=</span> <span class="n">v_values</span> <span class="o">%</span> <span class="mi">1</span>
@@ -816,7 +823,7 @@
             <span class="n">tp</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dCp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tc</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dCp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
             <span class="n">tc</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tm</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tp</span><span class="p">[((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
 
-    <span class="n">w</span> <span class="o">=</span> <span class="n">ot_cost_on_circle</span><span class="p">(</span><span class="n">tc</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">ot_cost_on_circle</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">tc</span><span class="p">),</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_cdf</span><span class="p">,</span> <span class="n">v_cdf</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;optimal_theta&quot;</span><span class="p">:</span> <span class="n">tc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]}</span>
@@ -829,7 +836,7 @@
 <span class="sd">    takes the value modulo 1.</span>
 <span class="sd">    If the values are on :math:`S^1\subset\mathbb{R}^2`, first find the coordinates</span>
 <span class="sd">    using e.g. the atan2 function.</span>
-<span class="sd">    The function runs on backend but tensorflow is not supported.</span>
+<span class="sd">    The function runs on backend but tensorflow and jax are not supported.</span>
 
 <span class="sd">    .. math::</span>
 <span class="sd">        W_1(u,v) = \int_0^1 |F_u(t)-F_v(t)-LevMed(F_u-F_v)|\ \mathrm{d}t</span>
@@ -950,7 +957,7 @@
 
 <span class="sd">    using e.g. ot.utils.get_coordinate_circle(x)</span>
 
-<span class="sd">    The function runs on backend but tensorflow is not supported.</span>
+<span class="sd">    The function runs on backend but tensorflow and jax are not supported.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
