@@ -93,9 +93,10 @@
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
+<span class="kn">import</span> <span class="nn">warnings</span>
+
 <span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dots</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dots</span><span class="p">,</span> <span class="n">is_all_finite</span><span class="p">,</span> <span class="n">list_to_array</span>
 
 
 <div class="viewcode-block" id="bures_wasserstein_mapping"><a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.bures_wasserstein_mapping">[docs]</a><span class="k">def</span> <span class="nf">bures_wasserstein_mapping</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -240,6 +241,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">is_input_finite</span> <span class="o">=</span> <span class="n">is_all_finite</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
 
     <span class="n">d</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
@@ -264,11 +266,19 @@
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">bures_wasserstein_mapping</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bures_wasserstein_mapping</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_input_finite</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_all_finite</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Numerical errors were encountered in ot.gaussian.empirical_bures_wasserstein_mapping. &quot;</span>
+            <span class="s2">&quot;Consider increasing the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Cs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cs</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Ct&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ct</span>
         <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bures_wasserstein_mapping</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span></div>
 
 
@@ -325,6 +335,7 @@
 
     <span class="n">B</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">Cs</span> <span class="o">+</span> <span class="n">Ct</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">Cs12</span><span class="p">,</span> <span class="n">Ct</span><span class="p">,</span> <span class="n">Cs12</span><span class="p">)))</span>
     <span class="n">W</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ms</span> <span class="o">-</span> <span class="n">mt</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">B</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;Cs12&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cs12</span>
