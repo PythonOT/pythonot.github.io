@@ -95,7 +95,7 @@
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">check_random_state</span>
 <span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 <span class="c1">##############################################################################</span>
@@ -159,7 +159,7 @@
 
 <div class="viewcode-block" id="sag_entropic_transport">
 <a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.sag_entropic_transport">[docs]</a>
-<span class="k">def</span> <span class="nf">sag_entropic_transport</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">sag_entropic_transport</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compute the SAG algorithm to solve the regularized discrete measures optimal transport max problem</span>
 
@@ -200,6 +200,9 @@
 <span class="sd">        Number of iteration.</span>
 <span class="sd">    lr : float</span>
 <span class="sd">        Learning rate.</span>
+<span class="sd">    random_state : int, RandomState instance or None, default=None</span>
+<span class="sd">        Determines random number generation. Pass an int for reproducible</span>
+<span class="sd">        output across multiple function calls.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -219,8 +222,9 @@
     <span class="n">cur_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_target</span><span class="p">)</span>
     <span class="n">stored_gradient</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_source</span><span class="p">,</span> <span class="n">n_target</span><span class="p">))</span>
     <span class="n">sum_stored_gradient</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_target</span><span class="p">)</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">n_source</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">n_source</span><span class="p">)</span>
         <span class="n">cur_coord_grad</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">coordinate_grad_semi_dual</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span>
                                                           <span class="n">cur_beta</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="n">sum_stored_gradient</span> <span class="o">+=</span> <span class="p">(</span><span class="n">cur_coord_grad</span> <span class="o">-</span> <span class="n">stored_gradient</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
@@ -232,7 +236,7 @@
 
 <div class="viewcode-block" id="averaged_sgd_entropic_transport">
 <a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.averaged_sgd_entropic_transport">[docs]</a>
-<span class="k">def</span> <span class="nf">averaged_sgd_entropic_transport</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">300000</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">averaged_sgd_entropic_transport</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">300000</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Compute the ASGD algorithm to solve the regularized semi continous measures optimal transport max problem</span>
 
@@ -270,6 +274,9 @@
 <span class="sd">        Number of iteration.</span>
 <span class="sd">    lr : float</span>
 <span class="sd">        Learning rate.</span>
+<span class="sd">    random_state : int, RandomState instance or None, default=None</span>
+<span class="sd">        Determines random number generation. Pass an int for reproducible</span>
+<span class="sd">        output across multiple function calls.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -288,9 +295,10 @@
     <span class="n">n_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">M</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">cur_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_target</span><span class="p">)</span>
     <span class="n">ave_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_target</span><span class="p">)</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">cur_iter</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">cur_iter</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">n_source</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">n_source</span><span class="p">)</span>
         <span class="n">cur_coord_grad</span> <span class="o">=</span> <span class="n">coordinate_grad_semi_dual</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">cur_beta</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="n">cur_beta</span> <span class="o">+=</span> <span class="p">(</span><span class="n">lr</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="o">*</span> <span class="n">cur_coord_grad</span>
         <span class="n">ave_beta</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">cur_beta</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">ave_beta</span>
@@ -527,7 +535,7 @@
 
 <div class="viewcode-block" id="sgd_entropic_regularization">
 <a class="viewcode-back" href="../../gen_modules/ot.stochastic.html#ot.stochastic.sgd_entropic_regularization">[docs]</a>
-<span class="k">def</span> <span class="nf">sgd_entropic_regularization</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">sgd_entropic_regularization</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Compute the sgd algorithm to solve the regularized discrete measures optimal transport dual problem</span>
 
@@ -565,6 +573,9 @@
 <span class="sd">        number of iteration</span>
 <span class="sd">    lr : float</span>
 <span class="sd">        learning rate</span>
+<span class="sd">    random_state : int, RandomState instance or None, default=None</span>
+<span class="sd">        Determines random number generation. Pass an int for reproducible</span>
+<span class="sd">        output across multiple function calls.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -582,10 +593,11 @@
     <span class="n">n_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">M</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">cur_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_source</span><span class="p">)</span>
     <span class="n">cur_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_target</span><span class="p">)</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">cur_iter</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">cur_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">batch_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">n_source</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">batch_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">n_target</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">batch_alpha</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">n_source</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">batch_beta</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">n_target</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">update_alpha</span><span class="p">,</span> <span class="n">update_beta</span> <span class="o">=</span> <span class="n">batch_grad_dual</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">cur_alpha</span><span class="p">,</span>
                                                     <span class="n">cur_beta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
                                                     <span class="n">batch_alpha</span><span class="p">,</span> <span class="n">batch_beta</span><span class="p">)</span>

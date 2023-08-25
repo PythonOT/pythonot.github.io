@@ -110,7 +110,7 @@
 <span class="kn">import</span> <span class="nn">pymanopt.optimizers</span>
 
 <span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span> <span class="k">as</span> <span class="n">sinkhorn_bregman</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span> <span class="k">as</span> <span class="n">dist_utils</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span> <span class="k">as</span> <span class="n">dist_utils</span><span class="p">,</span> <span class="n">check_random_state</span>
 
 
 <div class="viewcode-block" id="dist">
@@ -375,7 +375,7 @@
 
 <div class="viewcode-block" id="projection_robust_wasserstein">
 <a class="viewcode-back" href="../../gen_modules/ot.dr.html#ot.dr.projection_robust_wasserstein">[docs]</a>
-<span class="k">def</span> <span class="nf">projection_robust_wasserstein</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">U0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">projection_robust_wasserstein</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">U0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Projection Robust Wasserstein Distance :ref:`[32] &lt;references-projection-robust-wasserstein&gt;`</span>
 
@@ -411,6 +411,9 @@
 <span class="sd">        Stop threshold on error (&gt;0)</span>
 <span class="sd">    verbose : int, optional</span>
 <span class="sd">        Print information along iterations.</span>
+<span class="sd">    random_state : int, RandomState instance or None, default=None</span>
+<span class="sd">        Determines random number generation for initial value of projection</span>
+<span class="sd">        operator when U0 is not given.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -440,7 +443,8 @@
     <span class="k">assert</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="n">k</span>
 
     <span class="k">if</span> <span class="n">U0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
         <span class="n">U</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">U</span> <span class="o">=</span> <span class="n">U0</span>
