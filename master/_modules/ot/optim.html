@@ -114,7 +114,7 @@
 <a class="viewcode-back" href="../../gen_modules/ot.optim.html#ot.optim.line_search_armijo">[docs]</a>
 <span class="k">def</span> <span class="nf">line_search_armijo</span><span class="p">(</span>
     <span class="n">f</span><span class="p">,</span> <span class="n">xk</span><span class="p">,</span> <span class="n">pk</span><span class="p">,</span> <span class="n">gfk</span><span class="p">,</span> <span class="n">old_fval</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(),</span> <span class="n">c1</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
-    <span class="n">alpha0</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="n">alpha0</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">alpha_min</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">alpha_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Armijo linesearch function that works with matrices</span>
@@ -143,7 +143,7 @@
 <span class="sd">        :math:`c_1` const in armijo rule (&gt;0)</span>
 <span class="sd">    alpha0 : float, optional</span>
 <span class="sd">        initial step (&gt;0)</span>
-<span class="sd">    alpha_min : float, optional</span>
+<span class="sd">    alpha_min : float, default=0.</span>
 <span class="sd">        minimum value for alpha</span>
 <span class="sd">    alpha_max : float, optional</span>
 <span class="sd">        maximum value for alpha</span>
@@ -176,6 +176,14 @@
     <span class="n">fc</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">phi</span><span class="p">(</span><span class="n">alpha1</span><span class="p">):</span>
+        <span class="c1"># it&#39;s necessary to check boundary condition here for the coefficient</span>
+        <span class="c1"># as the callback could be evaluated for negative value of alpha by</span>
+        <span class="c1"># `scalar_search_armijo` function here:</span>
+        <span class="c1">#</span>
+        <span class="c1"># https://github.com/scipy/scipy/blob/11509c4a98edded6c59423ac44ca1b7f28fba1fd/scipy/optimize/linesearch.py#L686</span>
+        <span class="c1">#</span>
+        <span class="c1"># see more details https://github.com/PythonOT/POT/issues/502</span>
+        <span class="n">alpha1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha1</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
         <span class="c1"># The callable function operates on nx backend</span>
         <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">alpha10</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alpha1</span><span class="p">)</span>
@@ -196,13 +204,12 @@
 
     <span class="n">derphi0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pk</span> <span class="o">*</span> <span class="n">gfk</span><span class="p">)</span>  <span class="c1"># Quickfix for matrices</span>
     <span class="n">alpha</span><span class="p">,</span> <span class="n">phi1</span> <span class="o">=</span> <span class="n">scalar_search_armijo</span><span class="p">(</span>
-        <span class="n">phi</span><span class="p">,</span> <span class="n">phi0</span><span class="p">,</span> <span class="n">derphi0</span><span class="p">,</span> <span class="n">c1</span><span class="o">=</span><span class="n">c1</span><span class="p">,</span> <span class="n">alpha0</span><span class="o">=</span><span class="n">alpha0</span><span class="p">)</span>
+        <span class="n">phi</span><span class="p">,</span> <span class="n">phi0</span><span class="p">,</span> <span class="n">derphi0</span><span class="p">,</span> <span class="n">c1</span><span class="o">=</span><span class="n">c1</span><span class="p">,</span> <span class="n">alpha0</span><span class="o">=</span><span class="n">alpha0</span><span class="p">,</span> <span class="n">amin</span><span class="o">=</span><span class="n">alpha_min</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">phi0</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xk0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">alpha_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_min</span><span class="p">,</span> <span class="n">alpha_max</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xk0</span><span class="p">),</span> <span class="n">fc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">phi1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xk0</span><span class="p">)</span></div>
 
 
