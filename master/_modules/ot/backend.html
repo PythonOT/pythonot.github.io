@@ -172,43 +172,67 @@
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">scipy</span>
 <span class="kn">import</span> <span class="nn">scipy.linalg</span>
-<span class="kn">import</span> <span class="nn">scipy.special</span> <span class="k">as</span> <span class="nn">special</span>
 <span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">issparse</span><span class="p">,</span> <span class="n">coo_matrix</span><span class="p">,</span> <span class="n">csr_matrix</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">scipy.special</span> <span class="k">as</span> <span class="nn">special</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">torch</span>
-    <span class="n">torch_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+
+<span class="n">DISABLE_TORCH_KEY</span> <span class="o">=</span> <span class="s1">&#39;POT_BACKEND_DISABLE_PYTORCH&#39;</span>
+<span class="n">DISABLE_JAX_KEY</span> <span class="o">=</span> <span class="s1">&#39;POT_BACKEND_DISABLE_JAX&#39;</span>
+<span class="n">DISABLE_CUPY_KEY</span> <span class="o">=</span> <span class="s1">&#39;POT_BACKEND_DISABLE_CUPY&#39;</span>
+<span class="n">DISABLE_TF_KEY</span> <span class="o">=</span> <span class="s1">&#39;POT_BACKEND_DISABLE_TENSORFLOW&#39;</span>
+
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">DISABLE_TORCH_KEY</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">torch</span>
+        <span class="n">torch_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">torch</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">torch_type</span> <span class="o">=</span> <span class="nb">float</span>
+<span class="k">else</span><span class="p">:</span>
     <span class="n">torch</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">torch_type</span> <span class="o">=</span> <span class="nb">float</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">jax</span>
-    <span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
-    <span class="kn">import</span> <span class="nn">jax.scipy.special</span> <span class="k">as</span> <span class="nn">jspecial</span>
-    <span class="kn">from</span> <span class="nn">jax.lib</span> <span class="kn">import</span> <span class="n">xla_bridge</span>
-    <span class="n">jax_type</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">DISABLE_JAX_KEY</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">jax</span>
+        <span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+        <span class="kn">import</span> <span class="nn">jax.scipy.special</span> <span class="k">as</span> <span class="nn">jspecial</span>
+        <span class="kn">from</span> <span class="nn">jax.lib</span> <span class="kn">import</span> <span class="n">xla_bridge</span>
+        <span class="n">jax_type</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">jax</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">jax_type</span> <span class="o">=</span> <span class="nb">float</span>
+<span class="k">else</span><span class="p">:</span>
     <span class="n">jax</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">jax_type</span> <span class="o">=</span> <span class="nb">float</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">cp</span>
-    <span class="kn">import</span> <span class="nn">cupyx</span>
-    <span class="n">cp_type</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">DISABLE_CUPY_KEY</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">cp</span>
+        <span class="kn">import</span> <span class="nn">cupyx</span>
+        <span class="n">cp_type</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">cp</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">cp_type</span> <span class="o">=</span> <span class="nb">float</span>
+<span class="k">else</span><span class="p">:</span>
     <span class="n">cp</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">cp_type</span> <span class="o">=</span> <span class="nb">float</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
-    <span class="kn">import</span> <span class="nn">tensorflow.experimental.numpy</span> <span class="k">as</span> <span class="nn">tnp</span>
-    <span class="n">tf_type</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">DISABLE_TF_KEY</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+        <span class="kn">import</span> <span class="nn">tensorflow.experimental.numpy</span> <span class="k">as</span> <span class="nn">tnp</span>
+        <span class="n">tf_type</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">tf</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">tf_type</span> <span class="o">=</span> <span class="nb">float</span>
+<span class="k">else</span><span class="p">:</span>
     <span class="n">tf</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">tf_type</span> <span class="o">=</span> <span class="nb">float</span>
 
@@ -217,32 +241,57 @@
 
 
 <span class="c1"># Mapping between argument types and the existing backend</span>
-<span class="n">_BACKENDS</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">_BACKEND_IMPLEMENTATIONS</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">_BACKENDS</span> <span class="o">=</span> <span class="p">{}</span>
 
 
-<div class="viewcode-block" id="register_backend">
-<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.register_backend">[docs]</a>
-<span class="k">def</span> <span class="nf">register_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">):</span>
-    <span class="n">_BACKENDS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span></div>
+<span class="k">def</span> <span class="nf">_register_backend_implementation</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">):</span>
+    <span class="n">_BACKEND_IMPLEMENTATIONS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">)</span>
 
+
+<span class="k">def</span> <span class="nf">_get_backend_instance</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">backend_impl</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_BACKENDS</span><span class="p">:</span>
+        <span class="n">_BACKENDS</span><span class="p">[</span><span class="n">backend_impl</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">backend_impl</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_BACKENDS</span><span class="p">[</span><span class="n">backend_impl</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_check_args_backend</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">is_instance</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">backend_impl</span><span class="o">.</span><span class="n">__type__</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+    <span class="c1"># check that all arguments matched or not the type</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_instance</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">is_instance</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+    <span class="c1"># Otherwise return an error</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">str_type_error</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]))</span>
 
 
 <div class="viewcode-block" id="get_backend_list">
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.get_backend_list">[docs]</a>
 <span class="k">def</span> <span class="nf">get_backend_list</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the list of available backends&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_BACKENDS</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns instances of all available backends.</span>
+
+<span class="sd">    Note that the function forces all detected implementations</span>
+<span class="sd">    to be instantiated even if specific backend was not use before.</span>
+<span class="sd">    Be careful as instantiation of the backend might lead to side effects,</span>
+<span class="sd">    like GPU memory pre-allocation. See the documentation for more details.</span>
+<span class="sd">    If you only need to know which implementations are available,</span>
+<span class="sd">    use `:py:func:`ot.backend.get_available_backend_implementations`,</span>
+<span class="sd">    which does not force instance of the backend object to be created.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">_get_backend_instance</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">backend_impl</span>
+        <span class="ow">in</span> <span class="n">get_available_backend_implementations</span><span class="p">()</span>
+    <span class="p">]</span></div>
 
 
 
-<span class="k">def</span> <span class="nf">_check_args_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-    <span class="n">is_instance</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">backend</span><span class="o">.</span><span class="n">__type__</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
-    <span class="c1"># check that all arguments matched or not the type</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_instance</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">is_instance</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+<div class="viewcode-block" id="get_available_backend_implementations">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.get_available_backend_implementations">[docs]</a>
+<span class="k">def</span> <span class="nf">get_available_backend_implementations</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the list of available backend implementations.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_BACKEND_IMPLEMENTATIONS</span></div>
 
-    <span class="c1"># Oterwise return an error</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">str_type_error</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]))</span>
 
 
 <div class="viewcode-block" id="get_backend">
@@ -260,9 +309,9 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; The function takes at least one (non-None) parameter&quot;</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">backend</span> <span class="ow">in</span> <span class="n">_BACKENDS</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">_check_args_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">backend</span>
+    <span class="k">for</span> <span class="n">backend_impl</span> <span class="ow">in</span> <span class="n">_BACKEND_IMPLEMENTATIONS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_check_args_backend</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_get_backend_instance</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">)</span>
 
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown type of non implemented backend.&quot;</span><span class="p">)</span></div>
 
@@ -1930,7 +1979,7 @@
 
 
 
-<span class="n">register_backend</span><span class="p">(</span><span class="n">NumpyBackend</span><span class="p">())</span>
+<span class="n">_register_backend_implementation</span><span class="p">(</span><span class="n">NumpyBackend</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="JaxBackend">
@@ -2542,7 +2591,7 @@
 
 <span class="k">if</span> <span class="n">jax</span><span class="p">:</span>
     <span class="c1"># Only register jax backend if it is installed</span>
-    <span class="n">register_backend</span><span class="p">(</span><span class="n">JaxBackend</span><span class="p">())</span>
+    <span class="n">_register_backend_implementation</span><span class="p">(</span><span class="n">JaxBackend</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="TorchBackend">
@@ -3268,7 +3317,7 @@
 
 <span class="k">if</span> <span class="n">torch</span><span class="p">:</span>
     <span class="c1"># Only register torch backend if it is installed</span>
-    <span class="n">register_backend</span><span class="p">(</span><span class="n">TorchBackend</span><span class="p">())</span>
+    <span class="n">_register_backend_implementation</span><span class="p">(</span><span class="n">TorchBackend</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="CupyBackend">
@@ -3904,7 +3953,7 @@
 
 <span class="k">if</span> <span class="n">cp</span><span class="p">:</span>
     <span class="c1"># Only register cp backend if it is installed</span>
-    <span class="n">register_backend</span><span class="p">(</span><span class="n">CupyBackend</span><span class="p">())</span>
+    <span class="n">_register_backend_implementation</span><span class="p">(</span><span class="n">CupyBackend</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="TensorflowBackend">
@@ -4567,7 +4616,7 @@
 
 <span class="k">if</span> <span class="n">tf</span><span class="p">:</span>
     <span class="c1"># Only register tensorflow backend if it is installed</span>
-    <span class="n">register_backend</span><span class="p">(</span><span class="n">TensorflowBackend</span><span class="p">())</span>
+    <span class="n">_register_backend_implementation</span><span class="p">(</span><span class="n">TensorflowBackend</span><span class="p">)</span>
 </pre></div>
 
            </div>
