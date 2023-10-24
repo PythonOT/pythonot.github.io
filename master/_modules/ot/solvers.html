@@ -99,6 +99,14 @@
 <span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn_log</span>
 <span class="kn">from</span> <span class="nn">.partial</span> <span class="kn">import</span> <span class="n">partial_wasserstein_lagrange</span>
 <span class="kn">from</span> <span class="nn">.smooth</span> <span class="kn">import</span> <span class="n">smooth_ot_dual</span>
+<span class="kn">from</span> <span class="nn">.gromov</span> <span class="kn">import</span> <span class="p">(</span><span class="n">gromov_wasserstein2</span><span class="p">,</span> <span class="n">fused_gromov_wasserstein2</span><span class="p">,</span>
+                     <span class="n">entropic_gromov_wasserstein2</span><span class="p">,</span> <span class="n">entropic_fused_gromov_wasserstein2</span><span class="p">,</span>
+                     <span class="n">semirelaxed_gromov_wasserstein2</span><span class="p">,</span> <span class="n">semirelaxed_fused_gromov_wasserstein2</span><span class="p">,</span>
+                     <span class="n">entropic_semirelaxed_fused_gromov_wasserstein2</span><span class="p">,</span>
+                     <span class="n">entropic_semirelaxed_gromov_wasserstein2</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.partial</span> <span class="kn">import</span> <span class="n">partial_gromov_wasserstein2</span><span class="p">,</span> <span class="n">entropic_partial_gromov_wasserstein2</span>
+
+<span class="c1">#, entropic_gromov_wasserstein2, entropic_fused_gromov_wasserstein2</span>
 
 
 <div class="viewcode-block" id="solve">
@@ -138,11 +146,11 @@
 <span class="sd">        Unbalanced penalization weight :math:`\lambda_u`, by default None</span>
 <span class="sd">        (balanced OT)</span>
 <span class="sd">    unbalanced_type : str, optional</span>
-<span class="sd">        Type of unbalanced penalization unction :math:`U`  either &quot;KL&quot;, &quot;L2&quot;, &quot;TV&quot;, by default &quot;KL&quot;</span>
+<span class="sd">        Type of unbalanced penalization function :math:`U`  either &quot;KL&quot;, &quot;L2&quot;, &quot;TV&quot;, by default &quot;KL&quot;</span>
 <span class="sd">    n_threads : int, optional</span>
 <span class="sd">        Number of OMP threads for exact OT solver, by default 1</span>
 <span class="sd">    max_iter : int, optional</span>
-<span class="sd">        Maximum number of iteration, by default None (default values in each solvers)</span>
+<span class="sd">        Maximum number of iterations, by default None (default values in each solvers)</span>
 <span class="sd">    plan_init : array_like, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of the OT plan for iterative methods, by default None</span>
 <span class="sd">    potentials_init : (array_like(dim_a,),array_like(dim_b,)), optional</span>
@@ -430,6 +438,504 @@
 
     <span class="n">res</span> <span class="o">=</span> <span class="n">OTResult</span><span class="p">(</span><span class="n">potentials</span><span class="o">=</span><span class="n">potentials</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
                    <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="solve_gromov">
+<a class="viewcode-back" href="../../all.html#ot.solve_gromov">[docs]</a>
+<span class="k">def</span> <span class="nf">solve_gromov</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;L2&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;entropy&quot;</span><span class="p">,</span> <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unbalanced_type</span><span class="o">=</span><span class="s1">&#39;KL&#39;</span><span class="p">,</span>
+                 <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plan_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Solve the discrete (Fused) Gromov-Wasserstein and return :any:`OTResult` object</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} + \lambda_r R(\mathbf{T}) + \lambda_u U(\mathbf{T}\mathbf{1},\mathbf{a}) + \lambda_u U(\mathbf{T}^T\mathbf{1},\mathbf{b})</span>
+
+<span class="sd">    The regularization is selected with `reg` (:math:`\lambda_r`) and</span>
+<span class="sd">    `reg_type`. By default ``reg=None`` and there is no regularization. The</span>
+<span class="sd">    unbalanced marginal penalization can be selected with `unbalanced`</span>
+<span class="sd">    (:math:`\lambda_u`) and `unbalanced_type`. By default ``unbalanced=None``</span>
+<span class="sd">    and the function solves the exact optimal transport problem (respecting the</span>
+<span class="sd">    marginals).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ca : array_like, shape (dim_a, dim_a)</span>
+<span class="sd">        Cost matrix in the source domain</span>
+<span class="sd">    Cb : array_like, shape (dim_b, dim_b)</span>
+<span class="sd">        Cost matrix in the target domain</span>
+<span class="sd">    M : array_like, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Linear cost matrix for Fused Gromov-Wasserstein (default is None).</span>
+<span class="sd">    a : array-like, shape (dim_a,), optional</span>
+<span class="sd">        Samples weights in the source domain (default is uniform)</span>
+<span class="sd">    b : array-like, shape (dim_b,), optional</span>
+<span class="sd">        Samples weights in the source domain (default is uniform)</span>
+<span class="sd">    loss : str, optional</span>
+<span class="sd">        Type of loss function, either ``&quot;L2&quot;`` or ``&quot;KL&quot;``, by default ``&quot;L2&quot;``</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Use symmetric version of the Gromov-Wasserstein problem, by default None</span>
+<span class="sd">        tests whether the matrices are symmetric or True/False to avoid the test.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Regularization weight :math:`\lambda_r`, by default None (no reg., exact</span>
+<span class="sd">        OT)</span>
+<span class="sd">    reg_type : str, optional</span>
+<span class="sd">        Type of regularization :math:`R`, by default &quot;entropy&quot; (only used when</span>
+<span class="sd">        ``reg!=None``)</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Weight the quadratic term (alpha*Gromov) and the linear term</span>
+<span class="sd">        ((1-alpha)*Wass) in the Fused Gromov-Wasserstein problem. Not used for</span>
+<span class="sd">        Gromov problem (when M is not provided). By default ``alpha=None``</span>
+<span class="sd">        corresponds to ``alpha=1`` for Gromov problem (``M==None``) and</span>
+<span class="sd">        ``alpha=0.5`` for Fused Gromov-Wasserstein problem (``M!=None``)</span>
+<span class="sd">    unbalanced : float, optional</span>
+<span class="sd">        Unbalanced penalization weight :math:`\lambda_u`, by default None</span>
+<span class="sd">        (balanced OT), Not implemented yet</span>
+<span class="sd">    unbalanced_type : str, optional</span>
+<span class="sd">        Type of unbalanced penalization function :math:`U` either &quot;KL&quot;, &quot;semirelaxed&quot;,</span>
+<span class="sd">        &quot;partial&quot;, by default &quot;KL&quot; but note that it is not implemented yet.</span>
+<span class="sd">    n_threads : int, optional</span>
+<span class="sd">        Number of OMP threads for exact OT solver, by default 1</span>
+<span class="sd">    method : str, optional</span>
+<span class="sd">        Method for solving the problem, for entropic problems &quot;PGD&quot; is projected</span>
+<span class="sd">        gradient descent and &quot;PPA&quot; for proximal point, default None for</span>
+<span class="sd">        automatic selection (&quot;PGD&quot;).</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Maximum number of iterations, by default None (default values in each</span>
+<span class="sd">        solvers)</span>
+<span class="sd">    plan_init : array_like, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of the OT plan for iterative methods, by default None</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Tolerance for solution precision, by default None (default values in</span>
+<span class="sd">        each solvers)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information in the solver, by default False</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    res : OTResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.plan : OT plan :math:`\mathbf{T}`</span>
+<span class="sd">        - res.potentials : OT dual potentials</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+<span class="sd">        - res.value_quad : Quadratic (GW) part of the OT loss with the optimal OT plan</span>
+
+<span class="sd">        See :any:`OTResult` for more information.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The following methods are available for solving the Gromov-Wasserstein</span>
+<span class="sd">    problem:</span>
+
+<span class="sd">    - **Classical Gromov-Wasserstein (GW) problem [3]** (default parameters):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j}\mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T}^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve_gromov(Ca, Cb) # uniform weights</span>
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, a=a, b=b) # given weights</span>
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, loss=&#39;KL&#39;) # KL loss</span>
+
+<span class="sd">        plan = res.plan # GW plan</span>
+<span class="sd">        value = res.value # GW value</span>
+
+<span class="sd">    - **Fused Gromov-Wasserstein (FGW) problem [24]** (when ``M!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j}\mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T}^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, M) # uniform weights, alpha=0.5 (default)</span>
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, M, a=a, b=b, alpha=0.1) # given weights and alpha</span>
+
+<span class="sd">        plan = res.plan # FGW plan</span>
+<span class="sd">        loss_linear_term = res.value_linear # Wasserstein part of the loss</span>
+<span class="sd">        loss_quad_term = res.value_quad # Gromov part of the loss</span>
+<span class="sd">        loss = res.value # FGW value</span>
+
+<span class="sd">    - **Regularized (Fused) Gromov-Wasserstein (GW) problem [12]** (when  ``reg!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j}\mathbf{T}_{k,l} + \lambda_r R(\mathbf{T})</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T}^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, reg=1.0) # GW entropy regularization (default)</span>
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, M, a=a, b=b, reg=10, alpha=0.1) # FGW with entropy</span>
+
+<span class="sd">        plan = res.plan # FGW plan</span>
+<span class="sd">        loss_linear_term = res.value_linear # Wasserstein part of the loss</span>
+<span class="sd">        loss_quad_term = res.value_quad # Gromov part of the loss</span>
+<span class="sd">        loss = res.value # FGW value (including regularization)</span>
+
+<span class="sd">    - **Semi-relaxed (Fused) Gromov-Wasserstein (GW) [48]** (when  ``unbalanced=&#39;semirelaxed&#39;``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j}\mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \mathbf{T} \geq 0</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, unbalanced=&#39;semirelaxed&#39;) # semirelaxed GW</span>
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, unbalanced=&#39;semirelaxed&#39;, reg=1) # entropic semirelaxed GW</span>
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, M, unbalanced=&#39;semirelaxed&#39;, alpha=0.1) # semirelaxed FGW</span>
+
+<span class="sd">        plan = res.plan # FGW plan</span>
+<span class="sd">        right_marginal = res.marginal_b # right marginal of the plan</span>
+
+<span class="sd">    - **Partial (Fused) Gromov-Wasserstein (GW) problem [29]** (when  ``unbalanced=&#39;partial&#39;``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}\geq 0} \quad (1 - \alpha) \langle \mathbf{T}, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j}\mathbf{T}_{k,l}</span>
+
+<span class="sd">        s.t. \ \mathbf{T} \mathbf{1} \leq \mathbf{a}</span>
+
+<span class="sd">                \mathbf{T}^T \mathbf{1} \leq \mathbf{b}</span>
+
+<span class="sd">                \mathbf{T} \geq 0</span>
+
+<span class="sd">                \mathbf{1}^T\mathbf{T}\mathbf{1} = m</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve_gromov(Ca, Cb, unbalanced_type=&#39;partial&#39;, unbalanced=0.8) # partial GW with m=0.8</span>
+
+
+<span class="sd">    .. _references-solve-gromov:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [3] Mémoli, F. (2011). Gromov–Wasserstein distances and the metric</span>
+<span class="sd">        approach to object matching. Foundations of computational mathematics,</span>
+<span class="sd">        11(4), 417-487.</span>
+
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon (2016),</span>
+<span class="sd">        Gromov-Wasserstein averaging of kernel and distance matrices</span>
+<span class="sd">        International Conference on Machine Learning (ICML).</span>
+
+<span class="sd">    .. [24] Vayer, T., Chapel, L., Flamary, R., Tavenard, R. and Courty, N.</span>
+<span class="sd">        (2019). Optimal Transport for structured data with application on graphs</span>
+<span class="sd">        Proceedings of the 36th International Conference on Machine Learning</span>
+<span class="sd">        (ICML).</span>
+
+<span class="sd">    .. [48] Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer,</span>
+<span class="sd">        Nicolas Courty (2022). Semi-relaxed Gromov-Wasserstein divergence and</span>
+<span class="sd">        applications on graphs. International Conference on Learning</span>
+<span class="sd">        Representations (ICLR), 2022.</span>
+
+<span class="sd">    .. [29] Chapel, L., Alaya, M., Gasso, G. (2020). Partial Optimal Transport</span>
+<span class="sd">        with Applications on Positive-Unlabeled Learning, Advances in Neural</span>
+<span class="sd">        Information Processing Systems (NeurIPS), 2020.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># detect backend</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># create uniform weights if not given</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Ca</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Ca</span><span class="p">)</span> <span class="o">/</span> <span class="n">Ca</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Cb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cb</span><span class="p">)</span> <span class="o">/</span> <span class="n">Cb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># default values for solutions</span>
+    <span class="n">potentials</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value_quad</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">plan</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">loss_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;l2&#39;</span><span class="p">:</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">loss</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">loss_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented GW loss=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">loss</span><span class="p">)))</span>
+    <span class="n">loss_fun</span> <span class="o">=</span> <span class="n">loss_dict</span><span class="p">[</span><span class="n">loss</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+    <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">reg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># exact OT</span>
+
+        <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;semirelaxed&#39;</span><span class="p">]:</span>  <span class="c1"># Exact balanced OT</span>
+
+            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">10000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">value</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">gromov_wasserstein2</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">if</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># set to 0 for FGW with alpha=1</span>
+                    <span class="n">value_linear</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>
+
+            <span class="k">elif</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Wasserstein problem</span>
+
+                <span class="c1"># default values for EMD solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000000</span>
+
+                <span class="n">value_linear</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="n">n_threads</span><span class="p">)</span>
+
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span>
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;Converged&#39;</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Fused Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">10000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">value</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lin_loss&#39;</span><span class="p">]</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;quad_loss&#39;</span><span class="p">]</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;semirelaxed&#39;</span><span class="p">]:</span>  <span class="c1"># Semi-relaxed  OT</span>
+
+            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># Semi relaxed Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">10000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">value</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">semirelaxed_gromov_wasserstein2</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">if</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># set to 0 for FGW with alpha=1</span>
+                    <span class="n">value_linear</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Semi relaxed Fused Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">10000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">value</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lin_loss&#39;</span><span class="p">]</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;quad_loss&#39;</span><span class="p">]</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;partial&#39;</span><span class="p">]:</span>  <span class="c1"># Partial OT</span>
+
+            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Partial Gromov-Wasserstein problem</span>
+
+                <span class="k">if</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Partial GW mass given in reg is too large&#39;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">loss</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;l2&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Partial GW only implemented with L2 loss&#39;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Partial GW only implemented with symmetric=True&#39;</span><span class="p">))</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span>
+
+                <span class="n">value</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">partial_gromov_wasserstein2</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># partial FGW</span>
+
+                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Partial FGW not implemented yet&#39;</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">]:</span>  <span class="c1"># unbalanced exact OT</span>
+
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unbalanced_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unbalanced_type</span><span class="p">)))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown unbalanced_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unbalanced_type</span><span class="p">)))</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># regularized OT</span>
+
+        <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;semirelaxed&#39;</span><span class="p">]:</span>  <span class="c1"># Balanced regularized OT</span>
+
+            <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># Entropic Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;PGD&#39;</span>
+
+                <span class="n">value_quad</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_gromov_wasserstein2</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_quad</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+                <span class="c1"># potentials = (log[&#39;log_u&#39;], log[&#39;log_v&#39;])  #TODO</span>
+
+            <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Entropic Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn_log</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                                         <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_v&#39;</span><span class="p">])</span>
+
+            <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Entropic Fused Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;PGD&#39;</span>
+
+                <span class="n">value_noreg</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lin_loss&#39;</span><span class="p">]</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;quad_loss&#39;</span><span class="p">]</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;])</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_noreg</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented reg_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)))</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;semirelaxed&#39;</span><span class="p">]:</span>  <span class="c1"># Semi-relaxed  OT</span>
+
+            <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># Entropic Semi-relaxed Gromov-Wasserstein problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">value_quad</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_semirelaxed_gromov_wasserstein2</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_quad</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Entropic Semi-relaxed FGW problem</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">value_noreg</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lin_loss&#39;</span><span class="p">]</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;quad_loss&#39;</span><span class="p">]</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_noreg</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;partial&#39;</span><span class="p">]:</span>  <span class="c1"># Partial OT</span>
+
+            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Partial Gromov-Wasserstein problem</span>
+
+                <span class="k">if</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Partial GW mass given in reg is too large&#39;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">loss</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;l2&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Partial GW only implemented with L2 loss&#39;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Partial GW only implemented with symmetric=True&#39;</span><span class="p">))</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span>
+
+                <span class="n">value_quad</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_partial_gromov_wasserstein2</span><span class="p">(</span><span class="n">Ca</span><span class="p">,</span> <span class="n">Cb</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>
+                <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># partial FGW</span>
+
+                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Partial entropic FGW not implemented yet&#39;</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># unbalanced AND regularized OT</span>
+
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented reg_type=&quot;</span><span class="si">{}</span><span class="s1">&quot; and unbalanced_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="n">unbalanced_type</span><span class="p">)))</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">OTResult</span><span class="p">(</span><span class="n">potentials</span><span class="o">=</span><span class="n">potentials</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+                   <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span> <span class="n">value_quad</span><span class="o">=</span><span class="n">value_quad</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">res</span></div>
 
