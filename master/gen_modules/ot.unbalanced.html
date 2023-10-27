@@ -310,9 +310,9 @@ arXiv:1607.05816.</p>
 The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
-+ \mathrm{reg} \mathrm{div}(\gamma,\mathbf{a}\mathbf{b}^T)
-\mathrm{reg_m} \cdot \mathrm{div_m}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
++ \mathrm{reg} \mathrm{div}(\gamma, \mathbf{a} \mathbf{b}^T)
+\mathrm{reg_{m1}} \cdot \mathrm{div_m}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
@@ -328,11 +328,14 @@ unbalanced distributions</p></li>
 <li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_b</cite></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
-<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – regularization term (&gt;=0)</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt;= 0</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – regularization term &gt;=0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term &gt;= 0, but cannot be infinity.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+If reg_m is an array, it must be a Numpy array.</p></li>
 <li><p><strong>reg_div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence used for regularization.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
-<li><p><strong>reg_div</strong> – Divergence to quantify the difference between the marginals.
+<li><p><strong>regm_div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence to quantify the difference between the marginals.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
 <li><p><strong>G0</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – Initialization of the transport matrix</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
@@ -343,7 +346,7 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>ot_distance</strong> (<em>array-like</em>) – the OT distance between <span class="math notranslate nohighlight">\(\mathbf{a}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{b}\)</span></p></li>
+<li><p><strong>gamma</strong> (<em>(dim_a, dim_b) array-like</em>) – Optimal transportation matrix for the given parameters</p></li>
 <li><p><strong>log</strong> (<em>dict</em>) – log dictionary returned only if <cite>log</cite> is <cite>True</cite></p></li>
 </ul>
 </p>
@@ -355,10 +358,12 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">36.</span><span class="p">],[</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.25</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.57</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.45, 0.  ],</span>
+<span class="go">       [0.  , 0.34]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.4, 0. ],</span>
+<span class="go">       [0. , 0.1]])</span>
 </pre></div>
 </div>
 <p class="rubric">References</p>
@@ -383,15 +388,15 @@ linear regression. NeurIPS.</p>
 
 <div class="sphx-glr-clear"></div><dl class="py function">
 <dt class="sig sig-object py" id="ot.unbalanced.mm_unbalanced">
-<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.unbalanced.mm_unbalanced" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.unbalanced.mm_unbalanced" title="Link to this definition"></a></dt>
 <dd><p>Solve the unbalanced optimal transport problem and return the OT plan.
 The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})
-s.t.
-     \gamma \geq 0\]</div>
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg_{m1}} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b}) +
+\mathrm{reg} \cdot \mathrm{div}(\gamma, \mathbf{a} \mathbf{b}^T)\\s.t.
+     \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\mathbf{M}\)</span> is the (<cite>dim_a</cite>, <cite>dim_b</cite>) metric cost matrix</p></li>
@@ -407,7 +412,12 @@ minimization algorithm as proposed in <span class="xref std std-ref">[41]</span>
 <li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_b</cite></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term &gt;= 0, but cannot be infinity.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default = 0</em><em>)</em>) – Entropy regularization term &gt;= 0.
+By default, solve the unregularized problem</p></li>
 <li><p><strong>div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence to quantify the difference between the marginals.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
 <li><p><strong>G0</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – Initialization of the transport matrix</p></li>
@@ -431,12 +441,12 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">36.</span><span class="p">],[</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-<span class="go">array([[0.3 , 0.  ],</span>
-<span class="go">       [0.  , 0.07]])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-<span class="go">array([[0.25, 0.  ],</span>
-<span class="go">       [0.  , 0.  ]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.45, 0.  ],</span>
+<span class="go">       [0.  , 0.34]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.4, 0. ],</span>
+<span class="go">       [0. , 0.1]])</span>
 </pre></div>
 </div>
 <p class="rubric" id="references-regpath">References</p>
@@ -466,13 +476,14 @@ linear regression. NeurIPS.</p>
   <div class="sphx-glr-thumbnail-title">2D examples of exact and entropic unbalanced optimal transport</div>
 </div></div><div class="sphx-glr-clear"></div><dl class="py function">
 <dt class="sig sig-object py" id="ot.unbalanced.mm_unbalanced2">
-<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.unbalanced.mm_unbalanced2" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.unbalanced.mm_unbalanced2" title="Link to this definition"></a></dt>
 <dd><p>Solve the unbalanced optimal transport problem and return the OT plan.
 The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\mathrm{reg_{m1}} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b}) +
+\mathrm{reg} \cdot \mathrm{div}(\gamma, \mathbf{a} \mathbf{b}^T)\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
@@ -489,7 +500,12 @@ minimization algorithm as proposed in <span class="xref std std-ref">[41]</span>
 <li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_b</cite></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term &gt;= 0, but cannot be infinity.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default = 0</em><em>)</em>) – Entropy regularization term &gt;= 0.
+By default, solve the unregularized problem</p></li>
 <li><p><strong>div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence to quantify the difference between the marginals.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
 <li><p><strong>G0</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – Initialization of the transport matrix</p></li>
@@ -513,10 +529,10 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">36.</span><span class="p">],[</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.25</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.57</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">0.8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">1.79</span>
 </pre></div>
 </div>
 <p class="rubric">References</p>
@@ -546,9 +562,10 @@ linear regression. NeurIPS.</p>
 return the OT plan</p>
 <p>The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -566,7 +583,13 @@ return the OT plan</p>
 If many, compute all the OT distances (a, b_i)</p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
 <li><p><strong>stopThr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Stop threshold on error (&gt; 0)</p></li>
 <li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Print information along iterations</p></li>
@@ -651,9 +674,10 @@ problem and return the loss</p>
 <p>The function solves the following optimization problem using log-domain
 stabilization as proposed in <span class="xref std std-ref">[10]</span>:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -672,7 +696,13 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <span class="xref std std
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – threshold for max value in u or v for log scaling</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
 <li><p><strong>stopThr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Stop threshold on error (&gt;0)</p></li>
@@ -756,9 +786,10 @@ Processing Systems (NIPS) 2015</p>
 and return the OT plan</p>
 <p>The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \ \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \ \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -777,7 +808,13 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – method used for the solver either ‘sinkhorn’,  ‘sinkhorn_stabilized’ or
 ‘sinkhorn_reg_scaling’, see those function for specific parameters</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
@@ -876,9 +913,10 @@ Processing Systems (NIPS) 2015</p>
 return the loss</p>
 <p>The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -897,7 +935,13 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – method used for the solver either ‘sinkhorn’,  ‘sinkhorn_stabilized’ or
 ‘sinkhorn_reg_scaling’, see those function for specific parameters</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
@@ -1144,9 +1188,9 @@ arXiv:1607.05816.</p>
 The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
-+ \mathrm{reg} \mathrm{div}(\gamma,\mathbf{a}\mathbf{b}^T)
-\mathrm{reg_m} \cdot \mathrm{div_m}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
++ \mathrm{reg} \mathrm{div}(\gamma, \mathbf{a} \mathbf{b}^T)
+\mathrm{reg_{m1}} \cdot \mathrm{div_m}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
@@ -1162,11 +1206,14 @@ unbalanced distributions</p></li>
 <li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_b</cite></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
-<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – regularization term (&gt;=0)</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt;= 0</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – regularization term &gt;=0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term &gt;= 0, but cannot be infinity.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+If reg_m is an array, it must be a Numpy array.</p></li>
 <li><p><strong>reg_div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence used for regularization.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
-<li><p><strong>reg_div</strong> – Divergence to quantify the difference between the marginals.
+<li><p><strong>regm_div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence to quantify the difference between the marginals.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
 <li><p><strong>G0</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – Initialization of the transport matrix</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
@@ -1177,7 +1224,7 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>ot_distance</strong> (<em>array-like</em>) – the OT distance between <span class="math notranslate nohighlight">\(\mathbf{a}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{b}\)</span></p></li>
+<li><p><strong>gamma</strong> (<em>(dim_a, dim_b) array-like</em>) – Optimal transportation matrix for the given parameters</p></li>
 <li><p><strong>log</strong> (<em>dict</em>) – log dictionary returned only if <cite>log</cite> is <cite>True</cite></p></li>
 </ul>
 </p>
@@ -1189,10 +1236,12 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">36.</span><span class="p">],[</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.25</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.57</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.45, 0.  ],</span>
+<span class="go">       [0.  , 0.34]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.4, 0. ],</span>
+<span class="go">       [0. , 0.1]])</span>
 </pre></div>
 </div>
 <p class="rubric">References</p>
@@ -1217,15 +1266,15 @@ linear regression. NeurIPS.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="id35">
-<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id35" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id35" title="Link to this definition"></a></dt>
 <dd><p>Solve the unbalanced optimal transport problem and return the OT plan.
 The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})
-s.t.
-     \gamma \geq 0\]</div>
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg_{m1}} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b}) +
+\mathrm{reg} \cdot \mathrm{div}(\gamma, \mathbf{a} \mathbf{b}^T)\\s.t.
+     \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\mathbf{M}\)</span> is the (<cite>dim_a</cite>, <cite>dim_b</cite>) metric cost matrix</p></li>
@@ -1241,7 +1290,12 @@ minimization algorithm as proposed in <span class="xref std std-ref">[41]</span>
 <li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_b</cite></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term &gt;= 0, but cannot be infinity.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default = 0</em><em>)</em>) – Entropy regularization term &gt;= 0.
+By default, solve the unregularized problem</p></li>
 <li><p><strong>div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence to quantify the difference between the marginals.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
 <li><p><strong>G0</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – Initialization of the transport matrix</p></li>
@@ -1265,12 +1319,12 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">36.</span><span class="p">],[</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-<span class="go">array([[0.3 , 0.  ],</span>
-<span class="go">       [0.  , 0.07]])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-<span class="go">array([[0.25, 0.  ],</span>
-<span class="go">       [0.  , 0.  ]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.45, 0.  ],</span>
+<span class="go">       [0.  , 0.34]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">array([[0.4, 0. ],</span>
+<span class="go">       [0. , 0.1]])</span>
 </pre></div>
 </div>
 <p class="rubric" id="id36">References</p>
@@ -1295,13 +1349,14 @@ linear regression. NeurIPS.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="id38">
-<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id38" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">ot.unbalanced.</span></span><span class="sig-name descname"><span class="pre">mm_unbalanced2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numItermax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopThr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/unbalanced.html#mm_unbalanced2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id38" title="Link to this definition"></a></dt>
 <dd><p>Solve the unbalanced optimal transport problem and return the OT plan.
 The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\mathrm{reg_{m1}} \cdot \mathrm{div}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{div}(\gamma^T \mathbf{1}, \mathbf{b}) +
+\mathrm{reg} \cdot \mathrm{div}(\gamma, \mathbf{a} \mathbf{b}^T)\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
@@ -1318,7 +1373,12 @@ minimization algorithm as proposed in <span class="xref std std-ref">[41]</span>
 <li><p><strong>a</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_a</cite></p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em> (</em><em>dim_b</em><em>,</em><em>)</em>) – Unnormalized histogram of dimension <cite>dim_b</cite></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term &gt;= 0, but cannot be infinity.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default = 0</em><em>)</em>) – Entropy regularization term &gt;= 0.
+By default, solve the unregularized problem</p></li>
 <li><p><strong>div</strong> (<em>string</em><em>, </em><em>optional</em>) – Divergence to quantify the difference between the marginals.
 Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li>
 <li><p><strong>G0</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – Initialization of the transport matrix</p></li>
@@ -1342,10 +1402,10 @@ Can take two values: ‘kl’ (Kullback-Leibler) or ‘l2’ (quadratic)</p></li
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">=</span><span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">36.</span><span class="p">],[</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.25</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
-<span class="go">0.57</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">0.8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ot</span><span class="o">.</span><span class="n">unbalanced</span><span class="o">.</span><span class="n">mm_unbalanced2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">div</span><span class="o">=</span><span class="s1">&#39;kl&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">1.79</span>
 </pre></div>
 </div>
 <p class="rubric">References</p>
@@ -1375,9 +1435,10 @@ linear regression. NeurIPS.</p>
 return the OT plan</p>
 <p>The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -1395,7 +1456,13 @@ return the OT plan</p>
 If many, compute all the OT distances (a, b_i)</p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
 <li><p><strong>stopThr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Stop threshold on error (&gt; 0)</p></li>
 <li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Print information along iterations</p></li>
@@ -1480,9 +1547,10 @@ problem and return the loss</p>
 <p>The function solves the following optimization problem using log-domain
 stabilization as proposed in <span class="xref std std-ref">[10]</span>:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -1501,7 +1569,13 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <span class="xref std std
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – threshold for max value in u or v for log scaling</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
 <li><p><strong>stopThr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Stop threshold on error (&gt;0)</p></li>
@@ -1585,9 +1659,10 @@ Processing Systems (NIPS) 2015</p>
 and return the OT plan</p>
 <p>The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \ \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \ \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma \geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -1606,7 +1681,13 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – method used for the solver either ‘sinkhorn’,  ‘sinkhorn_stabilized’ or
 ‘sinkhorn_reg_scaling’, see those function for specific parameters</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
@@ -1705,9 +1786,10 @@ Processing Systems (NIPS) 2015</p>
 return the loss</p>
 <p>The function solves the following optimization problem:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F + \mathrm{reg}\cdot\Omega(\gamma) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
-\mathrm{reg_m} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
+\[ \begin{align}\begin{aligned}W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +
+\mathrm{reg} \cdot \Omega(\gamma) +
+\mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +
+\mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})\\s.t.
      \gamma\geq 0\end{aligned}\end{align} \]</div>
 <p>where :</p>
 <ul class="simple">
@@ -1726,7 +1808,13 @@ Sinkhorn-Knopp matrix scaling algorithm as proposed in <a class="reference inter
 If many, compute all the OT distances <span class="math notranslate nohighlight">\((\mathbf{a}, \mathbf{b}_i)_i\)</span></p></li>
 <li><p><strong>M</strong> (<em>array-like</em><em> (</em><em>dim_a</em><em>, </em><em>dim_b</em><em>)</em>) – loss matrix</p></li>
 <li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Entropy regularization term &gt; 0</p></li>
-<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Marginal relaxation term &gt; 0</p></li>
+<li><p><strong>reg_m</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>indexable object</em><em> of </em><em>length 1</em><em> or </em><em>2</em>) – Marginal relaxation term.
+If reg_m is a scalar or an indexable object of length 1,
+then the same reg_m is applied to both marginal relaxations.
+The entropic balanced OT can be recovered using <cite>reg_m=float(“inf”)</cite>.
+For semi-relaxed case, use either
+<cite>reg_m=(float(“inf”), scalar)</cite> or <cite>reg_m=(scalar, float(“inf”))</cite>.
+If reg_m is an array, it must have the same backend as input arrays (a, b, M).</p></li>
 <li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – method used for the solver either ‘sinkhorn’,  ‘sinkhorn_stabilized’ or
 ‘sinkhorn_reg_scaling’, see those function for specific parameters</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Max number of iterations</p></li>
