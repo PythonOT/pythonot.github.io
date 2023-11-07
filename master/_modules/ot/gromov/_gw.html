@@ -97,6 +97,7 @@
 <span class="c1"># License: MIT License</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 
 
 <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">UndefinedParameter</span><span class="p">,</span> <span class="n">list_to_array</span>
@@ -140,6 +141,10 @@
 <span class="sd">        which can lead to copy overhead on GPU arrays.</span>
 <span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
 <span class="sd">        numpy to limit memory overhead.</span>
+<span class="sd">    .. note:: This function will cast the computed transport plan to the data</span>
+<span class="sd">        type of the provided input :math:`\mathbf{C}_1`. Casting to an integer</span>
+<span class="sd">        tensor might result in a loss of precision. If this behaviour is</span>
+<span class="sd">        unwanted, please make sure to provide a floating point input.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -209,7 +214,7 @@
     <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C2</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
@@ -258,6 +263,16 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">line_search</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">solve_gromov_linesearch</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">C10</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Input structure matrix consists of integer. The transport plan will be &quot;</span>
+            <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+            <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+            <span class="s2">&quot;structure matrix consists of floating point elements.&quot;</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">res</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">log</span><span class="p">[</span><span class="s1">&#39;gw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
@@ -306,6 +321,10 @@
 <span class="sd">        which can lead to copy overhead on GPU arrays.</span>
 <span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
 <span class="sd">        numpy to limit memory overhead.</span>
+<span class="sd">    .. note:: This function will cast the computed transport plan to the data</span>
+<span class="sd">        type of the provided input :math:`\mathbf{C}_1`. Casting to an integer</span>
+<span class="sd">        tensor might result in a loss of precision. If this behaviour is</span>
+<span class="sd">        unwanted, please make sure to provide a floating point input.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -376,7 +395,7 @@
     <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C2</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
     <span class="n">T</span><span class="p">,</span> <span class="n">log_gw</span> <span class="o">=</span> <span class="n">gromov_wasserstein</span><span class="p">(</span>
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">armijo</span><span class="o">=</span><span class="n">armijo</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
@@ -437,6 +456,10 @@
 <span class="sd">        which can lead to copy overhead on GPU arrays.</span>
 <span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
 <span class="sd">        numpy to limit memory overhead.</span>
+<span class="sd">    .. note:: This function will cast the computed transport plan to the data</span>
+<span class="sd">        type of the provided input :math:`\mathbf{M}`. Casting to an integer</span>
+<span class="sd">        tensor might result in a loss of precision. If this behaviour is</span>
+<span class="sd">        unwanted, please make sure to provide a floating point input.</span>
 
 
 <span class="sd">    Parameters</span>
@@ -502,11 +525,11 @@
     <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C2</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">G0_</span> <span class="o">=</span> <span class="n">G0</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
@@ -558,14 +581,22 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">line_search</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">Mi</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">solve_gromov_linesearch</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">,</span> <span class="n">cost_G</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">M0</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Input feature matrix consists of integer. The transport plan will be &quot;</span>
+            <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+            <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+            <span class="s2">&quot;feature matrix consists of floating point elements.&quot;</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">res</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;fgw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">),</span> <span class="n">log</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;fgw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">),</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C10</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">line_search</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">stopThr2</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)</span></div>
 
 
 
@@ -606,6 +637,10 @@
 <span class="sd">        which can lead to copy overhead on GPU arrays.</span>
 <span class="sd">    .. note:: All computations in the conjugate gradient solver are done with</span>
 <span class="sd">        numpy to limit memory overhead.</span>
+<span class="sd">    .. note:: This function will cast the computed transport plan to the data</span>
+<span class="sd">        type of the provided input :math:`\mathbf{M}`. Casting to an integer</span>
+<span class="sd">        tensor might result in a loss of precision. If this behaviour is</span>
+<span class="sd">        unwanted, please make sure to provide a floating point input.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -674,9 +709,9 @@
 
     <span class="c1"># init marginals if set as None</span>
     <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C2</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
 
     <span class="n">T</span><span class="p">,</span> <span class="n">log_fgw</span> <span class="o">=</span> <span class="n">fused_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">armijo</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
