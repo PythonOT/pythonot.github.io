@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.bregman._empirical &mdash; POT Python Optimal Transport 0.9.2dev documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=925fdc35"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.9.2dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.bregman._empirical</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.bregman._empirical</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Bregman projections solvers for entropic regularized OT for empirical distributions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Kilian Fatras &lt;kilian.fatras@irisa.fr&gt;</span>
+<span class="c1">#         Quang Huy Tran &lt;quang-huy.tran@univ-ubs.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">unif</span>
+<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+
+<span class="kn">from</span> <span class="nn">._sinkhorn</span> <span class="kn">import</span> <span class="n">sinkhorn</span><span class="p">,</span> <span class="n">sinkhorn2</span>
+
+
+<div class="viewcode-block" id="empirical_sinkhorn">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn">[docs]</a>
+<span class="k">def</span> <span class="nf">empirical_sinkhorn</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span>
+                       <span class="n">numIterMax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">isLazy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batchSize</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Solve the entropic regularization optimal transport problem and return the</span>
+<span class="sd">    OT matrix from empirical data</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = \mathop{\arg \min}_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \mathrm{reg} \cdot\Omega(\gamma)</span>
+
+<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;= \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} &amp;= \mathbf{b}</span>
+
+<span class="sd">             \gamma &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`n_samples_a`, `n_samples_b`) metric cost matrix</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term</span>
+<span class="sd">      :math:`\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target weights (sum to 1)</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    isLazy: boolean, optional</span>
+<span class="sd">        If True, then only calculate the cost matrix by block and return</span>
+<span class="sd">        the dual potentials only (to save memory). If False, calculate full</span>
+<span class="sd">        cost matrix and return outputs of sinkhorn function.</span>
+<span class="sd">    batchSize: int or tuple of 2 int, optional</span>
+<span class="sd">        Size of the batches used to compute the sinkhorn update without memory overhead.</span>
+<span class="sd">        When a tuple is provided it sets the size of the left/right batches.</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
+<span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors)</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : array-like, shape (n_samples_a, n_samples_b)</span>
+<span class="sd">        Regularized optimal transportation matrix for the given parameters</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 2</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_b = 2</span>
+<span class="sd">    &gt;&gt;&gt; reg = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.reshape(np.arange(n_samples_a, dtype=np.float64), (n_samples_a, 1))</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.reshape(np.arange(0, n_samples_b, dtype=np.float64), (n_samples_b, 1))</span>
+<span class="sd">    &gt;&gt;&gt; empirical_sinkhorn(X_s, X_t, reg=reg, verbose=False)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    array([[4.99977301e-01,  2.26989344e-05],</span>
+<span class="sd">           [2.26989344e-05,  4.99977301e-01]])</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [2] M. Cuturi, Sinkhorn Distances : Lightspeed Computation of Optimal</span>
+<span class="sd">        Transport, Advances in Neural Information Processing Systems (NIPS) 26, 2013</span>
+
+<span class="sd">    .. [9] Schmitzer, B. (2016). Stabilized Sparse Scaling Algorithms for</span>
+<span class="sd">        Entropy Regularized Transport Problems. arXiv preprint arXiv:1610.06519.</span>
+
+<span class="sd">    .. [10] Chizat, L., Peyré, G., Schmitzer, B., &amp; Vialard, F. X. (2016).</span>
+<span class="sd">        Scaling algorithms for unbalanced transport problems. arXiv preprint arXiv:1607.05816.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">isLazy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">dict_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;err&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+
+        <span class="n">log_a</span><span class="p">,</span> <span class="n">log_b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">warmstart</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ns</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nt</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">warmstart</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batchSize</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">bs</span><span class="p">,</span> <span class="n">bt</span> <span class="o">=</span> <span class="n">batchSize</span><span class="p">,</span> <span class="n">batchSize</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batchSize</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">batchSize</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">bs</span><span class="p">,</span> <span class="n">bt</span> <span class="o">=</span> <span class="n">batchSize</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batchSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Batch size must be in integer or a tuple of two integers&quot;</span><span class="p">)</span>
+
+        <span class="n">range_s</span><span class="p">,</span> <span class="n">range_t</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">bs</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">bt</span><span class="p">)</span>
+
+        <span class="n">lse_f</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ns</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">lse_g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nt</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+
+        <span class="n">X_s_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X_s</span><span class="p">)</span>
+        <span class="n">X_t_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i_ot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numIterMax</span><span class="p">):</span>
+
+            <span class="n">lse_f_cols</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">range_s</span><span class="p">:</span>
+                <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s_np</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">bs</span><span class="p">,</span> <span class="p">:],</span> <span class="n">X_t_np</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+                <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">lse_f_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">lse_f</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">lse_f_cols</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">log_a</span> <span class="o">-</span> <span class="n">lse_f</span>
+
+            <span class="n">lse_g_cols</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">range_t</span><span class="p">:</span>
+                <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s_np</span><span class="p">,</span> <span class="n">X_t_np</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span> <span class="o">+</span> <span class="n">bt</span><span class="p">,</span> <span class="p">:],</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+                <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">lse_g_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">f</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">lse_g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">lse_g_cols</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">log_b</span> <span class="o">-</span> <span class="n">lse_g</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">i_ot</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">m1_cols</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">range_s</span><span class="p">:</span>
+                    <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s_np</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">bs</span><span class="p">,</span> <span class="p">:],</span> <span class="n">X_t_np</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+                    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">m1_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">bs</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span>
+                                      <span class="n">g</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">m1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">m1_cols</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">m1</span> <span class="o">-</span> <span class="n">a</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                    <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;err&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i_ot</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error in marginal at iteration </span><span class="si">{}</span><span class="s2"> = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">i_ot</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;=</span> <span class="n">stopThr</span><span class="p">:</span>
+                    <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
+                              <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                              <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">dict_log</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">pi</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                               <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pi</span><span class="p">,</span> <span class="n">log</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pi</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pi</span></div>
+
+
+
+<div class="viewcode-block" id="empirical_sinkhorn2">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn2">[docs]</a>
+<span class="k">def</span> <span class="nf">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span>
+                        <span class="n">numIterMax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">isLazy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batchSize</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Solve the entropic regularization optimal transport problem from empirical</span>
+<span class="sd">    data and return the OT loss</span>
+
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \mathrm{reg} \cdot\Omega(\gamma)</span>
+
+<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;= \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} &amp;= \mathbf{b}</span>
+
+<span class="sd">             \gamma &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`n_samples_a`, `n_samples_b`) metric cost matrix</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term</span>
+<span class="sd">      :math:`\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target weights (sum to 1)</span>
+
+<span class="sd">    and returns :math:`\langle \gamma^*, \mathbf{M} \rangle_F` (without</span>
+<span class="sd">    the entropic contribution).</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    isLazy: boolean, optional</span>
+<span class="sd">        If True, then only calculate the cost matrix by block and return</span>
+<span class="sd">        the dual potentials only (to save memory). If False, calculate</span>
+<span class="sd">        full cost matrix and return outputs of sinkhorn function.</span>
+<span class="sd">    batchSize: int or tuple of 2 int, optional</span>
+<span class="sd">        Size of the batches used to compute the sinkhorn update without memory overhead.</span>
+<span class="sd">        When a tuple is provided it sets the size of the left/right batches.</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
+<span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    W : (n_hists) array-like or float</span>
+<span class="sd">        Optimal transportation loss for the given parameters</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 2</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_b = 2</span>
+<span class="sd">    &gt;&gt;&gt; reg = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.reshape(np.arange(n_samples_a, dtype=np.float64), (n_samples_a, 1))</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.reshape(np.arange(0, n_samples_b, dtype=np.float64), (n_samples_b, 1))</span>
+<span class="sd">    &gt;&gt;&gt; b = np.full((n_samples_b, 3), 1/n_samples_b)</span>
+<span class="sd">    &gt;&gt;&gt; empirical_sinkhorn2(X_s, X_t, b=b, reg=reg, verbose=False)</span>
+<span class="sd">    array([4.53978687e-05, 4.53978687e-05, 4.53978687e-05])</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [2] M. Cuturi, Sinkhorn Distances : Lightspeed Computation</span>
+<span class="sd">        of Optimal Transport, Advances in Neural Information</span>
+<span class="sd">        Processing Systems (NIPS) 26, 2013</span>
+
+<span class="sd">    .. [9] Schmitzer, B. (2016). Stabilized Sparse Scaling</span>
+<span class="sd">        Algorithms for Entropy Regularized Transport Problems.</span>
+<span class="sd">        arXiv preprint arXiv:1610.06519.</span>
+
+<span class="sd">    .. [10] Chizat, L., Peyré, G., Schmitzer, B., &amp; Vialard, F. X. (2016).</span>
+<span class="sd">        Scaling algorithms for unbalanced transport problems.</span>
+<span class="sd">        arXiv preprint arXiv:1607.05816.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">isLazy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">empirical_sinkhorn</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span>
+                                                <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span>
+                                                <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                                <span class="n">isLazy</span><span class="o">=</span><span class="n">isLazy</span><span class="p">,</span>
+                                                <span class="n">batchSize</span><span class="o">=</span><span class="n">batchSize</span><span class="p">,</span>
+                                                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+                                                <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                                <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">empirical_sinkhorn</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span>
+                                      <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span>
+                                      <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                      <span class="n">isLazy</span><span class="o">=</span><span class="n">isLazy</span><span class="p">,</span> <span class="n">batchSize</span><span class="o">=</span><span class="n">batchSize</span><span class="p">,</span>
+                                      <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+                                      <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                      <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">)</span>
+
+        <span class="n">bs</span> <span class="o">=</span> <span class="n">batchSize</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batchSize</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">batchSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">range_s</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">X_s_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X_s</span><span class="p">)</span>
+        <span class="n">X_t_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">range_s</span><span class="p">:</span>
+            <span class="n">M_block</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s_np</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">bs</span><span class="p">,</span> <span class="p">:],</span> <span class="n">X_t_np</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+            <span class="n">M_block</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">M_block</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+            <span class="n">pi_block</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">bs</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M_block</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M_block</span> <span class="o">*</span> <span class="n">pi_block</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">dict_log</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">loss</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">sinkhorn_loss</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span>
+                                           <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+                                           <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">sinkhorn_loss</span><span class="p">,</span> <span class="n">log</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sinkhorn_loss</span> <span class="o">=</span> <span class="n">sinkhorn2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span>
+                                      <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+                                      <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">sinkhorn_loss</span></div>
+
+
+
+<div class="viewcode-block" id="empirical_sinkhorn_divergence">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn_divergence">[docs]</a>
+<span class="k">def</span> <span class="nf">empirical_sinkhorn_divergence</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span>
+                                  <span class="n">numIterMax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                  <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Compute the sinkhorn divergence loss from empirical data</span>
+
+<span class="sd">    The function solves the following optimization problems and return the</span>
+<span class="sd">    sinkhorn divergence :math:`S`:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        W &amp;= \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \mathrm{reg} \cdot\Omega(\gamma)</span>
+
+<span class="sd">        W_a &amp;= \min_{\gamma_a} \quad \langle \gamma_a, \mathbf{M_a} \rangle_F +</span>
+<span class="sd">        \mathrm{reg} \cdot\Omega(\gamma_a)</span>
+
+<span class="sd">        W_b &amp;= \min_{\gamma_b} \quad \langle \gamma_b, \mathbf{M_b} \rangle_F +</span>
+<span class="sd">        \mathrm{reg} \cdot\Omega(\gamma_b)</span>
+
+<span class="sd">        S &amp;= W - \frac{W_a + W_b}{2}</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;= \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} &amp;= \mathbf{b}</span>
+
+<span class="sd">             \gamma &amp;\geq 0</span>
+
+<span class="sd">             \gamma_a \mathbf{1} &amp;= \mathbf{a}</span>
+
+<span class="sd">             \gamma_a^T \mathbf{1} &amp;= \mathbf{a}</span>
+
+<span class="sd">             \gamma_a &amp;\geq 0</span>
+
+<span class="sd">             \gamma_b \mathbf{1} &amp;= \mathbf{b}</span>
+
+<span class="sd">             \gamma_b^T \mathbf{1} &amp;= \mathbf{b}</span>
+
+<span class="sd">             \gamma_b &amp;\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` (resp. :math:`\mathbf{M_a}`, :math:`\mathbf{M_b}`)</span>
+<span class="sd">      is the (`n_samples_a`, `n_samples_b`) metric cost matrix</span>
+<span class="sd">      (resp (`n_samples_a, n_samples_a`) and (`n_samples_b`, `n_samples_b`))</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term</span>
+<span class="sd">      :math:`\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target weights (sum to 1)</span>
+
+<span class="sd">    and returns :math:`\langle \gamma^*, \mathbf{M} \rangle_F -(\langle \gamma^*_a, \mathbf{M_a} \rangle_F + \langle</span>
+<span class="sd">    \gamma^*_b , \mathbf{M_b} \rangle_F)/2`.</span>
+
+<span class="sd">    .. note: The current implementation does not account for the entropic contributions and thus differs from the</span>
+<span class="sd">    Sinkhorn divergence as introduced in the literature. The possibility to account for the entropic contributions</span>
+<span class="sd">    will be provided in a future release.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
+<span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    W : (1,) array-like</span>
+<span class="sd">        Optimal transportation symmetrized loss for the given parameters</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 2</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_b = 4</span>
+<span class="sd">    &gt;&gt;&gt; reg = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.reshape(np.arange(n_samples_a, dtype=np.float64), (n_samples_a, 1))</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.reshape(np.arange(0, n_samples_b, dtype=np.float64), (n_samples_b, 1))</span>
+<span class="sd">    &gt;&gt;&gt; empirical_sinkhorn_divergence(X_s, X_t, reg)  # doctest: +ELLIPSIS</span>
+<span class="sd">    1.499887176049052</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [23] Aude Genevay, Gabriel Peyré, Marco Cuturi, Learning Generative</span>
+<span class="sd">        Models with Sinkhorn Divergences,  Proceedings of the Twenty-First</span>
+<span class="sd">        International Conference on Artificial Intelligence and Statistics,</span>
+<span class="sd">        (AISTATS) 21, 2018</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">warmstart</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warmstart_a</span><span class="p">,</span> <span class="n">warmstart_b</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">warmstart</span>
+        <span class="n">warmstart_a</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+        <span class="n">warmstart_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">sinkhorn_loss_ab</span><span class="p">,</span> <span class="n">log_ab</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                                                       <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                                       <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                                       <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">sinkhorn_loss_a</span><span class="p">,</span> <span class="n">log_a</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_s</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                                                     <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                                     <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                                     <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart_a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">sinkhorn_loss_b</span><span class="p">,</span> <span class="n">log_b</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                                                     <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                                     <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                                     <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart_b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">sinkhorn_div</span> <span class="o">=</span> <span class="n">sinkhorn_loss_ab</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> \
+            <span class="p">(</span><span class="n">sinkhorn_loss_a</span> <span class="o">+</span> <span class="n">sinkhorn_loss_b</span><span class="p">)</span>
+
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;sinkhorn_loss_ab&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sinkhorn_loss_ab</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;sinkhorn_loss_a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sinkhorn_loss_a</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;sinkhorn_loss_b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sinkhorn_loss_b</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_sinkhorn_ab&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_ab</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_sinkhorn_a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_a</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_sinkhorn_b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_b</span>
+
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sinkhorn_div</span><span class="p">),</span> <span class="n">log</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sinkhorn_loss_ab</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                                               <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                               <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                               <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">sinkhorn_loss_a</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_s</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                                              <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                              <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                              <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart_a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">sinkhorn_loss_b</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                                              <span class="n">numIterMax</span><span class="o">=</span><span class="n">numIterMax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+                                              <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                              <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart_b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">sinkhorn_div</span> <span class="o">=</span> <span class="n">sinkhorn_loss_ab</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> \
+            <span class="p">(</span><span class="n">sinkhorn_loss_a</span> <span class="o">+</span> <span class="n">sinkhorn_loss_b</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sinkhorn_div</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2021, Rémi Flamary, Nicolas Courty.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
