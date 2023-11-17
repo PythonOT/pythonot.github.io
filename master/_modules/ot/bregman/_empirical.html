@@ -96,10 +96,54 @@
 
 <span class="kn">import</span> <span class="nn">warnings</span>
 
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">unif</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">unif</span><span class="p">,</span> <span class="n">LazyTensor</span>
 <span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
 <span class="kn">from</span> <span class="nn">._sinkhorn</span> <span class="kn">import</span> <span class="n">sinkhorn</span><span class="p">,</span> <span class="n">sinkhorn2</span>
+
+
+<span class="k">def</span> <span class="nf">get_sinkhorn_lazytensor</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Get a LazyTensor of Sinkhorn solution from the dual potentials</span>
+
+<span class="sd">    The returned LazyTensor is</span>
+<span class="sd">    :math:`\mathbf{T} = exp(  \mathbf{f} \mathbf{1}_b^\top + \mathbf{1}_a \mathbf{g}^\top - \mathbf{C}/reg)`, where :math:`\mathbf{C}` is the pairwise metric matrix between samples :math:`\mathbf{X}_a` and :math:`\mathbf{X}_b`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_a : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_b : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    f : array-like, shape (n_samples_a,)</span>
+<span class="sd">        First dual potentials (log space)</span>
+<span class="sd">    g : array-like, shape (n_samples_b,)</span>
+<span class="sd">        Second dual potentials (log space)</span>
+<span class="sd">    metric : str, default=&#39;sqeuclidean&#39;</span>
+<span class="sd">        Metric used for the cost matrix computation</span>
+<span class="sd">    reg : float, default=1e-1</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    nx : Backend(), default=None</span>
+<span class="sd">        Numerical backend used</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    T : LazyTensor</span>
+<span class="sd">        Sinkhorn solution tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">X_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">X_b</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="n">LazyTensor</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">X_a</span><span class="o">=</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="o">=</span><span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">T</span>
 
 
 <div class="viewcode-block" id="empirical_sinkhorn">
@@ -285,6 +329,8 @@
         <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+            <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;niter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_ot</span>
+            <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;lazy_plan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_sinkhorn_lazytensor</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">dict_log</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
