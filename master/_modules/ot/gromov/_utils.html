@@ -352,10 +352,20 @@
 
 <div class="viewcode-block" id="update_square_loss">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_square_loss">[docs]</a>
-<span class="k">def</span> <span class="nf">update_square_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">update_square_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Updates :math:`\mathbf{C}` according to the L2 Loss kernel with the `S` :math:`\mathbf{T}_s`</span>
-<span class="sd">    couplings calculated at each iteration</span>
+<span class="sd">    Updates :math:`\mathbf{C}` according to the L2 Loss kernel with the `S`</span>
+<span class="sd">    :math:`\mathbf{T}_s` couplings calculated at each iteration of the GW</span>
+<span class="sd">    barycenter problem in :ref:`[12]`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad \sum_s \lambda_s \mathrm{GW}(\mathbf{C}, \mathbf{C}_s, \mathbf{p}, \mathbf{p}_s)</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}_s`: metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{p}_s`: distribution</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -363,25 +373,33 @@
 <span class="sd">        Masses in the targeted barycenter.</span>
 <span class="sd">    lambdas : list of float</span>
 <span class="sd">        List of the `S` spaces&#39; weights.</span>
-<span class="sd">    T : list of S array-like of shape (ns,N)</span>
+<span class="sd">    T : list of S array-like of shape (N, ns)</span>
 <span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
 <span class="sd">    Cs : list of S array-like, shape(ns,ns)</span>
 <span class="sd">        Metric cost matrices.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    ----------</span>
 <span class="sd">    C : array-like, shape (`nt`, `nt`)</span>
 <span class="sd">        Updated :math:`\mathbf{C}` matrix.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">T</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">T</span><span class="p">)</span>
-    <span class="n">Cs</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
 
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
+
+    <span class="c1"># Correct order mistake in Equation 14 in [12]</span>
     <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
         <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span>
-            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span>
+            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
         <span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
     <span class="p">])</span>
     <span class="n">ppt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
@@ -392,9 +410,20 @@
 
 <div class="viewcode-block" id="update_kl_loss">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_kl_loss">[docs]</a>
-<span class="k">def</span> <span class="nf">update_kl_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">update_kl_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Updates :math:`\mathbf{C}` according to the KL Loss kernel with the `S` :math:`\mathbf{T}_s` couplings calculated at each iteration</span>
+<span class="sd">    Updates :math:`\mathbf{C}` according to the KL Loss kernel with the `S`</span>
+<span class="sd">    :math:`\mathbf{T}_s` couplings calculated at each iteration of the GW</span>
+<span class="sd">    barycenter problem in :ref:`[12]`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad \sum_s \lambda_s \mathrm{GW}(\mathbf{C}, \mathbf{C}_s, \mathbf{p}, \mathbf{p}_s)</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}_s`: metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{p}_s`: distribution</span>
 
 
 <span class="sd">    Parameters</span>
@@ -403,25 +432,33 @@
 <span class="sd">        Weights in the targeted barycenter.</span>
 <span class="sd">    lambdas : list of float</span>
 <span class="sd">        List of the `S` spaces&#39; weights</span>
-<span class="sd">    T : list of S array-like of shape (ns,N)</span>
+<span class="sd">    T : list of S array-like of shape (N, ns)</span>
 <span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
 <span class="sd">    Cs : list of S array-like, shape(ns,ns)</span>
 <span class="sd">        Metric cost matrices.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    ----------</span>
 <span class="sd">    C : array-like, shape (`ns`, `ns`)</span>
 <span class="sd">        updated :math:`\mathbf{C}` matrix</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">Cs</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
-    <span class="n">T</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">T</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
 
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
+
+    <span class="c1"># Correct order mistake in Equation 15 in [12]</span>
     <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
         <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span>
-            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="mf">1e-15</span><span class="p">))),</span>
+            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
         <span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
     <span class="p">])</span>
     <span class="n">ppt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
@@ -432,7 +469,7 @@
 
 <div class="viewcode-block" id="update_feature_matrix">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_feature_matrix">[docs]</a>
-<span class="k">def</span> <span class="nf">update_feature_matrix</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">update_feature_matrix</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Updates the feature with respect to the `S` :math:`\mathbf{T}_s` couplings.</span>
 
 
@@ -445,10 +482,12 @@
 <span class="sd">        masses in the targeted barycenter</span>
 <span class="sd">    lambdas : list of float</span>
 <span class="sd">        List of the `S` spaces&#39; weights</span>
-<span class="sd">    Ts : list of S array-like, shape (ns,N)</span>
+<span class="sd">    Ts : list of S array-like, shape (N, ns)</span>
 <span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration</span>
 <span class="sd">    Ys : list of S array-like, shape (d,ns)</span>
 <span class="sd">        The features.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -462,10 +501,8 @@
 <span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
 <span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">Ts</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ts</span><span class="p">)</span>
-    <span class="n">Ys</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">)</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span>
     <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
