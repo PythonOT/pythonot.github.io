@@ -96,7 +96,7 @@
 <span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd2</span><span class="p">,</span> <span class="n">wasserstein_1d</span>
 <span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span> <span class="nn">.unbalanced</span> <span class="kn">import</span> <span class="n">mm_unbalanced</span><span class="p">,</span> <span class="n">sinkhorn_knopp_unbalanced</span><span class="p">,</span> <span class="n">lbfgsb_unbalanced</span>
-<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn_log</span><span class="p">,</span> <span class="n">empirical_sinkhorn2</span>
+<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn_log</span><span class="p">,</span> <span class="n">empirical_sinkhorn2</span><span class="p">,</span> <span class="n">empirical_sinkhorn2_geomloss</span>
 <span class="kn">from</span> <span class="nn">.partial</span> <span class="kn">import</span> <span class="n">partial_wasserstein_lagrange</span>
 <span class="kn">from</span> <span class="nn">.smooth</span> <span class="kn">import</span> <span class="n">smooth_ot_dual</span>
 <span class="kn">from</span> <span class="nn">.gromov</span> <span class="kn">import</span> <span class="p">(</span><span class="n">gromov_wasserstein2</span><span class="p">,</span> <span class="n">fused_gromov_wasserstein2</span><span class="p">,</span>
@@ -107,6 +107,8 @@
 <span class="kn">from</span> <span class="nn">.partial</span> <span class="kn">import</span> <span class="n">partial_gromov_wasserstein2</span><span class="p">,</span> <span class="n">entropic_partial_gromov_wasserstein2</span>
 <span class="kn">from</span> <span class="nn">.gaussian</span> <span class="kn">import</span> <span class="n">empirical_bures_wasserstein_distance</span>
 <span class="kn">from</span> <span class="nn">.factored</span> <span class="kn">import</span> <span class="n">factored_optimal_transport</span>
+
+<span class="n">lst_method_lazy</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1d&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;lowrank&#39;</span><span class="p">,</span> <span class="s1">&#39;factored&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_auto&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_tensorized&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_online&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_multiscale&#39;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="solve">
@@ -958,7 +960,7 @@
 <a class="viewcode-back" href="../../all.html#ot.solve_sample">[docs]</a>
 <span class="k">def</span> <span class="nf">solve_sample</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span>
                  <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">unbalanced_type</span><span class="o">=</span><span class="s1">&#39;KL&#39;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plan_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">unbalanced_type</span><span class="o">=</span><span class="s1">&#39;KL&#39;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plan_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
                  <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solve the discrete optimal transport problem using the samples in the source and target domains.</span>
 
@@ -1015,6 +1017,10 @@
 <span class="sd">        Maximum number of iteration, by default None (default values in each solvers)</span>
 <span class="sd">    plan_init : array_like, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of the OT plan for iterative methods, by default None</span>
+<span class="sd">    rank : int, optional</span>
+<span class="sd">        Rank of the OT matrix for lazy solers (method=&#39;factored&#39;), by default 100</span>
+<span class="sd">    scaling : float, optional</span>
+<span class="sd">        Scaling factor for the epsilon scaling lazy solvers (method=&#39;geomloss&#39;), by default 0.95</span>
 <span class="sd">    potentials_init : (array_like(dim_a,),array_like(dim_b,)), optional</span>
 <span class="sd">        Initialization of the OT dual potentials for iterative methods, by default None</span>
 <span class="sd">    tol : _type_, optional</span>
@@ -1032,6 +1038,7 @@
 <span class="sd">        - res.potentials : OT dual potentials</span>
 <span class="sd">        - res.value : Optimal value of the optimization problem</span>
 <span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+<span class="sd">        - res.lazy_plan : Lazy OT plan (when ``lazy=True`` or lazy method)</span>
 
 <span class="sd">        See :any:`OTResult` for more information.</span>
 
@@ -1241,7 +1248,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;1d&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;lowrank&#39;</span><span class="p">,</span> <span class="s1">&#39;factored&#39;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">lst_method_lazy</span><span class="p">:</span>
         <span class="n">lazy0</span> <span class="o">=</span> <span class="n">lazy</span>
         <span class="n">lazy</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -1313,6 +1320,28 @@
             <span class="n">lazy_plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lazy_plan&#39;</span><span class="p">]</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">lazy0</span><span class="p">:</span>  <span class="c1"># store plan if not lazy</span>
                 <span class="n">plan</span> <span class="o">=</span> <span class="n">lazy_plan</span><span class="p">[:]</span>
+
+        <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;geomloss&#39;</span><span class="p">):</span>  <span class="c1"># Geomloss solver for entropi OT</span>
+
+            <span class="n">split_method</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_method</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">backend</span> <span class="o">=</span> <span class="n">split_method</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">lazy0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span>
+                <span class="k">elif</span> <span class="n">lazy0</span><span class="p">:</span>
+                    <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;online&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;tensorized&#39;</span>
+
+            <span class="n">value</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">empirical_sinkhorn2_geomloss</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="n">scaling</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">)</span>
+
+            <span class="n">lazy_plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lazy_plan&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lazy0</span><span class="p">:</span>  <span class="c1"># store plan if not lazy</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">lazy_plan</span><span class="p">[:]</span>
+
+            <span class="c1"># return scaled potentials (to be consistent with other solvers)</span>
+            <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">lazy_plan</span><span class="o">.</span><span class="n">blur</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">lazy_plan</span><span class="o">.</span><span class="n">blur</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
 
         <span class="k">elif</span> <span class="n">reg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">reg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># exact OT</span>
 
