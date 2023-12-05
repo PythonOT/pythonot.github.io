@@ -109,6 +109,7 @@
 <span class="kn">from</span> <span class="nn">.partial</span> <span class="kn">import</span> <span class="n">partial_gromov_wasserstein2</span><span class="p">,</span> <span class="n">entropic_partial_gromov_wasserstein2</span>
 <span class="kn">from</span> <span class="nn">.gaussian</span> <span class="kn">import</span> <span class="n">empirical_bures_wasserstein_distance</span>
 <span class="kn">from</span> <span class="nn">.factored</span> <span class="kn">import</span> <span class="n">factored_optimal_transport</span>
+<span class="kn">from</span> <span class="nn">.lowrank</span> <span class="kn">import</span> <span class="n">lowrank_sinkhorn</span>
 
 <span class="n">lst_method_lazy</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1d&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;lowrank&#39;</span><span class="p">,</span> <span class="s1">&#39;factored&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_auto&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_tensorized&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_online&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_multiscale&#39;</span><span class="p">]</span>
 
@@ -1339,6 +1340,25 @@
 
             <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;costa&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;costb&#39;</span><span class="p">]</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span>  <span class="c1"># TODO add reg term</span>
+            <span class="n">lazy_plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lazy_plan&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lazy0</span><span class="p">:</span>  <span class="c1"># store plan if not lazy</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">lazy_plan</span><span class="p">[:]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;lowrank&quot;</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented metric=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">metric</span><span class="p">)))</span>
+
+            <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+            <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+            <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">reg</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">lowrank_sinkhorn</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+            <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;value_linear&#39;</span><span class="p">]</span>
             <span class="n">lazy_plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;lazy_plan&#39;</span><span class="p">]</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">lazy0</span><span class="p">:</span>  <span class="c1"># store plan if not lazy</span>
                 <span class="n">plan</span> <span class="o">=</span> <span class="n">lazy_plan</span><span class="p">[:]</span>
