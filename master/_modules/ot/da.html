@@ -105,7 +105,7 @@
 <span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span><span class="p">,</span> <span class="n">jcpot_barycenter</span>
 <span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">cost_normalization</span><span class="p">,</span> <span class="n">label_normalization</span><span class="p">,</span> <span class="n">laplacian</span><span class="p">,</span> <span class="n">dots</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">check_params</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">deprecated</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">check_params</span><span class="p">,</span> <span class="n">deprecated</span><span class="p">,</span> <span class="n">labels_to_masks</span><span class="p">,</span> <span class="n">list_to_array</span>
 <span class="kn">from</span> <span class="nn">.unbalanced</span> <span class="kn">import</span> <span class="n">sinkhorn_unbalanced</span>
 <span class="kn">from</span> <span class="nn">.gaussian</span> <span class="kn">import</span> <span class="n">empirical_bures_wasserstein_mapping</span><span class="p">,</span> <span class="n">empirical_gaussian_gromov_wasserstein_mapping</span>
 <span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">cg</span>
@@ -602,18 +602,12 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">infty</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">)</span>
 
-                <span class="c1"># assumes labeled source samples occupy the first rows</span>
-                <span class="c1"># and labeled target samples occupy the first columns</span>
-                <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-                    <span class="n">idx_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">ys</span> <span class="o">!=</span> <span class="n">c</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">ys</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-                    <span class="n">idx_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">yt</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span>
-
-                    <span class="c1"># all the coefficients corresponding to a source sample</span>
-                    <span class="c1"># and a target sample :</span>
-                    <span class="c1"># with different labels get a infinite</span>
-                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">idx_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">[</span><span class="n">idx_s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span>
+                <span class="c1"># zeros where source label is missing (masked with -1)</span>
+                <span class="n">missing_labels</span> <span class="o">=</span> <span class="n">ys</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">)</span>
+                <span class="n">missing_labels</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">missing_labels</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="c1"># zeros where labels match</span>
+                <span class="n">label_match</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cost_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">label_match</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">missing_labels</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span><span class="p">)</span>
 
             <span class="c1"># distribution estimation</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mu_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution_estimation</span><span class="p">(</span><span class="n">Xs</span><span class="p">)</span>
@@ -690,12 +684,11 @@
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xs</span><span class="o">=</span><span class="n">Xs</span><span class="p">):</span>
 
             <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">,</span> <span class="n">Xs</span><span class="p">):</span>
-
                 <span class="c1"># perform standard barycentric mapping</span>
                 <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
                 <span class="c1"># compute transported samples</span>
                 <span class="n">transp_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
@@ -713,9 +706,8 @@
                     <span class="n">idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
                     <span class="c1"># transport the source samples</span>
-                    <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-                    <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="n">transp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
                     <span class="n">transp_Xs_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">)</span>
 
                     <span class="c1"># define the transported points</span>
@@ -757,23 +749,16 @@
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">):</span>
-
-            <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
-            <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
-            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
-            <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">)</span>
-
             <span class="c1"># perform label propagation</span>
             <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
             <span class="c1"># set nans to 0</span>
-            <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
-
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-                <span class="n">D1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ysTemp</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">transp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
             <span class="c1"># compute propagated labels</span>
-            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="p">)</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">labels_to_masks</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">transp</span><span class="p">)</span>
+            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">transp</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_ys</span><span class="o">.</span><span class="n">T</span></div>
 
@@ -812,12 +797,11 @@
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">Xt</span><span class="o">=</span><span class="n">Xt</span><span class="p">):</span>
 
             <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xt_</span><span class="p">,</span> <span class="n">Xt</span><span class="p">):</span>
-
                 <span class="c1"># perform standard barycentric mapping</span>
                 <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
                 <span class="c1"># set nans to 0</span>
-                <span class="n">transp_</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp_</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">transp_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
                 <span class="c1"># compute transported samples</span>
                 <span class="n">transp_Xt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
@@ -834,9 +818,8 @@
                     <span class="n">idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
                     <span class="c1"># transport the target samples</span>
-                    <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-                    <span class="n">transp_</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp_</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">transp_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="n">transp_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
                     <span class="n">transp_Xt_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">transp_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs_</span><span class="p">)</span>
 
                     <span class="c1"># define the transported points</span>
@@ -868,23 +851,15 @@
 
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">yt</span><span class="o">=</span><span class="n">yt</span><span class="p">):</span>
-
-            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">yt</span><span class="p">))</span>
-            <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)</span>
-            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
-            <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">)</span>
-
             <span class="c1"># perform label propagation</span>
             <span class="n">transp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-
             <span class="c1"># set nans to 0</span>
-            <span class="n">transp</span><span class="p">[</span><span class="o">~</span> <span class="n">nx</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transp</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">transp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">transp</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-                <span class="n">D1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ytTemp</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-
-            <span class="c1"># compute propagated samples</span>
-            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">,</span> <span class="n">transp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="c1"># compute propagated labels</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">yt</span><span class="p">)</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">labels_to_masks</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">transp</span><span class="p">)</span>
+            <span class="n">transp_ys</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">transp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">transp_ys</span><span class="o">.</span><span class="n">T</span></div>
 </div>
@@ -2344,7 +2319,7 @@
                 <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)):</span>
-                <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">ysTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
                 <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
                 <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
                 <span class="n">ns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ysTemp</span><span class="p">)</span>
@@ -2390,7 +2365,7 @@
         <span class="c1"># check the necessary inputs parameters are here</span>
         <span class="k">if</span> <span class="n">check_params</span><span class="p">(</span><span class="n">yt</span><span class="o">=</span><span class="n">yt</span><span class="p">):</span>
             <span class="n">transp_ys</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">yt</span><span class="p">))</span>
+            <span class="n">ytTemp</span> <span class="o">=</span> <span class="n">label_normalization</span><span class="p">(</span><span class="n">yt</span><span class="p">)</span>
             <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
             <span class="n">D1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ytTemp</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>

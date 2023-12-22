@@ -527,7 +527,7 @@
 
 <div class="viewcode-block" id="label_normalization">
 <a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.label_normalization">[docs]</a>
-<span class="k">def</span> <span class="nf">label_normalization</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">label_normalization</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Transform labels to start at a given value</span>
 
 <span class="sd">    Parameters</span>
@@ -536,18 +536,48 @@
 <span class="sd">        The vector of labels to be normalized.</span>
 <span class="sd">    start : int</span>
 <span class="sd">        Desired value for the smallest label in :math:`\mathbf{y}` (default=0)</span>
+<span class="sd">    nx : Backend, optional</span>
+<span class="sd">        Backend to perform computations on. If omitted, the backend defaults to that of `y`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    y : array-like, shape (`n1`, )</span>
 <span class="sd">        The input vector of labels normalized according to given start value.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="n">start</span>
+    <span class="k">return</span> <span class="n">y</span> <span class="k">if</span> <span class="n">diff</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">diff</span><span class="p">)</span></div>
 
-    <span class="n">diff</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="o">-</span> <span class="n">start</span>
-    <span class="k">if</span> <span class="n">diff</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">y</span> <span class="o">-=</span> <span class="n">diff</span>
-    <span class="k">return</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="labels_to_masks">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.labels_to_masks">[docs]</a>
+<span class="k">def</span> <span class="nf">labels_to_masks</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transforms (n_samples,) vector of labels into a (n_samples, n_labels) matrix of masks.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y : array-like, shape (n_samples, )</span>
+<span class="sd">        The vector of labels.</span>
+<span class="sd">    type_as : array_like</span>
+<span class="sd">        Array of the same type of the expected output.</span>
+<span class="sd">    nx : Backend, optional</span>
+<span class="sd">        Backend to perform computations on. If omitted, the backend defaults to that of `y`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    masks : array-like, shape (n_samples, n_labels)</span>
+<span class="sd">        The (n_samples, n_labels) matrix of label masks.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">y</span>
+    <span class="n">labels_u</span><span class="p">,</span> <span class="n">labels_idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">n_labels</span> <span class="o">=</span> <span class="n">labels_u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">masks</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n_labels</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)[</span><span class="n">labels_idx</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">masks</span></div>
 
 
 
@@ -919,10 +949,8 @@
         <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span>
             <span class="o">*</span><span class="p">[</span><span class="n">input_</span> <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">arrays</span> <span class="k">if</span> <span class="n">input_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-<span class="w">                </span><span class="sd">&quot;&quot;&quot;JAX or TF arrays have been received but domain</span>
-<span class="sd">                adaptation does not support those backend.&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;tf&quot;</span><span class="p">,):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Domain adaptation does not support TF backend.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">=</span> <span class="n">nx</span>
         <span class="k">return</span> <span class="n">nx</span>
 
