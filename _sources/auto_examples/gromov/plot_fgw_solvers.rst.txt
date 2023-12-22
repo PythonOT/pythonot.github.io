@@ -23,8 +23,9 @@ Comparison of Fused Gromov-Wasserstein solvers
 ==============================
 
 This example illustrates the computation of FGW for attributed graphs
-using 3 different solvers to estimate the distance based on Conditional
-Gradient [24] or Sinkhorn projections [12, 51].
+using 4 different solvers to estimate the distance based on Conditional
+Gradient [24], Sinkhorn projections [12, 51] and alternated Bregman
+projections [63, 64].
 
 We generate two graphs following Stochastic Block Models further endowed with
 node features and compute their FGW matchings.
@@ -42,9 +43,18 @@ International Conference on Machine Learning (ICML). 2019.
 "Gromov-wasserstein learning for graph matching and node embedding".
 In International Conference on Machine Learning (ICML), 2019.
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-40
+[63] Li, J., Tang, J., Kong, L., Liu, H., Li, J., So, A. M. C., & Blanchet, J.
+"A Convergent Single-Loop Algorithm for Relaxation of Gromov-Wasserstein in
+Graph Data". International Conference on Learning Representations (ICLR), 2023.
 
-.. code-block:: default
+[64] Ma, X., Chu, X., Wang, Y., Lin, Y., Zhao, J., Ma, L., & Zhu, W.
+"Fused Gromov-Wasserstein Graph Mixup for Graph-level Classifications".
+In Thirty-seventh Conference on Neural Information Processing Systems
+(NeurIPS), 2023.
+
+.. GENERATED FROM PYTHON SOURCE LINES 38-54
+
+.. code-block:: Python
 
 
     # Author: Cédric Vincent-Cuaz <cedvincentcuaz@gmail.com>
@@ -55,9 +65,12 @@ In International Conference on Machine Learning (ICML), 2019.
 
     import numpy as np
     import matplotlib.pylab as pl
-    from ot.gromov import fused_gromov_wasserstein, entropic_fused_gromov_wasserstein
+    from ot.gromov import (fused_gromov_wasserstein,
+                           entropic_fused_gromov_wasserstein,
+                           BAPG_fused_gromov_wasserstein)
     import networkx
     from networkx.generators.community import stochastic_block_model as sbm
+    from time import time
 
 
 
@@ -66,14 +79,14 @@ In International Conference on Machine Learning (ICML), 2019.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 41-43
+.. GENERATED FROM PYTHON SOURCE LINES 55-57
 
 Generate two graphs following Stochastic Block models of 2 and 3 clusters.
 ---------------------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 44-79
+.. GENERATED FROM PYTHON SOURCE LINES 58-93
 
-.. code-block:: default
+.. code-block:: Python
 
     np.random.seed(0)
 
@@ -117,48 +130,73 @@ Generate two graphs following Stochastic Block models of 2 and 3 clusters.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 80-82
+.. GENERATED FROM PYTHON SOURCE LINES 94-96
 
 Compute their Fused Gromov-Wasserstein distances
 ---------------------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 83-117
+.. GENERATED FROM PYTHON SOURCE LINES 97-156
 
-.. code-block:: default
+.. code-block:: Python
 
 
     alpha = 0.5
 
 
     # Conditional Gradient algorithm
-    fgw0, log0 = fused_gromov_wasserstein(
-        M, C2, C3, h2, h3, 'square_loss', alpha=alpha, verbose=True, log=True)
+    print('Conditional Gradient \n')
+    start_cg = time()
+    T_cg, log_cg = fused_gromov_wasserstein(
+        M, C2, C3, h2, h3, 'square_loss', alpha=alpha, tol_rel=1e-9,
+        verbose=True, log=True)
+    end_cg = time()
+    time_cg = 1000 * (end_cg - start_cg)
 
     # Proximal Point algorithm with Kullback-Leibler as proximal operator
-    fgw, log = entropic_fused_gromov_wasserstein(
+    print('Proximal Point Algorithm \n')
+    start_ppa = time()
+    T_ppa, log_ppa = entropic_fused_gromov_wasserstein(
         M, C2, C3, h2, h3, 'square_loss', alpha=alpha, epsilon=1., solver='PPA',
-        log=True, verbose=True, warmstart=False, numItermax=10)
+        tol=1e-9, log=True, verbose=True, warmstart=False, numItermax=10)
+    end_ppa = time()
+    time_ppa = 1000 * (end_ppa - start_ppa)
 
     # Projected Gradient algorithm with entropic regularization
-    fgwe, loge = entropic_fused_gromov_wasserstein(
+    print('Projected Gradient Descent \n')
+    start_pgd = time()
+    T_pgd, log_pgd = entropic_fused_gromov_wasserstein(
         M, C2, C3, h2, h3, 'square_loss', alpha=alpha, epsilon=0.01, solver='PGD',
-        log=True, verbose=True, warmstart=False, numItermax=10)
+        tol=1e-9, log=True, verbose=True, warmstart=False, numItermax=10)
+    end_pgd = time()
+    time_pgd = 1000 * (end_pgd - start_pgd)
 
-    print('Fused Gromov-Wasserstein distance estimated with Conditional Gradient solver: ' + str(log0['fgw_dist']))
-    print('Fused Gromov-Wasserstein distance estimated with Proximal Point solver: ' + str(log['fgw_dist']))
-    print('Entropic Fused Gromov-Wasserstein distance estimated with Projected Gradient solver: ' + str(loge['fgw_dist']))
+    # Alternated Bregman Projected Gradient algorithm with Kullback-Leibler as proximal operator
+    print('Bregman Alternated Projected Gradient \n')
+    start_bapg = time()
+    T_bapg, log_bapg = BAPG_fused_gromov_wasserstein(
+        M, C2, C3, h2, h3, 'square_loss', alpha=alpha, epsilon=1.,
+        tol=1e-9, marginal_loss=True, verbose=True, log=True)
+    end_bapg = time()
+    time_bapg = 1000 * (end_bapg - start_bapg)
+
+    print('Fused Gromov-Wasserstein distance estimated with Conditional Gradient solver: ' + str(log_cg['fgw_dist']))
+    print('Fused Gromov-Wasserstein distance estimated with Proximal Point solver: ' + str(log_ppa['fgw_dist']))
+    print('Entropic Fused Gromov-Wasserstein distance estimated with Projected Gradient solver: ' + str(log_pgd['fgw_dist']))
+    print('Fused Gromov-Wasserstein distance estimated with Projected Gradient solver: ' + str(log_bapg['fgw_dist']))
 
     # compute OT sparsity level
-    fgw0_sparsity = 100 * (fgw0 == 0.).astype(np.float64).sum() / (N2 * N3)
-    fgw_sparsity = 100 * (fgw == 0.).astype(np.float64).sum() / (N2 * N3)
-    fgwe_sparsity = 100 * (fgwe == 0.).astype(np.float64).sum() / (N2 * N3)
+    T_cg_sparsity = 100 * (T_cg == 0.).astype(np.float64).sum() / (N2 * N3)
+    T_ppa_sparsity = 100 * (T_ppa == 0.).astype(np.float64).sum() / (N2 * N3)
+    T_pgd_sparsity = 100 * (T_pgd == 0.).astype(np.float64).sum() / (N2 * N3)
+    T_bapg_sparsity = 100 * (T_bapg == 0.).astype(np.float64).sum() / (N2 * N3)
 
-    # Methods using Sinkhorn projections tend to produce feasibility errors on the
+    # Methods using Sinkhorn/Bregman projections tend to produce feasibility errors on the
     # marginal constraints
 
-    err0 = np.linalg.norm(fgw0.sum(1) - h2) + np.linalg.norm(fgw0.sum(0) - h3)
-    err = np.linalg.norm(fgw.sum(1) - h2) + np.linalg.norm(fgw.sum(0) - h3)
-    erre = np.linalg.norm(fgwe.sum(1) - h2) + np.linalg.norm(fgwe.sum(0) - h3)
+    err_cg = np.linalg.norm(T_cg.sum(1) - h2) + np.linalg.norm(T_cg.sum(0) - h3)
+    err_ppa = np.linalg.norm(T_ppa.sum(1) - h2) + np.linalg.norm(T_ppa.sum(0) - h3)
+    err_pgd = np.linalg.norm(T_pgd.sum(1) - h2) + np.linalg.norm(T_pgd.sum(0) - h3)
+    err_bapg = np.linalg.norm(T_bapg.sum(1) - h2) + np.linalg.norm(T_bapg.sum(0) - h3)
 
 
 
@@ -167,6 +205,8 @@ Compute their Fused Gromov-Wasserstein distances
 .. rst-class:: sphx-glr-script-out
 
  .. code-block:: none
+
+    Conditional Gradient 
 
     It.  |Loss        |Relative loss|Absolute loss
     ------------------------------------------------
@@ -184,7 +224,9 @@ Compute their Fused Gromov-Wasserstein distances
        11|3.764565e-01|2.034974e-03|7.660790e-04
        12|3.761179e-01|9.000610e-04|3.385291e-04
        13|3.761179e-01|0.000000e+00|0.000000e+00
-    /home/circleci/project/ot/bregman.py:536: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+    Proximal Point Algorithm 
+
+    /home/circleci/project/ot/bregman/_sinkhorn.py:531: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
       warnings.warn("Sinkhorn did not converge. You might want to "
     It.  |Err         
     -------------------
@@ -235,7 +277,7 @@ Compute their Fused Gromov-Wasserstein distances
       400|1.440242e-04|
       410|1.310793e-04|
       420|1.175881e-04|
-    /home/circleci/project/ot/backend.py:1082: RuntimeWarning: divide by zero encountered in log
+    /home/circleci/project/ot/backend.py:1143: RuntimeWarning: divide by zero encountered in log
       return np.log(a)
       430|1.042086e-04|
       440|9.151311e-05|
@@ -298,6 +340,8 @@ Compute their Fused Gromov-Wasserstein distances
       970|5.840590e-06|
       980|5.859006e-06|
       990|5.909627e-06|
+    Projected Gradient Descent 
+
     It.  |Err         
     -------------------
         0|4.981055e-02|
@@ -408,14 +452,127 @@ Compute their Fused Gromov-Wasserstein distances
       970|1.159733e-01|
       980|1.159733e-01|
       990|1.159733e-01|
+    Bregman Alternated Projected Gradient 
+
+    It.  |Err         
+    -------------------
+        0|2.710197e-02|
+       10|7.722091e-04|
+       20|1.141907e-03|
+       30|1.705361e-03|
+       40|2.217013e-03|
+       50|2.780133e-03|
+       60|2.754405e-03|
+       70|2.618865e-03|
+       80|2.155365e-03|
+       90|1.467885e-03|
+      100|1.234502e-03|
+      110|1.427166e-03|
+      120|1.580081e-03|
+      130|1.480216e-03|
+      140|1.016301e-03|
+      150|7.489908e-04|
+      160|5.527976e-04|
+      170|3.724086e-04|
+      180|2.505381e-04|
+      190|1.890667e-04|
+    It.  |Err         
+    -------------------
+      200|1.660689e-04|
+      210|1.596126e-04|
+      220|1.580415e-04|
+      230|1.573214e-04|
+      240|1.554877e-04|
+      250|1.506710e-04|
+      260|1.413884e-04|
+      270|1.273670e-04|
+      280|1.099326e-04|
+      290|9.144168e-05|
+      300|7.415348e-05|
+      310|5.942604e-05|
+      320|4.761838e-05|
+      330|3.844073e-05|
+      340|3.135983e-05|
+      350|2.585715e-05|
+      360|2.152819e-05|
+      370|1.808727e-05|
+      380|1.533873e-05|
+      390|1.314610e-05|
+    It.  |Err         
+    -------------------
+      400|1.140922e-05|
+      410|1.004962e-05|
+      420|9.001810e-06|
+      430|8.208638e-06|
+      440|7.619328e-06|
+      450|7.189212e-06|
+      460|6.880145e-06|
+      470|6.660812e-06|
+      480|6.506527e-06|
+      490|6.398538e-06|
+      500|6.323025e-06|
+      510|6.270041e-06|
+      520|6.232558e-06|
+      530|6.205670e-06|
+      540|6.185991e-06|
+      550|6.171195e-06|
+      560|6.159695e-06|
+      570|6.150412e-06|
+      580|6.142611e-06|
+      590|6.135798e-06|
+    It.  |Err         
+    -------------------
+      600|6.129637e-06|
+      610|6.123902e-06|
+      620|6.118440e-06|
+      630|6.113149e-06|
+      640|6.107960e-06|
+      650|6.102825e-06|
+      660|6.097715e-06|
+      670|6.092609e-06|
+      680|6.087492e-06|
+      690|6.082355e-06|
+      700|6.077194e-06|
+      710|6.072003e-06|
+      720|6.066779e-06|
+      730|6.061523e-06|
+      740|6.056231e-06|
+      750|6.050905e-06|
+      760|6.045543e-06|
+      770|6.040145e-06|
+      780|6.034711e-06|
+      790|6.029242e-06|
+    It.  |Err         
+    -------------------
+      800|6.023737e-06|
+      810|6.018197e-06|
+      820|6.012621e-06|
+      830|6.007010e-06|
+      840|6.001365e-06|
+      850|5.995684e-06|
+      860|5.989968e-06|
+      870|5.984218e-06|
+      880|5.978434e-06|
+      890|5.972615e-06|
+      900|5.966762e-06|
+      910|5.960875e-06|
+      920|5.954955e-06|
+      930|5.949001e-06|
+      940|5.943013e-06|
+      950|5.936992e-06|
+      960|5.930938e-06|
+      970|5.924851e-06|
+      980|5.918731e-06|
+      990|5.912579e-06|
     Fused Gromov-Wasserstein distance estimated with Conditional Gradient solver: 0.37611793139330985
     Fused Gromov-Wasserstein distance estimated with Proximal Point solver: 0.3671471715862439
     Entropic Fused Gromov-Wasserstein distance estimated with Projected Gradient solver: 0.21736592892258028
+    Fused Gromov-Wasserstein distance estimated with Projected Gradient solver: 0.2576635020911173
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 118-128
+.. GENERATED FROM PYTHON SOURCE LINES 157-167
 
 Visualization of the Fused Gromov-Wasserstein matchings
 ---------------------------------------------
@@ -428,9 +585,9 @@ For each matching, all node sizes are proportionnal to their mass computed
 from marginals of the OT plan to illustrate potential feasibility errors.
 NB: colors refer to clusters - not to node features
 
-.. GENERATED FROM PYTHON SOURCE LINES 129-289
+.. GENERATED FROM PYTHON SOURCE LINES 168-334
 
-.. code-block:: default
+.. code-block:: Python
 
 
     # Add weights on the edges for visualization later on
@@ -548,46 +705,52 @@ NB: colors refer to clusters - not to node features
     seed_G2 = 0
     seed_G3 = 4
 
-    pl.figure(2, figsize=(12, 3.5))
+    pl.figure(2, figsize=(15, 3.5))
     pl.clf()
-    pl.subplot(131)
-    pl.axis('off')
-    pl.axis
-    pl.title('(CG algo) FGW=%s \n \n OT sparsity = %s \n feasibility error = %s' % (
-        np.round(log0['fgw_dist'], 3), str(np.round(fgw0_sparsity, 2)) + ' %',
-        np.round(err0, 4)), fontsize=fontsize)
-
-    p0, q0 = fgw0.sum(1), fgw0.sum(0)  # check marginals
-
-    pos1, pos2 = draw_transp_colored_GW(
-        weightedG2, C2, weightedG3, C3, part_G2, p1=p0, p2=q0, T=fgw0,
-        shiftx=1.5, node_size=node_size, seed_G1=seed_G2, seed_G2=seed_G3)
-
-    pl.subplot(132)
+    pl.subplot(141)
     pl.axis('off')
 
-    p, q = fgw.sum(1), fgw.sum(0)  # check marginals
-
-    pl.title('(PP algo) FGW=%s\n \n OT sparsity = %s \n feasibility error = %s' % (
-        np.round(log['fgw_dist'], 3), str(np.round(fgw_sparsity, 2)) + ' %',
-        np.round(err, 4)), fontsize=fontsize)
+    pl.title('(CG) FGW=%s\n \n OT sparsity = %s \n marg. error = %s \n runtime = %s' % (
+        np.round(log_cg['fgw_dist'], 3), str(np.round(T_cg_sparsity, 2)) + ' %',
+        np.round(err_cg, 4), str(np.round(time_cg, 2)) + ' ms'), fontsize=fontsize)
 
     pos1, pos2 = draw_transp_colored_GW(
-        weightedG2, C2, weightedG3, C3, part_G2, p1=p, p2=q, T=fgw,
-        pos1=pos1, pos2=pos2, shiftx=0., node_size=node_size, seed_G1=0, seed_G2=0)
+        weightedG2, C2, weightedG3, C3, part_G2, p1=T_cg.sum(1), p2=T_cg.sum(0),
+        T=T_cg, shiftx=1.5, node_size=node_size, seed_G1=seed_G2, seed_G2=seed_G3)
 
-    pl.subplot(133)
+    pl.subplot(142)
     pl.axis('off')
 
-    pe, qe = fgwe.sum(1), fgwe.sum(0)  # check marginals
-
-    pl.title('Entropic FGW=%s\n \n OT sparsity = %s \n feasibility error = %s' % (
-        np.round(loge['fgw_dist'], 3), str(np.round(fgwe_sparsity, 2)) + ' %',
-        np.round(erre, 4)), fontsize=fontsize)
+    pl.title('(PPA) FGW=%s\n \n OT sparsity = %s \n marg. error = %s \n runtime = %s' % (
+        np.round(log_ppa['fgw_dist'], 3), str(np.round(T_ppa_sparsity, 2)) + ' %',
+        np.round(err_ppa, 4), str(np.round(time_ppa, 2)) + ' ms'), fontsize=fontsize)
 
     pos1, pos2 = draw_transp_colored_GW(
-        weightedG2, C2, weightedG3, C3, part_G2, p1=pe, p2=qe, T=fgwe,
-        pos1=pos1, pos2=pos2, shiftx=0., node_size=node_size, seed_G1=0, seed_G2=0)
+        weightedG2, C2, weightedG3, C3, part_G2, p1=T_ppa.sum(1), p2=T_ppa.sum(0),
+        T=T_ppa, pos1=pos1, pos2=pos2, shiftx=0., node_size=node_size, seed_G1=0, seed_G2=0)
+
+    pl.subplot(143)
+    pl.axis('off')
+
+    pl.title('(PGD) Entropic FGW=%s\n \n OT sparsity = %s \n marg. error = %s \n runtime = %s' % (
+        np.round(log_pgd['fgw_dist'], 3), str(np.round(T_pgd_sparsity, 2)) + ' %',
+        np.round(err_pgd, 4), str(np.round(time_pgd, 2)) + ' ms'), fontsize=fontsize)
+
+    pos1, pos2 = draw_transp_colored_GW(
+        weightedG2, C2, weightedG3, C3, part_G2, p1=T_pgd.sum(1), p2=T_pgd.sum(0),
+        T=T_pgd, pos1=pos1, pos2=pos2, shiftx=0., node_size=node_size, seed_G1=0, seed_G2=0)
+
+
+    pl.subplot(144)
+    pl.axis('off')
+
+    pl.title('(BAPG) FGW=%s\n \n OT sparsity = %s \n marg. error = %s \n runtime = %s' % (
+        np.round(log_bapg['fgw_dist'], 3), str(np.round(T_bapg_sparsity, 2)) + ' %',
+        np.round(err_bapg, 4), str(np.round(time_bapg, 2)) + ' ms'), fontsize=fontsize)
+
+    pos1, pos2 = draw_transp_colored_GW(
+        weightedG2, C2, weightedG3, C3, part_G2, p1=T_bapg.sum(1), p2=T_bapg.sum(0),
+        T=T_bapg, pos1=pos1, pos2=pos2, shiftx=0., node_size=node_size, seed_G1=0, seed_G2=0)
 
     pl.tight_layout()
 
@@ -596,7 +759,7 @@ NB: colors refer to clusters - not to node features
 
 
 .. image-sg:: /auto_examples/gromov/images/sphx_glr_plot_fgw_solvers_001.png
-   :alt: (CG algo) FGW=0.376     OT sparsity = 89.5 %   feasibility error = 0.0, (PP algo) FGW=0.367    OT sparsity = 33.33 %   feasibility error = 0.004, Entropic FGW=0.217    OT sparsity = 0.0 %   feasibility error = 0.0711
+   :alt: (CG) FGW=0.376    OT sparsity = 89.5 %   marg. error = 0.0   runtime = 5.12 ms, (PPA) FGW=0.367    OT sparsity = 33.33 %   marg. error = 0.004   runtime = 420.54 ms, (PGD) Entropic FGW=0.217    OT sparsity = 0.0 %   marg. error = 0.0711   runtime = 396.54 ms, (BAPG) FGW=0.258    OT sparsity = 50.0 %   marg. error = 0.0902   runtime = 75.18 ms
    :srcset: /auto_examples/gromov/images/sphx_glr_plot_fgw_solvers_001.png
    :class: sphx-glr-single-img
 
@@ -607,7 +770,7 @@ NB: colors refer to clusters - not to node features
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  3.072 seconds)
+   **Total running time of the script:** (0 minutes 3.400 seconds)
 
 
 .. _sphx_glr_download_auto_examples_gromov_plot_fgw_solvers.py:
@@ -616,16 +779,13 @@ NB: colors refer to clusters - not to node features
 
   .. container:: sphx-glr-footer sphx-glr-footer-example
 
+    .. container:: sphx-glr-download sphx-glr-download-jupyter
 
-
+      :download:`Download Jupyter notebook: plot_fgw_solvers.ipynb <plot_fgw_solvers.ipynb>`
 
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_fgw_solvers.py <plot_fgw_solvers.py>`
-
-    .. container:: sphx-glr-download sphx-glr-download-jupyter
-
-      :download:`Download Jupyter notebook: plot_fgw_solvers.ipynb <plot_fgw_solvers.ipynb>`
 
 
 .. only:: html

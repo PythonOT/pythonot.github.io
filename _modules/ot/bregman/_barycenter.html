@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.bregman._barycenter &mdash; POT Python Optimal Transport 0.9.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=aa3b121e"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.9.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.bregman._barycenter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.bregman._barycenter</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Bregman projections solvers for entropic regularized wasserstein barycenters</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
+<span class="c1">#         Hicham Janati &lt;hicham.janati100@gmail.com&gt;</span>
+<span class="c1">#         Ievgen Redko &lt;ievgen.redko@univ-st-etienne.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">unif</span>
+<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">geometricBar</span><span class="p">,</span> <span class="n">geometricMean</span><span class="p">,</span> <span class="n">projR</span><span class="p">,</span> <span class="n">projC</span>
+<span class="kn">from</span> <span class="nn">._sinkhorn</span> <span class="kn">import</span> <span class="n">sinkhorn</span>
+
+
+<div class="viewcode-block" id="barycenter">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.barycenter">[docs]</a>
+<span class="k">def</span> <span class="nf">barycenter</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+               <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the entropic regularized wasserstein barycenter of distributions :math:`\mathbf{A}`</span>
+
+<span class="sd">     The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">       \mathbf{a} = \mathop{\arg \min}_\mathbf{a} \quad \sum_i W_{reg}(\mathbf{a},\mathbf{a}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`W_{reg}(\cdot,\cdot)` is the entropic regularized Wasserstein</span>
+<span class="sd">      distance (see :py:func:`ot.bregman.sinkhorn`)</span>
+<span class="sd">      if `method` is `sinkhorn` or `sinkhorn_stabilized` or `sinkhorn_log`.</span>
+<span class="sd">    - :math:`\mathbf{a}_i` are training distributions in the columns of matrix</span>
+<span class="sd">      :math:`\mathbf{A}`</span>
+<span class="sd">    - `reg` and :math:`\mathbf{M}` are respectively the regularization term and</span>
+<span class="sd">      the cost matrix for OT</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix scaling</span>
+<span class="sd">    algorithm as proposed in :ref:`[3] &lt;references-barycenter&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : array-like, shape (dim, n_hists)</span>
+<span class="sd">        `n_hists` training distributions :math:`\mathbf{a}_i` of size `dim`</span>
+<span class="sd">    M : array-like, shape (dim, dim)</span>
+<span class="sd">        loss matrix for OT</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0</span>
+<span class="sd">    method : str (optional)</span>
+<span class="sd">        method used for the solver either &#39;sinkhorn&#39; or &#39;sinkhorn_stabilized&#39; or &#39;sinkhorn_log&#39;</span>
+<span class="sd">    weights : array-like, shape (n_hists,)</span>
+<span class="sd">        Weights of each histogram :math:`\mathbf{a}_i` on the simplex (barycentric coodinates)</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a : (dim,) array-like</span>
+<span class="sd">        Wasserstein barycenter</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-barycenter:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [3] Benamou, J. D., Carlier, G., Cuturi, M., Nenna, L., &amp; Peyré, G. (2015).</span>
+<span class="sd">        Iterative Bregman projections for regularized transportation problems.</span>
+<span class="sd">        SIAM Journal on Scientific Computing, 37(2), A1111-A1138.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;sinkhorn&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">barycenter_sinkhorn</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                                   <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+                                   <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+                                   <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+                                   <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;sinkhorn_stabilized&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">barycenter_stabilized</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                                     <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+                                     <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                                     <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;sinkhorn_log&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_barycenter_sinkhorn_log</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                                        <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+                                        <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                                        <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown method &#39;</span><span class="si">%s</span><span class="s2">&#39;.&quot;</span> <span class="o">%</span> <span class="n">method</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="barycenter_sinkhorn">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.barycenter_sinkhorn">[docs]</a>
+<span class="k">def</span> <span class="nf">barycenter_sinkhorn</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                        <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the entropic regularized wasserstein barycenter of distributions :math:`\mathbf{A}`</span>
+
+<span class="sd">     The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">       \mathbf{a} = \mathop{\arg \min}_\mathbf{a} \quad \sum_i W_{reg}(\mathbf{a},\mathbf{a}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`W_{reg}(\cdot,\cdot)` is the entropic regularized Wasserstein distance</span>
+<span class="sd">      (see :py:func:`ot.bregman.sinkhorn`)</span>
+<span class="sd">    - :math:`\mathbf{a}_i` are training distributions in the columns of matrix</span>
+<span class="sd">      :math:`\mathbf{A}`</span>
+<span class="sd">    - `reg` and :math:`\mathbf{M}` are respectively the regularization term and</span>
+<span class="sd">      the cost matrix for OT</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix</span>
+<span class="sd">    scaling algorithm as proposed in :ref:`[3]&lt;references-barycenter-sinkhorn&gt;`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : array-like, shape (dim, n_hists)</span>
+<span class="sd">        `n_hists` training distributions :math:`\mathbf{a}_i` of size `dim`</span>
+<span class="sd">    M : array-like, shape (dim, dim)</span>
+<span class="sd">        loss matrix for OT</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0</span>
+<span class="sd">    weights : array-like, shape (n_hists,)</span>
+<span class="sd">        Weights of each histogram :math:`\mathbf{a}_i` on the simplex (barycentric coodinates)</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a : (dim,) array-like</span>
+<span class="sd">        Wasserstein barycenter</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-barycenter-sinkhorn:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [3] Benamou, J. D., Carlier, G., Cuturi, M., Nenna, L., &amp; Peyré, G. (2015).</span>
+<span class="sd">    Iterative Bregman projections for regularized transportation problems.</span>
+<span class="sd">    SIAM Journal on Scientific Computing, 37(2), A1111-A1138.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">A</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">UKv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="n">geometricMean</span><span class="p">(</span><span class="n">UKv</span><span class="p">)</span> <span class="o">/</span> <span class="n">UKv</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+
+        <span class="n">UKv</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">A</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">geometricBar</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">UKv</span><span class="p">))</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">UKv</span>
+
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">UKv</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+            <span class="c1"># log and verbose print</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
+                          <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                          <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;niter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="k">return</span> <span class="n">geometricBar</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">UKv</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">geometricBar</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">UKv</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="free_support_sinkhorn_barycenter">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.free_support_sinkhorn_barycenter">[docs]</a>
+<span class="k">def</span> <span class="nf">free_support_sinkhorn_barycenter</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">numInnerItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) regularized Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Sinkhorn divergence), formally:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\mathbf{X} \quad \sum_{i=1}^N w_i W_{reg}^2(\mathbf{b}, \mathbf{X}, \mathbf{a}_i, \mathbf{X}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`w \in \mathbb{(0, 1)}^{N}`&#39;s are the barycenter weights and sum to one</span>
+<span class="sd">    - `measure_weights` denotes the :math:`\mathbf{a}_i \in \mathbb{R}^{k_i}`: empirical measures weights (on simplex)</span>
+<span class="sd">    - `measures_locations` denotes the :math:`\mathbf{X}_i \in \mathbb{R}^{k_i, d}`: empirical measures atoms locations</span>
+<span class="sd">    - :math:`\mathbf{b} \in \mathbb{R}^{k}` is the desired weights vector of the barycenter</span>
+
+<span class="sd">    This problem is considered in :ref:`[20] &lt;references-free-support-barycenter&gt;` (Algorithm 2).</span>
+<span class="sd">    There are two differences with the following codes:</span>
+
+<span class="sd">    - we do not optimize over the weights</span>
+<span class="sd">    - we do not do line search for the locations updates, we use i.e. :math:`\theta = 1` in</span>
+<span class="sd">      :ref:`[20] &lt;references-free-support-barycenter&gt;` (Algorithm 2). This can be seen as a discrete</span>
+<span class="sd">      implementation of the fixed-point algorithm of</span>
+<span class="sd">      :ref:`[43] &lt;references-free-support-barycenter&gt;` proposed in the continuous setting.</span>
+<span class="sd">    - at each iteration, instead of solving an exact OT problem, we use the Sinkhorn algorithm for calculating the</span>
+<span class="sd">      transport plan in :ref:`[20] &lt;references-free-support-barycenter&gt;` (Algorithm 2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    measures_locations : list of N (k_i,d) array-like</span>
+<span class="sd">        The discrete support of a measure supported on :math:`k_i` locations of a `d`-dimensional space</span>
+<span class="sd">        (:math:`k_i` can be different for each element of the list)</span>
+<span class="sd">    measures_weights : list of N (k_i,) array-like</span>
+<span class="sd">        Numpy arrays where each numpy array has :math:`k_i` non-negatives values summing to one</span>
+<span class="sd">        representing the weights of each discrete input measure</span>
+
+<span class="sd">    X_init : (k,d) array-like</span>
+<span class="sd">        Initialization of the support locations (on `k` atoms) of the barycenter</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    b : (k,) array-like</span>
+<span class="sd">        Initialization of the weights of the barycenter (non-negatives, sum to 1)</span>
+<span class="sd">    weights : (N,) array-like</span>
+<span class="sd">        Initialization of the coefficients of the barycenter (non-negatives, sum to 1)</span>
+
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    numInnerItermax : int, optional</span>
+<span class="sd">        Max number of iterations when calculating the transport plans with Sinkhorn</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : (k,d) array-like</span>
+<span class="sd">        Support locations (on k atoms) of the barycenter</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.bregman.sinkhorn : Entropic regularized OT solver</span>
+<span class="sd">    ot.lp.free_support_barycenter : Barycenter solver based on Linear Programming</span>
+
+<span class="sd">    .. _references-free-support-barycenter:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [20] Cuturi, Marco, and Arnaud Doucet. &quot;Fast computation of Wasserstein barycenters.&quot; International Conference on Machine Learning. 2014.</span>
+
+<span class="sd">    .. [43] Álvarez-Esteban, Pedro C., et al. &quot;A fixed-point approach to barycenters in Wasserstein space.&quot; Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">measures_locations</span><span class="p">,</span> <span class="o">*</span><span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">)</span>
+
+    <span class="n">iter_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">X_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">k</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span> <span class="o">/</span> <span class="n">k</span>
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">X_init</span>
+
+    <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">displacement_square_norms</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">stopThr</span> <span class="o">+</span> <span class="mf">1.</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">displacement_square_norm</span> <span class="o">&gt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">iter_count</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">):</span>
+
+        <span class="n">T_sum</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">measure_locations_i</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">weight_i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+            <span class="n">M_i</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+            <span class="n">T_i</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">M_i</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span>
+                           <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">T_sum</span> <span class="o">=</span> <span class="n">T_sum</span> <span class="o">+</span> <span class="n">weight_i</span> <span class="o">*</span> <span class="mf">1.</span> <span class="o">/</span> \
+                <span class="n">b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_i</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+
+        <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">T_sum</span> <span class="o">-</span> <span class="n">X</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">displacement_square_norms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">displacement_square_norm</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">T_sum</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;iteration </span><span class="si">%d</span><span class="s1">, displacement_square_norm=</span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+                  <span class="n">iter_count</span><span class="p">,</span> <span class="n">displacement_square_norm</span><span class="p">)</span>
+
+        <span class="n">iter_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;displacement_square_norms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">displacement_square_norms</span>
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">log_dict</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_barycenter_sinkhorn_log</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                             <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the entropic wasserstein barycenter in log-domain</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">A</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">dim</span><span class="p">,</span> <span class="n">n_hists</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;Log-domain functions are not yet implemented&quot;</span>
+            <span class="s2">&quot; for Jax and tf. Use numpy or torch arrays instead.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_hists</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_hists</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">M</span> <span class="o">=</span> <span class="o">-</span> <span class="n">M</span> <span class="o">/</span> <span class="n">reg</span>
+    <span class="n">logA</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>
+    <span class="n">log_KU</span><span class="p">,</span> <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">logA</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">log_bar</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_hists</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">logA</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="n">G</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="n">k</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">log_KU</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="n">f</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">log_bar</span> <span class="o">=</span> <span class="n">log_bar</span> <span class="o">+</span> <span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">log_KU</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="n">log_KU</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+            <span class="c1"># log and verbose print</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">log_bar</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">log_KU</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
+                          <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                          <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;niter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_bar</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_bar</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="barycenter_stabilized">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.barycenter_stabilized">[docs]</a>
+<span class="k">def</span> <span class="nf">barycenter_stabilized</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">1e10</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                          <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the entropic regularized wasserstein barycenter of distributions :math:`\mathbf{A}` with stabilization.</span>
+
+<span class="sd">     The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">       \mathbf{a} = \mathop{\arg \min}_\mathbf{a} \quad \sum_i W_{reg}(\mathbf{a},\mathbf{a}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`W_{reg}(\cdot,\cdot)` is the entropic regularized Wasserstein</span>
+<span class="sd">      distance (see :py:func:`ot.bregman.sinkhorn`)</span>
+<span class="sd">    - :math:`\mathbf{a}_i` are training distributions in the columns of matrix</span>
+<span class="sd">      :math:`\mathbf{A}`</span>
+<span class="sd">    - `reg` and :math:`\mathbf{M}` are respectively the regularization term and</span>
+<span class="sd">      the cost matrix for OT</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix scaling</span>
+<span class="sd">    algorithm as proposed in :ref:`[3] &lt;references-barycenter-stabilized&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : array-like, shape (dim, n_hists)</span>
+<span class="sd">        `n_hists` training distributions :math:`\mathbf{a}_i` of size `dim`</span>
+<span class="sd">    M : array-like, shape (dim, dim)</span>
+<span class="sd">        loss matrix for OT</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0</span>
+<span class="sd">    tau : float</span>
+<span class="sd">        threshold for max value in :math:`\mathbf{u}` or :math:`\mathbf{v}`</span>
+<span class="sd">        for log scaling</span>
+<span class="sd">    weights : array-like, shape (n_hists,)</span>
+<span class="sd">        Weights of each histogram :math:`\mathbf{a}_i` on the simplex (barycentric coodinates)</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a : (dim,) array-like</span>
+<span class="sd">        Wasserstein barycenter</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-barycenter-stabilized:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [3] Benamou, J. D., Carlier, G., Cuturi, M., Nenna, L., &amp; Peyré, G. (2015).</span>
+<span class="sd">        Iterative Bregman projections for regularized transportation problems.</span>
+<span class="sd">        SIAM Journal on Scientific Computing, 37(2), A1111-A1138.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">A</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">dim</span><span class="p">,</span> <span class="n">n_hists</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n_hists</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_hists</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim</span><span class="p">,</span> <span class="n">n_hists</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim</span><span class="p">,</span> <span class="n">n_hists</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+
+    <span class="n">err</span> <span class="o">=</span> <span class="mf">1.</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dim</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dim</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">qprev</span> <span class="o">=</span> <span class="n">q</span>
+        <span class="n">Kv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">A</span> <span class="o">/</span> <span class="n">Kv</span>
+        <span class="n">Ktu</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">geometricBar</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">Ktu</span><span class="p">)</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">/</span> <span class="n">Ktu</span>
+        <span class="n">absorbing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">u</span> <span class="o">&gt;</span> <span class="n">tau</span><span class="p">)</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">v</span> <span class="o">&gt;</span> <span class="n">tau</span><span class="p">):</span>
+            <span class="n">absorbing</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">alpha</span> <span class="o">+=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">beta</span> <span class="o">+=</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">alpha</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">beta</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">Kv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">Ktu</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">v</span><span class="p">))):</span>
+            <span class="c1"># we have reached the machine precision</span>
+            <span class="c1"># come back to previous solution and quit loop</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Numerical errors at iteration </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span><span class="p">)</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">qprev</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ii</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">absorbing</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ii</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we can speed up the process by checking for the error only all</span>
+            <span class="c1"># the 10th iterations</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">Kv</span> <span class="o">-</span> <span class="n">A</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">50</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Stabilized Sinkhorn did not converge.&quot;</span> <span class="o">+</span>
+                          <span class="s2">&quot;Try a larger entropy `reg`&quot;</span> <span class="o">+</span>
+                          <span class="s2">&quot;Or a larger absorption threshold `tau`.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;niter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;logu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">u</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;logv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">v</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">q</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">q</span></div>
+
+
+
+<div class="viewcode-block" id="barycenter_debiased">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.barycenter_debiased">[docs]</a>
+<span class="k">def</span> <span class="nf">barycenter_debiased</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+                        <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the debiased Sinkhorn barycenter of distributions A</span>
+
+<span class="sd">     The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">       \mathbf{a} = \mathop{\arg \min}_\mathbf{a} \quad \sum_i S_{reg}(\mathbf{a},\mathbf{a}_i)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`S_{reg}(\cdot,\cdot)` is the debiased Sinkhorn divergence</span>
+<span class="sd">      (see :py:func:`ot.bregman.empirical_sinkhorn_divergence`)</span>
+<span class="sd">    - :math:`\mathbf{a}_i` are training distributions in the columns of matrix</span>
+<span class="sd">      :math:`\mathbf{A}`</span>
+<span class="sd">    - `reg` and :math:`\mathbf{M}` are respectively the regularization term and</span>
+<span class="sd">      the cost matrix for OT</span>
+
+<span class="sd">    The algorithm used for solving the problem is the debiased Sinkhorn</span>
+<span class="sd">    algorithm as proposed in :ref:`[37] &lt;references-barycenter-debiased&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : array-like, shape (dim, n_hists)</span>
+<span class="sd">        `n_hists` training distributions :math:`\mathbf{a}_i` of size `dim`</span>
+<span class="sd">    M : array-like, shape (dim, dim)</span>
+<span class="sd">        loss matrix for OT</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0</span>
+<span class="sd">    method : str (optional)</span>
+<span class="sd">        method used for the solver either &#39;sinkhorn&#39; or &#39;sinkhorn_log&#39;</span>
+<span class="sd">    weights : array-like, shape (n_hists,)</span>
+<span class="sd">        Weights of each histogram :math:`\mathbf{a}_i` on the simplex (barycentric coodinates)</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a : (dim,) array-like</span>
+<span class="sd">        Wasserstein barycenter</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-barycenter-debiased:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [37] Janati, H., Cuturi, M., Gramfort, A. Proceedings of the 37th International</span>
+<span class="sd">        Conference on Machine Learning, PMLR 119:4692-4701, 2020</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;sinkhorn&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_barycenter_debiased</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                                    <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+                                    <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+                                    <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;sinkhorn_log&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_barycenter_debiased_log</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                                        <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+                                        <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                                        <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown method &#39;</span><span class="si">%s</span><span class="s2">&#39;.&quot;</span> <span class="o">%</span> <span class="n">method</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_barycenter_debiased</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                         <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the debiased sinkhorn barycenter of distributions A.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">A</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">UKv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="n">geometricMean</span><span class="p">(</span><span class="n">UKv</span><span class="p">)</span> <span class="o">/</span> <span class="n">UKv</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">bar</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">bold</span> <span class="o">=</span> <span class="n">bar</span>
+        <span class="n">UKv</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">A</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+        <span class="n">bar</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">geometricBar</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">UKv</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">bar</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">/</span> <span class="n">UKv</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="n">bar</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.5</span>
+
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">9</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">bar</span> <span class="o">-</span> <span class="n">bold</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">bar</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">1.</span><span class="p">)</span>
+
+            <span class="c1"># log and verbose print</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="c1"># debiased Sinkhorn does not converge monotonically</span>
+            <span class="c1"># guarantee a few iterations are done before stopping</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">ii</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
+                          <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                          <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;niter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="k">return</span> <span class="n">bar</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bar</span>
+
+
+<span class="k">def</span> <span class="nf">_barycenter_debiased_log</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                             <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                             <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the debiased sinkhorn barycenter in log domain.</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+
+    <span class="n">A</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">dim</span><span class="p">,</span> <span class="n">n_hists</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;Log-domain functions are not yet implemented&quot;</span>
+            <span class="s2">&quot; for Jax and TF. Use numpy or torch arrays instead.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_hists</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_hists</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">M</span> <span class="o">=</span> <span class="o">-</span> <span class="n">M</span> <span class="o">/</span> <span class="n">reg</span>
+    <span class="n">logA</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>
+    <span class="n">log_KU</span><span class="p">,</span> <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">logA</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">log_bar</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_hists</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">logA</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="n">G</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="n">k</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">log_KU</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="n">f</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">log_bar</span> <span class="o">+=</span> <span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">log_KU</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span>
+        <span class="n">log_bar</span> <span class="o">+=</span> <span class="n">c</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="n">log_KU</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+            <span class="c1"># log and verbose print</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">ii</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">log_bar</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">log_KU</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">log_bar</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="n">c</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
+                          <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                          <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;niter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_bar</span><span class="p">),</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_bar</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="jcpot_barycenter">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.jcpot_barycenter">[docs]</a>
+<span class="k">def</span> <span class="nf">jcpot_barycenter</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                     <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;Joint OT and proportion estimation for multi-source target shift as</span>
+<span class="sd">    proposed in :ref:`[27] &lt;references-jcpot-barycenter&gt;`</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{h} = \mathop{\arg \min}_{\mathbf{h}} \quad \sum_{k=1}^{K} \lambda_k</span>
+<span class="sd">                    W_{reg}((\mathbf{D}_2^{(k)} \mathbf{h})^T, \mathbf{a})</span>
+
+<span class="sd">        s.t. \ \forall k, \mathbf{D}_1^{(k)} \gamma_k \mathbf{1}_n= \mathbf{h}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\lambda_k` is the weight of `k`-th source domain</span>
+<span class="sd">    - :math:`W_{reg}(\cdot,\cdot)` is the entropic regularized Wasserstein distance</span>
+<span class="sd">      (see :py:func:`ot.bregman.sinkhorn`)</span>
+<span class="sd">    - :math:`\mathbf{D}_2^{(k)}` is a matrix of weights related to `k`-th source domain</span>
+<span class="sd">      defined as in [p. 5, :ref:`27 &lt;references-jcpot-barycenter&gt;`], its expected shape</span>
+<span class="sd">      is :math:`(n_k, C)` where :math:`n_k` is the number of elements in the `k`-th source</span>
+<span class="sd">      domain and `C` is the number of classes</span>
+<span class="sd">    - :math:`\mathbf{h}` is a vector of estimated proportions in the target domain of size `C`</span>
+<span class="sd">    - :math:`\mathbf{a}` is a uniform vector of weights in the target domain of size `n`</span>
+<span class="sd">    - :math:`\mathbf{D}_1^{(k)}` is a matrix of class assignments defined as in</span>
+<span class="sd">      [p. 5, :ref:`27 &lt;references-jcpot-barycenter&gt;`], its expected shape is :math:`(n_k, C)`</span>
+
+<span class="sd">    The problem consist in solving a Wasserstein barycenter problem to estimate</span>
+<span class="sd">    the proportions :math:`\mathbf{h}` in the target domain.</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Iterative Bregman projections algorithm</span>
+<span class="sd">    with two sets of marginal constraints related to the unknown vector</span>
+<span class="sd">    :math:`\mathbf{h}` and uniform target distribution.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Xs : list of K array-like(nsk,d)</span>
+<span class="sd">        features of all source domains&#39; samples</span>
+<span class="sd">    Ys : list of K array-like(nsk,)</span>
+<span class="sd">        labels of all source domains&#39; samples</span>
+<span class="sd">    Xt : array-like (nt,d)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt; 0</span>
+<span class="sd">    metric : string, optional (default=&quot;sqeuclidean&quot;)</span>
+<span class="sd">        The ground metric for the Wasserstein problem</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on relative change in the barycenter (&gt;0)</span>
+<span class="sd">    verbose : bool, optional (default=False)</span>
+<span class="sd">        Controls the verbosity of the optimization algorithm</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    h : (C,) array-like</span>
+<span class="sd">        proportion estimation in the target domain</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-jcpot-barycenter:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [27] Ievgen Redko, Nicolas Courty, Rémi Flamary, Devis Tuia</span>
+<span class="sd">        &quot;Optimal transport for multi-source domain adaptation under target shift&quot;,</span>
+<span class="sd">        International Conference on Artificial Intelligence and Statistics (AISTATS), 2019.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">Xs</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Xs</span><span class="p">)</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">)</span>
+    <span class="n">Xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">Xt</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Xs</span><span class="p">,</span> <span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="n">Xt</span><span class="p">)</span>
+
+    <span class="n">nbclasses</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">nbdomains</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Xs</span><span class="p">)</span>
+
+    <span class="c1"># log dictionary</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;niter&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;D1&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;D2&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">D1</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">D2</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># For each source domain, build cost matrices M, Gibbs kernels K and corresponding matrices D_1 and D_2</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbdomains</span><span class="p">):</span>
+        <span class="n">dom</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">nsk</span> <span class="o">=</span> <span class="n">Xs</span><span class="p">[</span><span class="n">d</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># get number of elements for this domain</span>
+        <span class="n">dom</span><span class="p">[</span><span class="s1">&#39;nbelem&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nsk</span>
+        <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>  <span class="c1"># get number of classes for this domain</span>
+
+        <span class="c1"># format classes to start from 0 for convenience</span>
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">Ys</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">-=</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+
+        <span class="c1"># build the corresponding D_1 and D_2 matrices</span>
+        <span class="n">Dtmp1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbclasses</span><span class="p">,</span> <span class="n">nsk</span><span class="p">))</span>
+        <span class="n">Dtmp2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbclasses</span><span class="p">,</span> <span class="n">nsk</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+            <span class="n">nbelemperclass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">==</span> <span class="n">c</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">nbelemperclass</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">Dtmp1</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">==</span> <span class="n">c</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1.</span>
+                <span class="n">Dtmp2</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">==</span> <span class="n">c</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="n">nbelemperclass</span><span class="p">)</span>
+        <span class="n">D1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Dtmp1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">D2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Dtmp2</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+        <span class="c1"># build the cost matrix and the Gibbs kernel</span>
+        <span class="n">Mtmp</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">Xs</span><span class="p">[</span><span class="n">d</span><span class="p">],</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Mtmp</span><span class="p">)</span>
+
+        <span class="n">Ktmp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">Mtmp</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+        <span class="n">K</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Ktmp</span><span class="p">)</span>
+
+    <span class="c1"># uniform target distribution</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">unif</span><span class="p">(</span><span class="n">Xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">old_bary</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nbclasses</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+
+        <span class="n">bary</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbclasses</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># update coupling matrices for marginal constraints w.r.t. uniform target distribution</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbdomains</span><span class="p">):</span>
+            <span class="n">K</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">projC</span><span class="p">(</span><span class="n">K</span><span class="p">[</span><span class="n">d</span><span class="p">],</span> <span class="n">a</span><span class="p">)</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">K</span><span class="p">[</span><span class="n">d</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">bary</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D1</span><span class="p">[</span><span class="n">d</span><span class="p">],</span> <span class="n">other</span><span class="p">))</span> <span class="o">/</span> <span class="n">nbdomains</span>
+
+        <span class="n">bary</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bary</span><span class="p">)</span>
+
+        <span class="c1"># update coupling matrices for marginal constraints w.r.t. unknown proportions based on [Prop 4., 27]</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbdomains</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D2</span><span class="p">[</span><span class="n">d</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">bary</span><span class="p">)</span>
+            <span class="n">K</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">projR</span><span class="p">(</span><span class="n">K</span><span class="p">[</span><span class="n">d</span><span class="p">],</span> <span class="n">new</span><span class="p">)</span>
+
+        <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">bary</span> <span class="o">-</span> <span class="n">old_bary</span><span class="p">)</span>
+
+        <span class="n">old_bary</span> <span class="o">=</span> <span class="n">bary</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Algorithm did not converge. You might want to &quot;</span>
+                          <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                          <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span><span class="p">)</span>
+    <span class="n">bary</span> <span class="o">=</span> <span class="n">bary</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bary</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;niter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;M&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">M</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;D1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">D1</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;D2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">D2</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">K</span>
+        <span class="k">return</span> <span class="n">bary</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bary</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

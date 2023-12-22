@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.lowrank &mdash; POT Python Optimal Transport 0.9.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=aa3b121e"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.9.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.lowrank</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.lowrank</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Low rank OT solvers</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Laurène David &lt;laurene.david@ip-paris.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">get_lowrank_lazytensor</span>
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">.bregman</span> <span class="kn">import</span> <span class="n">sinkhorn</span>
+
+<span class="c1"># test if sklearn is installed for linux-minimal-deps</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">sklearn.cluster</span>
+    <span class="n">sklearn_import</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">sklearn_import</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">_init_lr_sinkhorn</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">reg_init</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of different initialization strategies for the low rank sinkhorn solver (Q ,R, g).</span>
+<span class="sd">    This function is specific to lowrank_sinkhorn.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    rank : int</span>
+<span class="sd">        Nonnegative rank of the OT plan.</span>
+<span class="sd">    init : str</span>
+<span class="sd">        Initialization strategy for Q, R and g. &#39;random&#39;, &#39;trivial&#39; or &#39;kmeans&#39;</span>
+<span class="sd">    reg_init : float, optional.</span>
+<span class="sd">        Regularization term for a &#39;kmeans&#39; init.</span>
+<span class="sd">    random_state : int, optional.</span>
+<span class="sd">        Random state for a &quot;random&quot; or &#39;kmeans&#39; init strategy</span>
+<span class="sd">    nx : optional, Default is None</span>
+<span class="sd">        POT backend</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    ---------</span>
+<span class="sd">    Q : array-like, shape (n_samples_a, r)</span>
+<span class="sd">        Init for the first low-rank matrix decomposition of the OT plan (Q)</span>
+<span class="sd">    R: array-like, shape (n_samples_b, r)</span>
+<span class="sd">        Init for the second low-rank matrix decomposition of the OT plan (R)</span>
+<span class="sd">    g : array-like, shape (r, )</span>
+<span class="sd">        Init for the weight vector of the low-rank decomposition of the OT plan (g)</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    -----------</span>
+<span class="sd">    .. [65] Scetbon, M., Cuturi, M., &amp; Peyré, G. (2021).</span>
+<span class="sd">        &quot;Low-rank Sinkhorn factorization&quot;. In International Conference on Machine Learning.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nt</span> <span class="o">=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">rank</span>
+
+    <span class="k">if</span> <span class="n">init</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">random_state</span><span class="p">)</span>
+
+        <span class="c1"># Init g</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
+        <span class="c1"># Init Q</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Init R</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">if</span> <span class="n">init</span> <span class="o">==</span> <span class="s2">&quot;deterministic&quot;</span><span class="p">:</span>
+        <span class="c1"># Init g</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span> <span class="o">/</span> <span class="n">rank</span>
+
+        <span class="n">lambda_1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">a1</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">lambda_1</span> <span class="o">*</span> <span class="n">a1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">lambda_1</span><span class="p">)</span>
+
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">nt</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b1</span><span class="p">)</span>
+        <span class="n">b2</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">lambda_1</span> <span class="o">*</span> <span class="n">b1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">lambda_1</span><span class="p">)</span>
+
+        <span class="n">g1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+        <span class="n">g1</span> <span class="o">=</span> <span class="n">g1</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">g1</span><span class="p">)</span>
+        <span class="n">g2</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span> <span class="o">-</span> <span class="n">lambda_1</span> <span class="o">*</span> <span class="n">g1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">lambda_1</span><span class="p">)</span>
+
+        <span class="c1"># Init Q</span>
+        <span class="n">Q1</span> <span class="o">=</span> <span class="n">lambda_1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a1</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">Q2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">lambda_1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a2</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">g2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">Q1</span> <span class="o">+</span> <span class="n">Q2</span>
+
+        <span class="c1"># Init R</span>
+        <span class="n">R1</span> <span class="o">=</span> <span class="n">lambda_1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">b1</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">R2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">lambda_1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">b2</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">g2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">R1</span> <span class="o">+</span> <span class="n">R2</span>
+
+    <span class="k">if</span> <span class="n">init</span> <span class="o">==</span> <span class="s2">&quot;kmeans&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sklearn_import</span><span class="p">:</span>
+            <span class="c1"># Init g</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span> <span class="o">/</span> <span class="n">rank</span>
+
+            <span class="c1"># Init Q</span>
+            <span class="n">kmeans_Xs</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+            <span class="n">kmeans_Xs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_s</span><span class="p">)</span>
+            <span class="n">Z_Xs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">kmeans_Xs</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">)</span>
+            <span class="n">C_Xs</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">Z_Xs</span><span class="p">)</span>  <span class="c1"># shape (ns, rank)</span>
+            <span class="n">C_Xs</span> <span class="o">=</span> <span class="n">C_Xs</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">C_Xs</span><span class="p">)</span>
+            <span class="n">Q</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">C_Xs</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg_init</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+            <span class="c1"># Init R</span>
+            <span class="n">kmeans_Xt</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+            <span class="n">kmeans_Xt</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+            <span class="n">Z_Xt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">kmeans_Xt</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">)</span>
+            <span class="n">C_Xt</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">Z_Xt</span><span class="p">)</span>  <span class="c1"># shape (nt, rank)</span>
+            <span class="n">C_Xt</span> <span class="o">=</span> <span class="n">C_Xt</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">C_Xt</span><span class="p">)</span>
+            <span class="n">R</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">C_Xt</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg_init</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Scikit-learn should be installed to use the &#39;kmeans&#39; init.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span>
+
+
+<span class="k">def</span> <span class="nf">compute_lr_sqeuclidean_matrix</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">rescale_cost</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the low rank decomposition of a squared euclidean distance matrix.</span>
+<span class="sd">    This function won&#39;t work for other distance metrics.</span>
+
+<span class="sd">    See &quot;Section 3.5, proposition 1&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    rescale_cost : bool</span>
+<span class="sd">        Rescale the low rank factorization of the sqeuclidean cost matrix</span>
+<span class="sd">    nx : default None</span>
+<span class="sd">        POT backend</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M1 : array-like, shape (n_samples_a, dim+2)</span>
+<span class="sd">        First low rank decomposition of the distance matrix</span>
+<span class="sd">    M2 : array-like, shape (n_samples_b, dim+2)</span>
+<span class="sd">        Second low rank decomposition of the distance matrix</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    -----------</span>
+<span class="sd">    .. [65] Scetbon, M., Cuturi, M., &amp; Peyré, G. (2021).</span>
+<span class="sd">        &quot;Low-rank Sinkhorn factorization&quot;. In International Conference on Machine Learning.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nt</span> <span class="o">=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># First low rank decomposition of the cost matrix (A)</span>
+    <span class="n">array1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X_s</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">array2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="n">M1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">array1</span><span class="p">,</span> <span class="n">array2</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">X_s</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Second low rank decomposition of the cost matrix (B)</span>
+    <span class="n">array1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nt</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="n">array2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X_t</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">M2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">array1</span><span class="p">,</span> <span class="n">array2</span><span class="p">,</span> <span class="n">X_t</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rescale_cost</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">M1</span> <span class="o">=</span> <span class="n">M1</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">M1</span><span class="p">))</span>
+        <span class="n">M2</span> <span class="o">=</span> <span class="n">M2</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">M2</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">M1</span><span class="p">,</span> <span class="n">M2</span>
+
+
+<span class="k">def</span> <span class="nf">_LR_Dysktra</span><span class="p">(</span><span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="n">eps3</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">stopThr</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">warn</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Dykstra algorithm for the Low Rank sinkhorn OT solver.</span>
+<span class="sd">    This function is specific to lowrank_sinkhorn.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eps1 : array-like, shape (n_samples_a, r)</span>
+<span class="sd">        First input parameter of the Dykstra algorithm</span>
+<span class="sd">    eps2 : array-like, shape (n_samples_b, r)</span>
+<span class="sd">        Second input parameter of the Dykstra algorithm</span>
+<span class="sd">    eps3 : array-like, shape (r,)</span>
+<span class="sd">        Third input parameter of the Dykstra algorithm</span>
+<span class="sd">    p1 : array-like, shape (n_samples_a,)</span>
+<span class="sd">        Samples weights in the source domain (same as &quot;a&quot; in lowrank_sinkhorn)</span>
+<span class="sd">    p2 : array-like, shape (n_samples_b,)</span>
+<span class="sd">        Samples weights in the target domain (same as &quot;b&quot; in lowrank_sinkhorn)</span>
+<span class="sd">    alpha: int</span>
+<span class="sd">        Lower bound for the weight vector g (same as &quot;alpha&quot; in lowrank_sinkhorn)</span>
+<span class="sd">    stopThr : float</span>
+<span class="sd">        Stop threshold on error</span>
+<span class="sd">    numItermax : int</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    nx : default None</span>
+<span class="sd">        POT backend</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Q : array-like, shape (n_samples_a, r)</span>
+<span class="sd">        Dykstra update of the first low-rank matrix decomposition Q</span>
+<span class="sd">    R: array-like, shape (n_samples_b, r)</span>
+<span class="sd">        Dykstra update of the Second low-rank matrix decomposition R</span>
+<span class="sd">    g : array-like, shape (r, )</span>
+<span class="sd">        Dykstra update of the weight vector g</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [65] Scetbon, M., Cuturi, M., &amp; Peyré, G. (2021).</span>
+<span class="sd">        &quot;Low-rank Sinkhorn Factorization&quot;. In International Conference on Machine Learning.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># POT backend if None</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="n">eps3</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span>
+
+    <span class="c1"># ----------------- Initialisation of Dykstra algorithm -----------------</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eps3</span><span class="p">)</span>  <span class="c1"># rank</span>
+    <span class="n">g_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">eps3</span><span class="p">)</span>  <span class="c1"># \tilde{g}</span>
+    <span class="n">q3_1</span><span class="p">,</span> <span class="n">q3_2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p1</span><span class="p">)</span>  <span class="c1"># q^{(3)}_1, q^{(3)}_2</span>
+    <span class="n">v1_</span><span class="p">,</span> <span class="n">v2_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p1</span><span class="p">)</span>  <span class="c1"># \tilde{v}^{(1)}, \tilde{v}^{(2)}</span>
+    <span class="n">q1</span><span class="p">,</span> <span class="n">q2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p1</span><span class="p">)</span>  <span class="c1"># q^{(1)}, q^{(2)}</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># initial error</span>
+
+    <span class="c1"># --------------------- Dykstra algorithm -------------------------</span>
+
+    <span class="c1"># See Section 3.3 - &quot;Algorithm 2 LR-Dykstra&quot; in paper</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">err</span> <span class="o">&gt;</span> <span class="n">stopThr</span><span class="p">:</span>
+            <span class="c1"># Compute u^{(1)} and u^{(2)}</span>
+            <span class="n">u1</span> <span class="o">=</span> <span class="n">p1</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">eps1</span><span class="p">,</span> <span class="n">v1_</span><span class="p">)</span>
+            <span class="n">u2</span> <span class="o">=</span> <span class="n">p2</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">eps2</span><span class="p">,</span> <span class="n">v2_</span><span class="p">)</span>
+
+            <span class="c1"># Compute g, g^{(3)}_1 and update \tilde{g}</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">g_</span> <span class="o">*</span> <span class="n">q3_1</span><span class="p">)</span>
+            <span class="n">q3_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">g_</span> <span class="o">*</span> <span class="n">q3_1</span><span class="p">)</span> <span class="o">/</span> <span class="n">g</span>
+            <span class="n">g_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
+            <span class="c1"># Compute new value of g with \prod</span>
+            <span class="n">prod1</span> <span class="o">=</span> <span class="p">(</span><span class="n">v1_</span> <span class="o">*</span> <span class="n">q1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">eps1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u1</span><span class="p">)</span>
+            <span class="n">prod2</span> <span class="o">=</span> <span class="p">(</span><span class="n">v2_</span> <span class="o">*</span> <span class="n">q2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">eps2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u2</span><span class="p">)</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="p">(</span><span class="n">g_</span> <span class="o">*</span> <span class="n">q3_2</span> <span class="o">*</span> <span class="n">prod1</span> <span class="o">*</span> <span class="n">prod2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+
+            <span class="c1"># Compute v^{(1)} and v^{(2)}</span>
+            <span class="n">v1</span> <span class="o">=</span> <span class="n">g</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">eps1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u1</span><span class="p">)</span>
+            <span class="n">v2</span> <span class="o">=</span> <span class="n">g</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">eps2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">u2</span><span class="p">)</span>
+
+            <span class="c1"># Compute q^{(1)}, q^{(2)} and q^{(3)}_2</span>
+            <span class="n">q1</span> <span class="o">=</span> <span class="p">(</span><span class="n">v1_</span> <span class="o">*</span> <span class="n">q1</span><span class="p">)</span> <span class="o">/</span> <span class="n">v1</span>
+            <span class="n">q2</span> <span class="o">=</span> <span class="p">(</span><span class="n">v2_</span> <span class="o">*</span> <span class="n">q2</span><span class="p">)</span> <span class="o">/</span> <span class="n">v2</span>
+            <span class="n">q3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">g_</span> <span class="o">*</span> <span class="n">q3_2</span><span class="p">)</span> <span class="o">/</span> <span class="n">g</span>
+
+            <span class="c1"># Update values of \tilde{v}^{(1)}, \tilde{v}^{(2)} and \tilde{g}</span>
+            <span class="n">v1_</span><span class="p">,</span> <span class="n">v2_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">v2</span><span class="p">)</span>
+            <span class="n">g_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
+            <span class="c1"># Compute error</span>
+            <span class="n">err1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u1</span> <span class="o">*</span> <span class="p">(</span><span class="n">eps1</span> <span class="o">@</span> <span class="n">v1</span><span class="p">)</span> <span class="o">-</span> <span class="n">p1</span><span class="p">))</span>
+            <span class="n">err2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u2</span> <span class="o">*</span> <span class="p">(</span><span class="n">eps2</span> <span class="o">@</span> <span class="n">v2</span><span class="p">)</span> <span class="o">-</span> <span class="n">p2</span><span class="p">))</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">err1</span> <span class="o">+</span> <span class="n">err2</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Dykstra did not converge. You might want to &quot;</span>
+                <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Compute low rank matrices Q, R</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="n">u1</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">eps1</span> <span class="o">*</span> <span class="n">v1</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">u2</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">eps2</span> <span class="o">*</span> <span class="n">v2</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span>
+
+
+<div class="viewcode-block" id="lowrank_sinkhorn">
+<a class="viewcode-back" href="../../all.html#ot.lowrank_sinkhorn">[docs]</a>
+<span class="k">def</span> <span class="nf">lowrank_sinkhorn</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="n">rescale_cost</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">init</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">,</span> <span class="n">reg_init</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">seed_init</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span> <span class="n">gamma_init</span><span class="o">=</span><span class="s2">&quot;rescale&quot;</span><span class="p">,</span>
+                     <span class="n">numItermax</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solve the entropic regularization optimal transport problem under low-nonnegative rank constraints</span>
+<span class="sd">    on the couplings.</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathop{\inf_{(Q,R,g) \in \mathcal{C(a,b,r)}}} \langle C, Q\mathrm{diag}(1/g)R^T \rangle -</span>
+<span class="sd">            \mathrm{reg} \cdot H((Q,R,g))</span>
+
+<span class="sd">    where :</span>
+<span class="sd">    - :math:`C` is the (`dim_a`, `dim_b`) metric cost matrix</span>
+<span class="sd">    - :math:`H((Q,R,g))` is the values of the three respective entropies evaluated for each term.</span>
+<span class="sd">    - :math: `Q` and `R` are the low-rank matrix decomposition of the OT plan</span>
+<span class="sd">    - :math: `g` is the weight vector for the low-rank decomposition of the OT plan</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target weights (histograms, both sum to 1)</span>
+<span class="sd">    - :math: `r` is the rank of the OT plan</span>
+<span class="sd">    - :math: `\mathcal{C(a,b,r)}` are the low-rank couplings of the OT problem</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    rank : int, optional. Default is None. (&gt;0)</span>
+<span class="sd">        Nonnegative rank of the OT plan. If None, min(ns, nt) is considered.</span>
+<span class="sd">    alpha : int, optional. Default is 1e-10. (&gt;0 and &lt;1/r)</span>
+<span class="sd">        Lower bound for the weight vector g.</span>
+<span class="sd">    rescale_cost : bool, optional. Default is False</span>
+<span class="sd">        Rescale the low rank factorization of the sqeuclidean cost matrix</span>
+<span class="sd">    init : str, optional. Default is &#39;random&#39;.</span>
+<span class="sd">        Initialization strategy for the low rank couplings. &#39;random&#39;, &#39;deterministic&#39; or &#39;kmeans&#39;</span>
+<span class="sd">    reg_init : float, optional. Default is 1e-1. (&gt;0)</span>
+<span class="sd">        Regularization term for a &#39;kmeans&#39; init. If None, 1 is considered.</span>
+<span class="sd">    seed_init : int, optional. Default is 49. (&gt;0)</span>
+<span class="sd">        Random state for a &#39;random&#39; or &#39;kmeans&#39; init strategy.</span>
+<span class="sd">    gamma_init : str, optional. Default is &quot;rescale&quot;.</span>
+<span class="sd">        Initialization strategy for gamma. &#39;rescale&#39;, or &#39;theory&#39;</span>
+<span class="sd">        Gamma is a constant that scales the convergence criterion of the Mirror Descent</span>
+<span class="sd">        optimization scheme used to compute the low-rank couplings (Q, R and g)</span>
+<span class="sd">    numItermax : int, optional. Default is 2000.</span>
+<span class="sd">        Max number of iterations for the Dykstra algorithm</span>
+<span class="sd">    stopThr : float, optional. Default is 1e-7.</span>
+<span class="sd">        Stop threshold on error (&gt;0) in Dykstra</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    ---------</span>
+<span class="sd">    Q : array-like, shape (n_samples_a, r)</span>
+<span class="sd">        First low-rank matrix decomposition of the OT plan</span>
+<span class="sd">    R: array-like, shape (n_samples_b, r)</span>
+<span class="sd">        Second low-rank matrix decomposition of the OT plan</span>
+<span class="sd">    g : array-like, shape (r, )</span>
+<span class="sd">        Weight vector for the low-rank decomposition of the OT</span>
+<span class="sd">    log : dict (lazy_plan, value and value_linear)</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [65] Scetbon, M., Cuturi, M., &amp; Peyré, G. (2021).</span>
+<span class="sd">        &quot;Low-rank Sinkhorn Factorization&quot;. In International Conference on Machine Learning.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># POT backend</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+    <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Initialize weights a, b</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_t</span><span class="p">)</span>
+
+    <span class="c1"># Compute rank (see Section 3.1, def 1)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">rank</span>
+    <span class="k">if</span> <span class="n">rank</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">nt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">r</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The rank parameter cannot have a negative value&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Dykstra won&#39;t converge if 1/rank &lt; alpha (see Section 3.2)</span>
+    <span class="k">if</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">alpha</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;alpha (</span><span class="si">{a}</span><span class="s2">) should be smaller than 1/rank (</span><span class="si">{r}</span><span class="s2">) for the Dykstra algorithm to converge.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">rank</span><span class="p">))</span>
+
+    <span class="c1"># Low rank decomposition of the sqeuclidean cost matrix</span>
+    <span class="n">M1</span><span class="p">,</span> <span class="n">M2</span> <span class="o">=</span> <span class="n">compute_lr_sqeuclidean_matrix</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">rescale_cost</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+    <span class="c1"># Initialize the low rank matrices Q, R, g</span>
+    <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">_init_lr_sinkhorn</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">reg_init</span><span class="p">,</span> <span class="n">seed_init</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+    <span class="c1"># Gamma initialization</span>
+    <span class="k">if</span> <span class="n">gamma_init</span> <span class="o">==</span> <span class="s2">&quot;theory&quot;</span><span class="p">:</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span><span class="o">**</span><span class="mi">4</span><span class="p">))</span> <span class="o">*</span> <span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">M1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">M2</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">reg</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">M1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">M2</span><span class="p">)))</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">L</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gamma_init</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;rescale&quot;</span><span class="p">,</span> <span class="s2">&quot;theory&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented gamma_init=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gamma_init</span><span class="p">)))</span>
+
+    <span class="c1"># -------------------------- Low rank algorithm ------------------------------</span>
+    <span class="c1"># see &quot;Section 3.3, Algorithm 3 LOT&quot;</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+        <span class="c1"># Compute C*R dot using the lr decomposition of C</span>
+        <span class="n">CR</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+        <span class="n">CR_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M1</span><span class="p">,</span> <span class="n">CR</span><span class="p">)</span>
+        <span class="n">diag_g</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">g</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">CR_g</span> <span class="o">=</span> <span class="n">CR_</span> <span class="o">*</span> <span class="n">diag_g</span>
+
+        <span class="c1"># Compute C.T * Q using the lr decomposition of C</span>
+        <span class="n">CQ</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Q</span><span class="p">)</span>
+        <span class="n">CQ_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M2</span><span class="p">,</span> <span class="n">CQ</span><span class="p">)</span>
+        <span class="n">CQ_g</span> <span class="o">=</span> <span class="n">CQ_</span> <span class="o">*</span> <span class="n">diag_g</span>
+
+        <span class="c1"># Compute omega</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Q</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">CR_</span><span class="p">))</span>
+
+        <span class="c1"># Rescale gamma at each iteration</span>
+        <span class="k">if</span> <span class="n">gamma_init</span> <span class="o">==</span> <span class="s2">&quot;rescale&quot;</span><span class="p">:</span>
+            <span class="n">norm_1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">CR_</span> <span class="o">*</span> <span class="n">diag_g</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Q</span><span class="p">)))</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">norm_2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">CQ_</span> <span class="o">*</span> <span class="n">diag_g</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">R</span><span class="p">)))</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">norm_3</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="o">-</span><span class="n">omega</span> <span class="o">*</span> <span class="n">diag_g</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">norm_1</span><span class="p">,</span> <span class="n">norm_2</span><span class="p">,</span> <span class="n">norm_3</span><span class="p">)</span>
+
+        <span class="n">eps1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">CR_g</span> <span class="o">-</span> <span class="p">((</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">reg</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Q</span><span class="p">))</span>
+        <span class="n">eps2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">CQ_g</span> <span class="o">-</span> <span class="p">((</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">reg</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+        <span class="n">eps3</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">/</span> <span class="p">(</span><span class="n">g</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">reg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
+
+        <span class="c1"># LR Dykstra algorithm</span>
+        <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">_LR_Dysktra</span><span class="p">(</span>
+            <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="n">eps3</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">stopThr</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">warn</span><span class="p">,</span> <span class="n">nx</span>
+        <span class="p">)</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">+</span> <span class="mf">1e-16</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">R</span> <span class="o">+</span> <span class="mf">1e-16</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="o">+</span> <span class="mf">1e-16</span>
+
+    <span class="c1"># ----------------- Compute lazy_plan, value and value_linear  ------------------</span>
+    <span class="c1"># see &quot;Section 3.2: The Low-rank OT Problem&quot; in the paper</span>
+
+    <span class="c1"># Compute lazy plan (using LazyTensor class)</span>
+    <span class="n">lazy_plan</span> <span class="o">=</span> <span class="n">get_lowrank_lazytensor</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">g</span><span class="p">)</span>
+
+    <span class="c1"># Compute value_linear (using trace formula)</span>
+    <span class="n">v1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Q</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">M1</span><span class="p">)</span>
+    <span class="n">v2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="p">(</span><span class="n">v1</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">diag_g</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">v2</span><span class="p">)))</span>
+
+    <span class="c1"># Compute value with entropy reg (see &quot;Section 3.2&quot; in the paper)</span>
+    <span class="n">reg_Q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Q</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Q</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>  <span class="c1"># entropy for Q</span>
+    <span class="n">reg_g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">g</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>  <span class="c1"># entropy for g</span>
+    <span class="n">reg_R</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">R</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">R</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>  <span class="c1"># entropy for R</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">reg_Q</span> <span class="o">+</span> <span class="n">reg_g</span> <span class="o">+</span> <span class="n">reg_R</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dict_log</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;value_linear&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_linear</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;lazy_plan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_plan</span>
+
+        <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">dict_log</span>
+
+    <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

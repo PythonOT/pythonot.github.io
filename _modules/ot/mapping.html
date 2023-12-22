@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.mapping &mdash; POT Python Optimal Transport 0.9.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=aa3b121e"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.9.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.mapping</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.mapping</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Optimal Transport maps and variants</span>
+
+<span class="sd">.. warning::</span>
+<span class="sd">    Note that by default the module is not imported in :mod:`ot`. In order to</span>
+<span class="sd">    use it you need to explicitly import :mod:`ot.mapping`</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Eloi Tanguy &lt;eloi.tanguy@u-paris.fr&gt;</span>
+<span class="c1">#         Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">to_numpy</span>
+<span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">cg</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">unif</span><span class="p">,</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">dots</span>
+
+
+<div class="viewcode-block" id="nearest_brenier_potential_fit">
+<a class="viewcode-back" href="../../gen_modules/ot.mapping.html#ot.mapping.nearest_brenier_potential_fit">[docs]</a>
+<span class="k">def</span> <span class="nf">nearest_brenier_potential_fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">X_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strongly_convex_constant</span><span class="o">=</span><span class="mf">.6</span><span class="p">,</span>
+                                  <span class="n">gradient_lipschitz_constant</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span> <span class="n">its</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init_method</span><span class="o">=</span><span class="s1">&#39;barycentric&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes optimal values and gradients at X for a strongly convex potential :math:`\varphi` with Lipschitz gradients</span>
+<span class="sd">    on the partitions defined by `X_classes`, where :math:`\varphi` is optimal such that</span>
+<span class="sd">    :math:`\nabla \varphi \#\mu \approx \nu`, given samples :math:`X = x_1, \cdots, x_n \sim \mu` and</span>
+<span class="sd">    :math:`V = v_1, \cdots, v_n \sim \nu`. Finding such a potential that has the desired regularity on the</span>
+<span class="sd">    partition :math:`(E_k)_{k \in [K]}` (given by the classes `X_classes`) is equivalent to finding optimal values</span>
+<span class="sd">    `phi` for the :math:`\varphi(x_i)` and its gradients :math:`\nabla \varphi(x_i)` (variable`G`).</span>
+<span class="sd">    In practice, these optimal values are found by solving the following problem</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        :nowrap:</span>
+
+<span class="sd">        \begin{gather*}</span>
+<span class="sd">        \text{min} \sum_{i,j}\pi_{i,j}\|g_i - v_j\|_2^2 \\</span>
+<span class="sd">        g_1,\cdots, g_n \in \mathbb{R}^d,\; \varphi_1, \cdots, \varphi_n \in \mathbb{R},\; \pi \in \Pi(a, b) \\</span>
+<span class="sd">        \text{s.t.}\ \forall k \in [K],\; \forall i,j \in I_k: \\</span>
+<span class="sd">        \varphi_i-\varphi_j-\langle g_j, x_i-x_j\rangle \geq c_1\|g_i - g_j\|_2^2</span>
+<span class="sd">        + c_2\|x_i-x_j\|_2^2 - c_3\langle g_j-g_i, x_j -x_i \rangle.</span>
+<span class="sd">        \end{gather*}</span>
+
+<span class="sd">    The constants :math:`c_1, c_2, c_3` only depend on `strongly_convex_constant` and `gradient_lipschitz_constant`.</span>
+<span class="sd">    The constraint :math:`\pi \in \Pi(a, b)` denotes the fact that the matrix :math:`\pi` belong to the OT polytope</span>
+<span class="sd">    of marginals a and b. :math:`I_k` is the subset of :math:`[n]` of the i such that :math:`x_i` is in the</span>
+<span class="sd">    partition (or class) :math:`E_k`, i.e. `X_classes[i] == k`.</span>
+
+<span class="sd">    This problem is solved by alternating over the variable :math:`\pi` and the variables :math:`\varphi_i, g_i`.</span>
+<span class="sd">    For :math:`\pi`, the problem is the standard discrete OT problem, and for :math:`\varphi_i, g_i`, the</span>
+<span class="sd">    problem is a convex QCQP solved using :code:`cvxpy` (ECOS solver).</span>
+
+<span class="sd">    Accepts any compatible backend, but will perform the QCQP optimisation on Numpy arrays, and convert back at the end.</span>
+
+<span class="sd">    .. warning:: This function requires the CVXPY library</span>
+<span class="sd">    .. warning:: Accepts any backend but will convert to Numpy then back to the backend.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like (n, d)</span>
+<span class="sd">        reference points used to compute the optimal values phi and G</span>
+<span class="sd">    V : array-like (n, d)</span>
+<span class="sd">        values of the gradients at the reference points X</span>
+<span class="sd">    X_classes : array-like (n,), optional</span>
+<span class="sd">        classes of the reference points, defaults to a single class</span>
+<span class="sd">    a : array-like (n,), optional</span>
+<span class="sd">        weights for the reference points X, defaults to uniform</span>
+<span class="sd">    b : array-like (n,), optional</span>
+<span class="sd">        weights for the target points V, defaults to uniform</span>
+<span class="sd">    strongly_convex_constant : float, optional</span>
+<span class="sd">        constant for the strong convexity of the input potential phi, defaults to 0.6</span>
+<span class="sd">    gradient_lipschitz_constant : float, optional</span>
+<span class="sd">        constant for the Lipschitz property of the input gradient G, defaults to 1.4</span>
+<span class="sd">    its: int, optional</span>
+<span class="sd">        number of iterations, defaults to 100</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if true</span>
+<span class="sd">    init_method : str, optional</span>
+<span class="sd">        &#39;target&#39; initialises G=V, &#39;barycentric&#39; initialises at the image of X by the barycentric projection</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    phi : array-like (n,)</span>
+<span class="sd">        optimal values of the potential at the points X</span>
+<span class="sd">    G : array-like (n, d)</span>
+<span class="sd">        optimal values of the gradients at the points X</span>
+<span class="sd">    log : dict, optional</span>
+<span class="sd">        If input log is true, a dictionary containing the values of the variables at each iteration, as well</span>
+<span class="sd">        as solver information</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [58] François-Pierre Paty, Alexandre d’Aspremont, and Marco Cuturi. Regularity as regularization:</span>
+<span class="sd">            Smooth and strongly convex brenier potentials in optimal transport. In International Conference</span>
+<span class="sd">            on Artificial Intelligence and Statistics, pages 1222–1232. PMLR, 2020.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.mapping.nearest_brenier_potential_predict_bounds : Predicting SSNB images on new source data</span>
+<span class="sd">    ot.da.NearestBrenierPotential : BaseTransport wrapper for SSNB</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cvx</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please install CVXPY to use this function&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;point shape should be the same as value shape, yet </span><span class="si">{</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">X_classes</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">X_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">X_classes</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">X_classes</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">X_classes</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">n</span><span class="p">,</span> <span class="s2">&quot;incorrect number of class items&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">X_classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">n</span><span class="p">,</span> <span class="s1">&#39;incorrect measure weight sizes&#39;</span>
+
+    <span class="k">assert</span> <span class="n">init_method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="s1">&#39;barycentric&#39;</span><span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;Unsupported initialization method &#39;</span><span class="si">{</span><span class="n">init_method</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+    <span class="k">if</span> <span class="n">init_method</span> <span class="o">==</span> <span class="s1">&#39;target&#39;</span><span class="p">:</span>
+        <span class="n">G_val</span> <span class="o">=</span> <span class="n">V</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Init G_val with barycentric projection</span>
+        <span class="n">G_val</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">V</span><span class="p">))</span> <span class="o">@</span> <span class="n">V</span> <span class="o">/</span> <span class="n">a</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">phi_val</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;G_list&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;phi_list&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;its&#39;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">its</span><span class="p">):</span>  <span class="c1"># alternate optimisation iterations</span>
+        <span class="n">cost_matrix</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">G_val</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>
+        <span class="c1"># optimise the plan</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">cost_matrix</span><span class="p">)</span>
+
+        <span class="c1"># optimise the values phi and the gradients G</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">cost</span> <span class="o">+=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">V</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:])</span> <span class="o">*</span> <span class="n">plan</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>  <span class="c1"># OT cost</span>
+        <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">c3</span> <span class="o">=</span> <span class="n">_ssnb_qcqp_constants</span><span class="p">(</span><span class="n">strongly_convex_constant</span><span class="p">,</span> <span class="n">gradient_lipschitz_constant</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X_classes</span><span class="p">):</span>  <span class="c1"># constraints for the convex interpolation</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_classes</span> <span class="o">==</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_classes</span> <span class="o">==</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span>
+                        <span class="n">phi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">phi</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="n">c1</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                        <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">-</span> <span class="n">c3</span> <span class="o">*</span> <span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="p">]</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">cvx</span><span class="o">.</span><span class="n">ECOS</span><span class="p">)</span>
+        <span class="n">phi_val</span><span class="p">,</span> <span class="n">G_val</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">G</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">it_log_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;solve_time&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span><span class="p">,</span>
+            <span class="s1">&#39;setup_time&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">setup_time</span><span class="p">,</span>
+            <span class="s1">&#39;num_iters&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">num_iters</span><span class="p">,</span>
+            <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+            <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;its&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">it_log_dict</span><span class="p">)</span>
+            <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;G_list&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G_val</span><span class="p">)</span>
+            <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;phi_list&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phi_val</span><span class="p">)</span>
+
+    <span class="c1"># convert back to backend</span>
+    <span class="n">phi_val</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">phi_val</span><span class="p">)</span>
+    <span class="n">G_val</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G_val</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">phi_val</span><span class="p">,</span> <span class="n">G_val</span>
+    <span class="k">return</span> <span class="n">phi_val</span><span class="p">,</span> <span class="n">G_val</span><span class="p">,</span> <span class="n">log_dict</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_ssnb_qcqp_constants</span><span class="p">(</span><span class="n">strongly_convex_constant</span><span class="p">,</span> <span class="n">gradient_lipschitz_constant</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handy function computing the constants for the Nearest Brenier Potential QCQP problems</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    strongly_convex_constant : float</span>
+<span class="sd">    gradient_lipschitz_constant : float</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    c1 : float</span>
+<span class="sd">    c2 : float</span>
+<span class="sd">    c3 : float</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">strongly_convex_constant</span> <span class="o">&lt;</span> <span class="n">gradient_lipschitz_constant</span><span class="p">,</span> <span class="s2">&quot;incompatible regularity assumption&quot;</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">strongly_convex_constant</span> <span class="o">/</span> <span class="n">gradient_lipschitz_constant</span><span class="p">))</span>
+    <span class="n">c1</span> <span class="o">=</span> <span class="n">c</span> <span class="o">/</span> <span class="n">gradient_lipschitz_constant</span>
+    <span class="n">c2</span> <span class="o">=</span> <span class="n">strongly_convex_constant</span> <span class="o">*</span> <span class="n">c</span>
+    <span class="n">c3</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">strongly_convex_constant</span> <span class="o">*</span> <span class="n">c</span> <span class="o">/</span> <span class="n">gradient_lipschitz_constant</span>
+    <span class="k">return</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">c3</span>
+
+
+<div class="viewcode-block" id="nearest_brenier_potential_predict_bounds">
+<a class="viewcode-back" href="../../gen_modules/ot.mapping.html#ot.mapping.nearest_brenier_potential_predict_bounds">[docs]</a>
+<span class="k">def</span> <span class="nf">nearest_brenier_potential_predict_bounds</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">X_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Y_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">strongly_convex_constant</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">gradient_lipschitz_constant</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the values of the lower and upper bounding potentials at the input points Y, using the potential optimal</span>
+<span class="sd">    values phi at X and their gradients G at X. The &#39;lower&#39; potential corresponds to the method from :ref:`[58]`,</span>
+<span class="sd">    Equation 2, while the bounding property and &#39;upper&#39; potential come from :ref:`[59]`, Theorem 3.14 (taking into</span>
+<span class="sd">    account the fact that this theorem&#39;s statement has a min instead of a max, which is a typo). Both potentials are</span>
+<span class="sd">    optimal for the SSNB problem.</span>
+
+<span class="sd">    If :math:`I_k` is the subset of :math:`[n]` of the i such that :math:`x_i` is in the partition (or class)</span>
+<span class="sd">    :math:`E_k`, for each :math:`y \in E_k`, this function solves the convex QCQP problems,</span>
+<span class="sd">    respectively for l: &#39;lower&#39; and u: &#39;upper&#39;:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        :nowrap:</span>
+
+<span class="sd">        \begin{gather*}</span>
+<span class="sd">        (\varphi_{l}(x), \nabla \varphi_l(x)) = \text{argmin}\ t, \\</span>
+<span class="sd">        t\in \mathbb{R},\; g\in \mathbb{R}^d, \\</span>
+<span class="sd">        \text{s.t.} \forall j \in I_k,\; t-\varphi_j - \langle g_j, y-x_j \rangle \geq c_1\|g - g_j\|_2^2</span>
+<span class="sd">        + c_2\|y-x_j\|_2^2 - c_3\langle g_j-g, x_j -y \rangle.</span>
+<span class="sd">        \end{gather*}</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        :nowrap:</span>
+
+<span class="sd">        \begin{gather*}</span>
+<span class="sd">        (\varphi_{u}(x), \nabla \varphi_u(x)) = \text{argmax}\ t, \\</span>
+<span class="sd">        t\in \mathbb{R},\; g\in \mathbb{R}^d, \\</span>
+<span class="sd">        \text{s.t.} \forall i \in I_k,\; \varphi_i^* -t - \langle g, x_i-y \rangle \geq c_1\|g_i - g\|_2^2</span>
+<span class="sd">        + c_2\|x_i-y\|_2^2 - c_3\langle g-g_i, y -x_i \rangle.</span>
+<span class="sd">        \end{gather*}</span>
+
+<span class="sd">    The constants :math:`c_1, c_2, c_3` only depend on `strongly_convex_constant` and `gradient_lipschitz_constant`.</span>
+
+<span class="sd">    .. warning:: This function requires the CVXPY library</span>
+<span class="sd">    .. warning:: Accepts any backend but will convert to Numpy then back to the backend.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like (n, d)</span>
+<span class="sd">        reference points used to compute the optimal values phi and G</span>
+<span class="sd">    X_classes : array-like (n,)</span>
+<span class="sd">        classes of the reference points</span>
+<span class="sd">    phi : array-like (n,)</span>
+<span class="sd">        optimal values of the potential at the points X</span>
+<span class="sd">    G : array-like (n, d)</span>
+<span class="sd">        optimal values of the gradients at the points X</span>
+<span class="sd">    Y : array-like (m, d)</span>
+<span class="sd">        input points</span>
+<span class="sd">    X_classes : array-like (n,), optional</span>
+<span class="sd">        classes of the reference points, defaults to a single class</span>
+<span class="sd">    Y_classes : array_like (m,), optional</span>
+<span class="sd">        classes of the input points, defaults to a single class</span>
+<span class="sd">    strongly_convex_constant : float, optional</span>
+<span class="sd">        constant for the strong convexity of the input potential phi, defaults to 0.6</span>
+<span class="sd">    gradient_lipschitz_constant : float, optional</span>
+<span class="sd">        constant for the Lipschitz property of the input gradient G, defaults to 1.4</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if true</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        phi_lu: array-like (2, m)</span>
+<span class="sd">            values of the lower and upper bounding potentials at Y</span>
+<span class="sd">        G_lu: array-like (2, m, d)</span>
+<span class="sd">            gradients of the lower and upper bounding potentials at Y</span>
+<span class="sd">        log : dict, optional</span>
+<span class="sd">            If input log is true, a dictionary containing solver information</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [58] François-Pierre Paty, Alexandre d’Aspremont, and Marco Cuturi. Regularity as regularization:</span>
+<span class="sd">            Smooth and strongly convex brenier potentials in optimal transport. In International Conference</span>
+<span class="sd">            on Artificial Intelligence and Statistics, pages 1222–1232. PMLR, 2020.</span>
+
+<span class="sd">    .. [59] Adrien B Taylor. Convex interpolation and performance estimation of first-order methods for</span>
+<span class="sd">            convex optimization. PhD thesis, Catholic University of Louvain, Louvain-la-Neuve, Belgium,</span>
+<span class="sd">            2017.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.mapping.nearest_brenier_potential_fit : Fitting the SSNB on source and target data</span>
+<span class="sd">    ot.da.NearestBrenierPotential : BaseTransport wrapper for SSNB</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="nn">cvx</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please install CVXPY to use this function&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+    <span class="n">m</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">Y_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Y_classes</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">Y_classes</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">Y_classes</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">m</span><span class="p">,</span> <span class="s1">&#39;wrong number of class items for Y&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Y_classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">d</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;incompatible dimensions between X: </span><span class="si">{</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1"> and Y: </span><span class="si">{</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">X_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">X_classes</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">X_classes</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">X_classes</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">n</span><span class="p">,</span> <span class="s2">&quot;incorrect number of class items&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">X_classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">X_classes</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">n</span><span class="p">,</span> <span class="s1">&#39;wrong number of class items for X&#39;</span>
+    <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">c3</span> <span class="o">=</span> <span class="n">_ssnb_qcqp_constants</span><span class="p">(</span><span class="n">strongly_convex_constant</span><span class="p">,</span> <span class="n">gradient_lipschitz_constant</span><span class="p">)</span>
+    <span class="n">phi_lu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+    <span class="n">G_lu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+    <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">y_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+        <span class="n">log_item</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># lower bound</span>
+        <span class="n">phi_l_y</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">G_l_y</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">phi_l_y</span><span class="p">)</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">Y_classes</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_classes</span> <span class="o">==</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">phi_l_y</span> <span class="o">&gt;=</span> <span class="n">phi</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="n">c1</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">G_l_y</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">-</span> <span class="n">c3</span> <span class="o">*</span> <span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">G_l_y</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">cvx</span><span class="o">.</span><span class="n">ECOS</span><span class="p">)</span>
+        <span class="n">phi_lu</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi_l_y</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">G_lu</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_l_y</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log_item</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;solve_time&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span><span class="p">,</span>
+                <span class="s1">&#39;setup_time&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">setup_time</span><span class="p">,</span>
+                <span class="s1">&#39;num_iters&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">num_iters</span><span class="p">,</span>
+                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+                <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">}</span>
+
+        <span class="c1"># upper bound</span>
+        <span class="n">phi_u_y</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">G_u_y</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Maximize</span><span class="p">(</span><span class="n">phi_u_y</span><span class="p">)</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_classes</span> <span class="o">==</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">phi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">phi_u_y</span> <span class="o">+</span> <span class="n">G_u_y</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">])</span> <span class="o">+</span> <span class="n">c1</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">G_u_y</span><span class="p">)</span>
+                <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_squares</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">])</span> <span class="o">-</span> <span class="n">c3</span> <span class="o">*</span> <span class="p">(</span><span class="n">G_u_y</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">cvx</span><span class="o">.</span><span class="n">ECOS</span><span class="p">)</span>
+        <span class="n">phi_lu</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi_u_y</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">G_lu</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_u_y</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log_item</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;solve_time&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span><span class="p">,</span>
+                <span class="s1">&#39;setup_time&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">setup_time</span><span class="p">,</span>
+                <span class="s1">&#39;num_iters&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">num_iters</span><span class="p">,</span>
+                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+                <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">}</span>
+            <span class="n">log_dict</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_item</span>
+
+    <span class="n">phi_lu</span><span class="p">,</span> <span class="n">G_lu</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">phi_lu</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G_lu</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">phi_lu</span><span class="p">,</span> <span class="n">G_lu</span>
+    <span class="k">return</span> <span class="n">phi_lu</span><span class="p">,</span> <span class="n">G_lu</span><span class="p">,</span> <span class="n">log_dict</span></div>
+
+
+
+<div class="viewcode-block" id="joint_OT_mapping_linear">
+<a class="viewcode-back" href="../../gen_modules/ot.mapping.html#ot.mapping.joint_OT_mapping_linear">[docs]</a>
+<span class="k">def</span> <span class="nf">joint_OT_mapping_linear</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">verbose2</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">numInnerItermax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                            <span class="n">stopInnerThr</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Joint OT and linear mapping estimation as proposed in</span>
+<span class="sd">    :ref:`[8] &lt;references-joint-OT-mapping-linear&gt;`.</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\gamma,L}\quad \|L(\mathbf{X_s}) - n_s\gamma \mathbf{X_t} \|^2_F +</span>
+<span class="sd">          \mu \langle \gamma, \mathbf{M} \rangle_F + \eta \|L - \mathbf{I}\|^2_F</span>
+
+<span class="sd">        s.t. \ \gamma \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \gamma \geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`ns`, `nt`) squared euclidean cost matrix between samples in</span>
+<span class="sd">      :math:`\mathbf{X_s}` and :math:`\mathbf{X_t}` (scaled by :math:`n_s`)</span>
+<span class="sd">    - :math:`L` is a :math:`d\times d` linear operator that approximates the barycentric</span>
+<span class="sd">      mapping</span>
+<span class="sd">    - :math:`\mathbf{I}` is the identity matrix (neutral linear mapping)</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are uniform source and target weights</span>
+
+<span class="sd">    The problem consist in solving jointly an optimal transport matrix</span>
+<span class="sd">    :math:`\gamma` and a linear mapping that fits the barycentric mapping</span>
+<span class="sd">    :math:`n_s\gamma \mathbf{X_t}`.</span>
+
+<span class="sd">    One can also estimate a mapping with constant bias (see supplementary</span>
+<span class="sd">    material of :ref:`[8] &lt;references-joint-OT-mapping-linear&gt;`) using the bias optional argument.</span>
+
+<span class="sd">    The algorithm used for solving the problem is the block coordinate</span>
+<span class="sd">    descent that alternates between updates of :math:`\mathbf{G}` (using conditional gradient)</span>
+<span class="sd">    and the update of :math:`\mathbf{L}` using a classical least square solver.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs : array-like (ns,d)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    xt : array-like (nt,d)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    mu : float,optional</span>
+<span class="sd">        Weight for the linear OT loss (&gt;0)</span>
+<span class="sd">    eta : float, optional</span>
+<span class="sd">        Regularization term  for the linear mapping L (&gt;0)</span>
+<span class="sd">    bias : bool,optional</span>
+<span class="sd">        Estimate linear mapping with constant bias</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of BCD iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on relative loss decrease (&gt;0)</span>
+<span class="sd">    numInnerItermax : int, optional</span>
+<span class="sd">        Max number of iterations (inner CG solver)</span>
+<span class="sd">    stopInnerThr : float, optional</span>
+<span class="sd">        Stop threshold on error (inner CG solver) (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    L : (d, d) array-like</span>
+<span class="sd">        Linear mapping matrix ((:math:`d+1`, `d`) if bias)</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-joint-OT-mapping-linear:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [8] M. Perrot, N. Courty, R. Flamary, A. Habrard,</span>
+<span class="sd">        &quot;Mapping estimation for discrete optimal transport&quot;,</span>
+<span class="sd">        Neural Information Processing Systems (NIPS), 2016.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd : Unregularized OT</span>
+<span class="sd">    ot.optim.cg : General regularized OT</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
+        <span class="n">xs1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">xs</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">xstxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs1</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">Id</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">I0</span> <span class="o">=</span> <span class="n">Id</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">sel</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xs1</span> <span class="o">=</span> <span class="n">xs</span>
+        <span class="n">xstxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs1</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">I0</span> <span class="o">=</span> <span class="n">Id</span>
+
+        <span class="k">def</span> <span class="nf">sel</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">*</span> <span class="n">ns</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">vloss</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute full loss&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sel</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">I0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">solve_L</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; solve L problem with fixed G (least square)&quot;&quot;&quot;</span>
+        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">xstxs</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Id</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xst</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">I0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">solve_G</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update G with CG algorithm&quot;&quot;&quot;</span>
+        <span class="n">xsi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xs1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">),</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">mu</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
+               <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G</span>
+
+    <span class="n">L</span> <span class="o">=</span> <span class="n">solve_L</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+    <span class="n">vloss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:8s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">,</span> <span class="s1">&#39;Delta loss&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># init loop</span>
+    <span class="k">if</span> <span class="n">numItermax</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="n">loop</span><span class="p">:</span>
+
+        <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># update G</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">solve_G</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
+
+        <span class="c1"># update L</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">solve_L</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+        <span class="n">vloss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;=</span> <span class="n">numItermax</span><span class="p">:</span>
+            <span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+            <span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">it</span> <span class="o">%</span> <span class="mi">20</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:8s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">,</span> <span class="s1">&#39;Delta loss&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">it</span><span class="p">,</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])))</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vloss</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">L</span></div>
+
+
+
+<div class="viewcode-block" id="joint_OT_mapping_kernel">
+<a class="viewcode-back" href="../../gen_modules/ot.mapping.html#ot.mapping.joint_OT_mapping_kernel">[docs]</a>
+<span class="k">def</span> <span class="nf">joint_OT_mapping_kernel</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">kerneltype</span><span class="o">=</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span>
+                            <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose2</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">numInnerItermax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                            <span class="n">stopInnerThr</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Joint OT and nonlinear mapping estimation with kernels as proposed in</span>
+<span class="sd">    :ref:`[8] &lt;references-joint-OT-mapping-kernel&gt;`.</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\gamma, L\in\mathcal{H}}\quad \|L(\mathbf{X_s}) -</span>
+<span class="sd">        n_s\gamma \mathbf{X_t}\|^2_F + \mu \langle \gamma, \mathbf{M} \rangle_F +</span>
+<span class="sd">        \eta \|L\|^2_\mathcal{H}</span>
+
+<span class="sd">        s.t. \ \gamma \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \gamma \geq 0</span>
+
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the (`ns`, `nt`) squared euclidean cost matrix between samples in</span>
+<span class="sd">      :math:`\mathbf{X_s}` and :math:`\mathbf{X_t}` (scaled by :math:`n_s`)</span>
+<span class="sd">    - :math:`L` is a :math:`n_s \times d` linear operator on a kernel matrix that</span>
+<span class="sd">      approximates the barycentric mapping</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are uniform source and target weights</span>
+
+<span class="sd">    The problem consist in solving jointly an optimal transport matrix</span>
+<span class="sd">    :math:`\gamma` and the nonlinear mapping that fits the barycentric mapping</span>
+<span class="sd">    :math:`n_s\gamma \mathbf{X_t}`.</span>
+
+<span class="sd">    One can also estimate a mapping with constant bias (see supplementary</span>
+<span class="sd">    material of :ref:`[8] &lt;references-joint-OT-mapping-kernel&gt;`) using the bias optional argument.</span>
+
+<span class="sd">    The algorithm used for solving the problem is the block coordinate</span>
+<span class="sd">    descent that alternates between updates of :math:`\mathbf{G}` (using conditional gradient)</span>
+<span class="sd">    and the update of :math:`\mathbf{L}` using a classical kernel least square solver.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs : array-like (ns,d)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    xt : array-like (nt,d)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    mu : float,optional</span>
+<span class="sd">        Weight for the linear OT loss (&gt;0)</span>
+<span class="sd">    eta : float, optional</span>
+<span class="sd">        Regularization term  for the linear mapping L (&gt;0)</span>
+<span class="sd">    kerneltype : str,optional</span>
+<span class="sd">        kernel used by calling function :py:func:`ot.utils.kernel` (gaussian by default)</span>
+<span class="sd">    sigma : float, optional</span>
+<span class="sd">        Gaussian kernel bandwidth.</span>
+<span class="sd">    bias : bool,optional</span>
+<span class="sd">        Estimate linear mapping with constant bias</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    verbose2 : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of BCD iterations</span>
+<span class="sd">    numInnerItermax : int, optional</span>
+<span class="sd">        Max number of iterations (inner CG solver)</span>
+<span class="sd">    stopInnerThr : float, optional</span>
+<span class="sd">        Stop threshold on error (inner CG solver) (&gt;0)</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on relative loss decrease (&gt;0)</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : (ns, nt) array-like</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    L : (ns, d) array-like</span>
+<span class="sd">        Nonlinear mapping matrix ((:math:`n_s+1`, `d`) if bias)</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-joint-OT-mapping-kernel:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [8] M. Perrot, N. Courty, R. Flamary, A. Habrard,</span>
+<span class="sd">       &quot;Mapping estimation for discrete optimal transport&quot;,</span>
+<span class="sd">       Neural Information Processing Systems (NIPS), 2016.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.lp.emd : Unregularized OT</span>
+<span class="sd">    ot.optim.cg : General regularized OT</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">kerneltype</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
+        <span class="n">K1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ns</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">Id</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">Kp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">Kp</span><span class="p">[:</span><span class="n">ns</span><span class="p">,</span> <span class="p">:</span><span class="n">ns</span><span class="p">]</span> <span class="o">=</span> <span class="n">K</span>
+
+        <span class="c1"># ls regu</span>
+        <span class="c1"># K0 = K1.T.dot(K1)+eta*I</span>
+        <span class="c1"># Kreg=I</span>
+
+        <span class="c1"># RKHS regul</span>
+        <span class="n">K0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">K1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Kp</span>
+        <span class="n">Kreg</span> <span class="o">=</span> <span class="n">Kp</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">K1</span> <span class="o">=</span> <span class="n">K</span>
+        <span class="n">Id</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+
+        <span class="c1"># ls regul</span>
+        <span class="c1"># K0 = K1.T.dot(K1)+eta*I</span>
+        <span class="c1"># Kreg=I</span>
+
+        <span class="c1"># proper kernel ridge</span>
+        <span class="n">K0</span> <span class="o">=</span> <span class="n">K</span> <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">Id</span>
+        <span class="n">Kreg</span> <span class="o">=</span> <span class="n">K</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">*</span> <span class="n">ns</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">vloss</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute full loss&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Kreg</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">solve_L_nobias</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; solve L problem with fixed G (least square)&quot;&quot;&quot;</span>
+        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K0</span><span class="p">,</span> <span class="n">xst</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">solve_L_bias</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; solve L problem with fixed G (least square)&quot;&quot;&quot;</span>
+        <span class="n">xst</span> <span class="o">=</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K0</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xst</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">solve_G</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update G with CG algorithm&quot;&quot;&quot;</span>
+        <span class="n">xsi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsi</span> <span class="o">-</span> <span class="n">ns</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">xt</span><span class="p">),</span> <span class="n">xt</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">mu</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
+               <span class="n">numItermax</span><span class="o">=</span><span class="n">numInnerItermax</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">stopInnerThr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G</span>
+
+    <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
+        <span class="n">solve_L</span> <span class="o">=</span> <span class="n">solve_L_bias</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">solve_L</span> <span class="o">=</span> <span class="n">solve_L_nobias</span>
+
+    <span class="n">L</span> <span class="o">=</span> <span class="n">solve_L</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+    <span class="n">vloss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:8s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">,</span> <span class="s1">&#39;Delta loss&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># init loop</span>
+    <span class="k">if</span> <span class="n">numItermax</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="n">loop</span><span class="p">:</span>
+
+        <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># update G</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">solve_G</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
+
+        <span class="c1"># update L</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">solve_L</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+        <span class="n">vloss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">G</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;=</span> <span class="n">numItermax</span><span class="p">:</span>
+            <span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+            <span class="n">loop</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">it</span> <span class="o">%</span> <span class="mi">20</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:8s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">,</span> <span class="s1">&#39;Delta loss&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">it</span><span class="p">,</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">vloss</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])))</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vloss</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">L</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
