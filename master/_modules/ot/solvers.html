@@ -118,7 +118,7 @@
 <a class="viewcode-back" href="../../all.html#ot.solve">[docs]</a>
 <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span> <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
           <span class="n">unbalanced_type</span><span class="o">=</span><span class="s1">&#39;KL&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plan_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-          <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+          <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="s1">&#39;autodiff&#39;</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solve the discrete optimal transport problem and return :any:`OTResult` object</span>
 
 <span class="sd">    The function solves the following general optimal transport problem</span>
@@ -168,6 +168,12 @@
 <span class="sd">        Tolerance for solution precision, by default None (default values in each solvers)</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information in the solver, by default False</span>
+<span class="sd">    grad : str, optional</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39; or &#39;implicit&#39;  used only for</span>
+<span class="sd">        Sinkhorn solver. By default &#39;autodiff&#39; provides gradients wrt all</span>
+<span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
+<span class="sd">        &#39;implicit&#39; provides gradients only for `value` and and other outputs are</span>
+<span class="sd">        detached. This is useful for memory saving when only the value is needed.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -222,6 +228,16 @@
 <span class="sd">        res = ot.solve(M, a, b, reg=1.0)</span>
 <span class="sd">        # or for original Sinkhorn paper formulation [2]</span>
 <span class="sd">        res = ot.solve(M, a, b, reg=1.0, reg_type=&#39;entropy&#39;)</span>
+
+<span class="sd">        # Use implicit differentiation for memory saving</span>
+<span class="sd">        res = ot.solve(M, a, b, reg=1.0, grad=&#39;implicit&#39;) # M, a, b are torch tensors</span>
+<span class="sd">        res.value.backward() # only the value is differentiable</span>
+
+<span class="sd">    Note that by default the Sinkhorn solver uses automatic differentiation to</span>
+<span class="sd">    compute the gradients of the values and plan. This can be changed with the</span>
+<span class="sd">    `grad` parameter. The `implicit` mode computes the implicit gradients only</span>
+<span class="sd">    for the value and the other outputs are detached. This is useful for</span>
+<span class="sd">    memory saving when only the gradient of value is needed.</span>
 
 <span class="sd">    - **Quadratic regularized OT [17]** (when ``reg!=None`` and ``reg_type=&quot;L2&quot;``):</span>
 
@@ -386,6 +402,10 @@
 
             <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">]:</span>
 
+                <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s1">&#39;implicit&#39;</span><span class="p">:</span>  <span class="c1"># if implicit then detach the input</span>
+                    <span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span> <span class="o">=</span> <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
+                    <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
                 <span class="c1"># default values for sinkhorn</span>
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
@@ -404,6 +424,11 @@
                     <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
 
                 <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_v&#39;</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s1">&#39;implicit&#39;</span><span class="p">:</span>  <span class="c1"># set the gradient at convergence</span>
+
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">potentials</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">potentials</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()),</span> <span class="n">reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">potentials</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">potentials</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())))</span>
 
             <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;l2&#39;</span><span class="p">:</span>
 
@@ -964,7 +989,8 @@
 <span class="k">def</span> <span class="nf">solve_sample</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;sqeuclidean&#39;</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span>
                  <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">unbalanced_type</span><span class="o">=</span><span class="s1">&#39;KL&#39;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plan_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
-                 <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                 <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">grad</span><span class="o">=</span><span class="s1">&#39;autodiff&#39;</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solve the discrete optimal transport problem using the samples in the source and target domains.</span>
 
 <span class="sd">    The function solves the following general optimal transport problem</span>
@@ -1030,6 +1056,12 @@
 <span class="sd">        Tolerance for solution precision, by default None (default values in each solvers)</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information in the solver, by default False</span>
+<span class="sd">    grad : str, optional</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39; or &#39;implicit&#39;  used only for</span>
+<span class="sd">        Sinkhorn solver. By default &#39;autodiff&#39; provides gradients wrt all</span>
+<span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
+<span class="sd">        &#39;implicit&#39; provides gradients only for `value` and and other outputs are</span>
+<span class="sd">        detached. This is useful for memory saving when only the value is needed.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1096,6 +1128,16 @@
 <span class="sd">        res = ot.solve_sample(xa, xb, a, b, reg=1.0, lazy=True, batch_size=100)</span>
 <span class="sd">        # lazy OT plan</span>
 <span class="sd">        lazy_plan = res.lazy_plan</span>
+
+<span class="sd">        # Use implicit differentiation for memory saving</span>
+<span class="sd">        res = ot.solve_sample(xa, xb, a, b, reg=1.0, grad=&#39;implicit&#39;)</span>
+<span class="sd">        res.value.backward() # only the value is differentiable</span>
+
+<span class="sd">    Note that by default the Sinkhorn solver uses automatic differentiation to</span>
+<span class="sd">    compute the gradients of the values and plan. This can be changed with the</span>
+<span class="sd">    `grad` parameter. The `implicit` mode computes the implicit gradients only</span>
+<span class="sd">    for the value and the other outputs are detached. This is useful for</span>
+<span class="sd">    memory saving when only the gradient of value is needed.</span>
 
 <span class="sd">    We also have a very efficient solver with compiled CPU/CUDA code using</span>
 <span class="sd">    geomloss/PyKeOps that can be used with the following code:</span>
@@ -1284,7 +1326,7 @@
         <span class="c1"># compute cost matrix M and use solve function</span>
         <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">metric</span><span class="p">)</span>
 
-        <span class="n">res</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">unbalanced</span><span class="p">,</span> <span class="n">unbalanced_type</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">plan_init</span><span class="p">,</span> <span class="n">potentials_init</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">unbalanced</span><span class="p">,</span> <span class="n">unbalanced_type</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">plan_init</span><span class="p">,</span> <span class="n">potentials_init</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">res</span>
 
