@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.solvers &mdash; POT Python Optimal Transport 0.9.3dev documentation</title>
+  <title>ot.solvers &mdash; POT Python Optimal Transport 0.9.4dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
@@ -18,7 +18,7 @@
   
         <script src="../../_static/jquery.js?v=5d32c60e"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../_static/documentation_options.js?v=8099e02f"></script>
+        <script src="../../_static/documentation_options.js?v=fccb5469"></script>
         <script src="../../_static/doctools.js?v=9a2dae69"></script>
         <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -39,7 +39,7 @@
               <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.9.3dev
+                0.9.4dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -110,6 +110,7 @@
 <span class="kn">from</span> <span class="nn">.gaussian</span> <span class="kn">import</span> <span class="n">empirical_bures_wasserstein_distance</span>
 <span class="kn">from</span> <span class="nn">.factored</span> <span class="kn">import</span> <span class="n">factored_optimal_transport</span>
 <span class="kn">from</span> <span class="nn">.lowrank</span> <span class="kn">import</span> <span class="n">lowrank_sinkhorn</span>
+<span class="kn">from</span> <span class="nn">.optim</span> <span class="kn">import</span> <span class="n">cg</span>
 
 <span class="n">lst_method_lazy</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1d&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;lowrank&#39;</span><span class="p">,</span> <span class="s1">&#39;factored&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_auto&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_tensorized&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_online&#39;</span><span class="p">,</span> <span class="s1">&#39;geomloss_multiscale&#39;</span><span class="p">]</span>
 
@@ -146,13 +147,15 @@
 <span class="sd">        Regularization weight :math:`\lambda_r`, by default None (no reg., exact</span>
 <span class="sd">        OT)</span>
 <span class="sd">    reg_type : str, optional</span>
-<span class="sd">        Type of regularization :math:`R`  either &quot;KL&quot;, &quot;L2&quot;, &quot;entropy&quot;, by default &quot;KL&quot;</span>
+<span class="sd">        Type of regularization :math:`R`  either &quot;KL&quot;, &quot;L2&quot;, &quot;entropy&quot;,</span>
+<span class="sd">        by default &quot;KL&quot;. a tuple of functions can be provided for general</span>
+<span class="sd">        solver (see :any:`cg`). This is only used when ``reg!=None``.</span>
 <span class="sd">    unbalanced : float, optional</span>
 <span class="sd">        Unbalanced penalization weight :math:`\lambda_u`, by default None</span>
 <span class="sd">        (balanced OT)</span>
 <span class="sd">    unbalanced_type : str, optional</span>
 <span class="sd">        Type of unbalanced penalization function :math:`U`  either &quot;KL&quot;, &quot;L2&quot;,</span>
-<span class="sd">        &quot;TV&quot;, by default &quot;KL&quot;</span>
+<span class="sd">        &quot;TV&quot;, by default &quot;KL&quot;.</span>
 <span class="sd">    method : str, optional</span>
 <span class="sd">        Method for solving the problem when multiple algorithms are available,</span>
 <span class="sd">        default None for automatic selection.</span>
@@ -169,10 +172,10 @@
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information in the solver, by default False</span>
 <span class="sd">    grad : str, optional</span>
-<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39; or &#39;implicit&#39;  used only for</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39; or &#39;envelope&#39;  used only for</span>
 <span class="sd">        Sinkhorn solver. By default &#39;autodiff&#39; provides gradients wrt all</span>
 <span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
-<span class="sd">        &#39;implicit&#39; provides gradients only for `value` and and other outputs are</span>
+<span class="sd">        &#39;envelope&#39; provides gradients only for `value` and and other outputs are</span>
 <span class="sd">        detached. This is useful for memory saving when only the value is needed.</span>
 
 <span class="sd">    Returns</span>
@@ -229,13 +232,13 @@
 <span class="sd">        # or for original Sinkhorn paper formulation [2]</span>
 <span class="sd">        res = ot.solve(M, a, b, reg=1.0, reg_type=&#39;entropy&#39;)</span>
 
-<span class="sd">        # Use implicit differentiation for memory saving</span>
-<span class="sd">        res = ot.solve(M, a, b, reg=1.0, grad=&#39;implicit&#39;) # M, a, b are torch tensors</span>
+<span class="sd">        # Use envelope theorem differentiation for memory saving</span>
+<span class="sd">        res = ot.solve(M, a, b, reg=1.0, grad=&#39;envelope&#39;) # M, a, b are torch tensors</span>
 <span class="sd">        res.value.backward() # only the value is differentiable</span>
 
 <span class="sd">    Note that by default the Sinkhorn solver uses automatic differentiation to</span>
 <span class="sd">    compute the gradients of the values and plan. This can be changed with the</span>
-<span class="sd">    `grad` parameter. The `implicit` mode computes the implicit gradients only</span>
+<span class="sd">    `grad` parameter. The `envelope` mode computes the gradients only</span>
 <span class="sd">    for the value and the other outputs are detached. This is useful for</span>
 <span class="sd">    memory saving when only the gradient of value is needed.</span>
 
@@ -400,9 +403,22 @@
 
         <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Balanced regularized OT</span>
 
-            <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>  <span class="c1"># general solver</span>
 
-                <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s1">&#39;implicit&#39;</span><span class="p">:</span>  <span class="c1"># if implicit then detach the input</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">cg</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">reg_type</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">df</span><span class="o">=</span><span class="n">reg_type</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">])</span>
+
+            <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;entropy&#39;</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">]:</span>
+
+                <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s1">&#39;envelope&#39;</span><span class="p">:</span>  <span class="c1"># if envelope then detach the input</span>
                     <span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span> <span class="o">=</span> <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
                     <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
@@ -425,7 +441,7 @@
 
                 <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_u&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;log_v&#39;</span><span class="p">])</span>
 
-                <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s1">&#39;implicit&#39;</span><span class="p">:</span>  <span class="c1"># set the gradient at convergence</span>
+                <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s1">&#39;envelope&#39;</span><span class="p">:</span>  <span class="c1"># set the gradient at convergence</span>
 
                     <span class="n">value</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">M0</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">),</span>
                                              <span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">potentials</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">potentials</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()),</span> <span class="n">reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">potentials</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">potentials</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())))</span>
@@ -448,7 +464,7 @@
 
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># unbalanced AND regularized OT</span>
 
-            <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span>
 
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
@@ -463,14 +479,16 @@
 
                 <span class="n">potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;logu&#39;</span><span class="p">],</span> <span class="n">log</span><span class="p">[</span><span class="s1">&#39;logv&#39;</span><span class="p">])</span>
 
-            <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="s1">&#39;entropy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">]:</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="s1">&#39;entropy&#39;</span><span class="p">])</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">,</span> <span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="s1">&#39;tv&#39;</span><span class="p">]:</span>
 
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
                 <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-12</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">reg_type</span> <span class="o">=</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
-                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">regm_div</span><span class="o">=</span><span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">plan</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">lbfgsb_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span> <span class="n">reg_m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">)</span>
 
                 <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">plan</span><span class="p">)</span>
 
@@ -1057,10 +1075,10 @@
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information in the solver, by default False</span>
 <span class="sd">    grad : str, optional</span>
-<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39; or &#39;implicit&#39;  used only for</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39; or &#39;envelope&#39;  used only for</span>
 <span class="sd">        Sinkhorn solver. By default &#39;autodiff&#39; provides gradients wrt all</span>
 <span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
-<span class="sd">        &#39;implicit&#39; provides gradients only for `value` and and other outputs are</span>
+<span class="sd">        &#39;envelope&#39; provides gradients only for `value` and and other outputs are</span>
 <span class="sd">        detached. This is useful for memory saving when only the value is needed.</span>
 
 <span class="sd">    Returns</span>
@@ -1129,13 +1147,13 @@
 <span class="sd">        # lazy OT plan</span>
 <span class="sd">        lazy_plan = res.lazy_plan</span>
 
-<span class="sd">        # Use implicit differentiation for memory saving</span>
-<span class="sd">        res = ot.solve_sample(xa, xb, a, b, reg=1.0, grad=&#39;implicit&#39;)</span>
+<span class="sd">        # Use envelope theorem differentiation for memory saving</span>
+<span class="sd">        res = ot.solve_sample(xa, xb, a, b, reg=1.0, grad=&#39;envelope&#39;)</span>
 <span class="sd">        res.value.backward() # only the value is differentiable</span>
 
 <span class="sd">    Note that by default the Sinkhorn solver uses automatic differentiation to</span>
 <span class="sd">    compute the gradients of the values and plan. This can be changed with the</span>
-<span class="sd">    `grad` parameter. The `implicit` mode computes the implicit gradients only</span>
+<span class="sd">    `grad` parameter. The `envelope` mode computes the gradients only</span>
 <span class="sd">    for the value and the other outputs are detached. This is useful for</span>
 <span class="sd">    memory saving when only the gradient of value is needed.</span>
 
