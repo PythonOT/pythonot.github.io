@@ -207,6 +207,7 @@
         <span class="kn">import</span> <span class="nn">jax.scipy.special</span> <span class="k">as</span> <span class="nn">jspecial</span>
         <span class="kn">from</span> <span class="nn">jax.lib</span> <span class="kn">import</span> <span class="n">xla_bridge</span>
         <span class="n">jax_type</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="n">jax_new_version</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">__version__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]))</span> <span class="o">&gt;</span> <span class="mf">4.24</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="n">jax</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">jax_type</span> <span class="o">=</span> <span class="nb">float</span>
@@ -2035,11 +2036,19 @@
                 <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">d</span><span class="p">)</span>
             <span class="p">]</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">jax_new_version</span> <span class="o">=</span> <span class="n">jax_new_version</span>
+
     <span class="k">def</span> <span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_get_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_new_version</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">devices</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span><span class="p">()</span>
+
     <span class="k">def</span> <span class="nf">_change_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">device_put</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_device</span><span class="p">(</span><span class="n">type_as</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">_from_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
@@ -2457,7 +2466,10 @@
 <div class="viewcode-block" id="JaxBackend.dtype_device">
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.dtype_device">[docs]</a>
     <span class="k">def</span> <span class="nf">dtype_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span><span class="p">()</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_new_version</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">devices</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="JaxBackend.assert_same_dtype_device">
