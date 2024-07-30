@@ -6,7 +6,7 @@
   <title>ot.backend &mdash; POT Python Optimal Transport 0.9.5dev0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
-      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -1233,9 +1233,11 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.sqrtm">[docs]</a>
     <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Computes the matrix square root. Requires input to be definite positive.</span>
+<span class="sd">        Computes the matrix square root.</span>
+<span class="sd">        Requires input symmetric positive semi-definite.</span>
 
-<span class="sd">        This function follows the api from :any:`scipy.linalg.sqrtm`.</span>
+<span class="sd">        This function follows the api from :any:`scipy.linalg.sqrtm`,</span>
+<span class="sd">        allowing batches.</span>
 
 <span class="sd">        See: https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.sqrtm.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1404,6 +1406,17 @@
 <span class="sd">        Replace NaN with zero and infinity with large finite numbers or with the numbers defined by the user.</span>
 
 <span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.nan_to_num.html#numpy.nan_to_num</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Backend.det">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.det">[docs]</a>
+    <span class="k">def</span> <span class="nf">det</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the determinant of an array.</span>
+
+<span class="sd">        See: https://numpy.org/doc/stable/reference/generated/numpy.linalg.det.html</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 </div>
@@ -1898,7 +1911,11 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.sqrtm">[docs]</a>
     <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="c1"># Q[...] = V[...] @ diag(L[...])</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...k-&gt;...jk&#39;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="c1"># R[...] = Q[...] @ V[...].T</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...kl-&gt;...jl&#39;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="NumpyBackend.eigh">
@@ -2003,6 +2020,12 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.nan_to_num">[docs]</a>
     <span class="k">def</span> <span class="nf">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="n">posinf</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="n">neginf</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NumpyBackend.det">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.det">[docs]</a>
+    <span class="k">def</span> <span class="nf">det</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 </div>
 
 
@@ -2543,7 +2566,11 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.sqrtm">[docs]</a>
     <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="c1"># Q[...] = V[...] @ diag(L[...])</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...k-&gt;...jk&#39;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="c1"># R[...] = Q[...] @ V[...].T</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...kl-&gt;...jl&#39;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="JaxBackend.eigh">
@@ -2631,6 +2658,12 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.nan_to_num">[docs]</a>
     <span class="k">def</span> <span class="nf">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="n">posinf</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="n">neginf</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="JaxBackend.det">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.det">[docs]</a>
+    <span class="k">def</span> <span class="nf">det</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 </div>
 
 
@@ -3276,7 +3309,12 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.sqrtm">[docs]</a>
     <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="c1"># Q[...] = V[...] @ diag(L[...])</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...k-&gt;...jk&#39;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="c1"># R[...] = Q[...] @ V[...].T</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...kl-&gt;...jl&#39;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="TorchBackend.eigh">
@@ -3367,6 +3405,12 @@
     <span class="k">def</span> <span class="nf">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">copy</span> <span class="k">else</span> <span class="n">x</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="n">posinf</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="n">neginf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TorchBackend.det">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.det">[docs]</a>
+    <span class="k">def</span> <span class="nf">det</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 </div>
 
 
@@ -3923,7 +3967,12 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.sqrtm">[docs]</a>
     <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">cp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="c1"># Q[...] = V[...] @ diag(L[...])</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...k-&gt;...jk&#39;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="c1"># R[...] = Q[...] @ V[...].T</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...kl-&gt;...jl&#39;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span>
+                         <span class="n">cp</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="CupyBackend.eigh">
@@ -4011,6 +4060,12 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.nan_to_num">[docs]</a>
     <span class="k">def</span> <span class="nf">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="n">posinf</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="n">neginf</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CupyBackend.det">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.CupyBackend.det">[docs]</a>
+    <span class="k">def</span> <span class="nf">det</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 </div>
 
 
@@ -4593,7 +4648,12 @@
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.sqrtm">[docs]</a>
     <span class="k">def</span> <span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="c1"># Q[...] = V[...] @ diag(L[...])</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...k-&gt;...jk&#39;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="c1"># R[...] = Q[...] @ V[...].T</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...jk,...kl-&gt;...jl&#39;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">matrix_transpose</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span></div>
 
 
 <div class="viewcode-block" id="TensorflowBackend.eigh">
@@ -4684,6 +4744,12 @@
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="n">posinf</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="n">neginf</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TensorflowBackend.det">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TensorflowBackend.det">[docs]</a>
+    <span class="k">def</span> <span class="nf">det</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 </div>
 
 

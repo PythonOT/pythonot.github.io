@@ -6,7 +6,7 @@
   <title>ot.utils &mdash; POT Python Optimal Transport 0.9.5dev0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
-      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -1474,6 +1474,49 @@
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;LazyTensor(shape=</span><span class="si">{}</span><span class="s2">,attributes=(</span><span class="si">{}</span><span class="s2">))&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
+
+
+
+<div class="viewcode-block" id="proj_SDP">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.proj_SDP">[docs]</a>
+<span class="k">def</span> <span class="nf">proj_SDP</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Project a symmetric matrix onto the space of symmetric matrices with</span>
+<span class="sd">    eigenvalues larger or equal to `vmin`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    S : array_like (n, d, d) or (d, d)</span>
+<span class="sd">        The input symmetric matrix or matrices.</span>
+<span class="sd">    nx : module, optional</span>
+<span class="sd">        The numerical backend module to use. If not provided, the backend will</span>
+<span class="sd">        be fetched from the input matrix `S`.</span>
+<span class="sd">    vmin : float, optional</span>
+<span class="sd">        The minimum value for the eigenvalues. Eigenvalues below this value will</span>
+<span class="sd">        be clipped to vmin.</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    P : ndarray (n, d, d) or (d, d)</span>
+<span class="sd">        The projected symmetric positive definite matrix.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+
+    <span class="n">w</span><span class="p">,</span> <span class="n">P</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># input was (d, d)</span>
+        <span class="k">return</span> <span class="n">P</span> <span class="o">@</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">@</span> <span class="n">P</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># input was (n, d, d): broadcasting</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijk,ik-&gt;ijk&#39;</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>  <span class="c1"># Q[i] = P[i] @ diag(w[i])</span>
+        <span class="c1"># R[i] = Q[i] @ P[i].T</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijk,ikl-&gt;ijl&#39;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span></div>
 
 </pre></div>
 
