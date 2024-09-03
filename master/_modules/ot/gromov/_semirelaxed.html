@@ -99,7 +99,7 @@
 
 
 <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">list_to_array</span><span class="p">,</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">UndefinedParameter</span><span class="p">,</span> <span class="n">check_random_state</span>
+    <span class="n">list_to_array</span><span class="p">,</span> <span class="n">unif</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">UndefinedParameter</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">..optim</span> <span class="kn">import</span> <span class="n">semirelaxed_cg</span><span class="p">,</span> <span class="n">solve_1d_linesearch_quad</span>
 <span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
@@ -107,13 +107,21 @@
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">init_matrix_semirelaxed</span><span class="p">,</span> <span class="n">gwloss</span><span class="p">,</span> <span class="n">gwggrad</span><span class="p">,</span>
     <span class="n">update_barycenter_structure</span><span class="p">,</span> <span class="n">update_barycenter_feature</span><span class="p">,</span>
+    <span class="n">semirelaxed_init_plan</span><span class="p">,</span>
 <span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
+    <span class="n">sklearn_import</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">sklearn_import</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="semirelaxed_gromov_wasserstein">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_wasserstein">[docs]</a>
-<span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                   <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the semi-relaxed Gromov-Wasserstein divergence transport from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}` (see [48]).</span>
 
@@ -158,15 +166,22 @@
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    max_iter : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    tol_rel : float, optional</span>
 <span class="sd">        Stop threshold on relative error (&gt;0)</span>
 <span class="sd">    tol_abs : float, optional</span>
 <span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 <span class="sd">    **kwargs : dict</span>
 <span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
 
@@ -195,16 +210,21 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
 
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
         <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+            <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># Check first marginal of G0</span>
@@ -247,8 +267,10 @@
 
 <div class="viewcode-block" id="semirelaxed_gromov_wasserstein2">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_wasserstein2">[docs]</a>
-<span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                    <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">semirelaxed_gromov_wasserstein2</span><span class="p">(</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the semi-relaxed Gromov-Wasserstein divergence from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}` (see [48]).</span>
 
@@ -296,15 +318,22 @@
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    max_iter : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    tol_rel : float, optional</span>
 <span class="sd">        Stop threshold on relative error (&gt;0)</span>
 <span class="sd">    tol_abs : float, optional</span>
 <span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 <span class="sd">    **kwargs : dict</span>
 <span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
 
@@ -335,7 +364,8 @@
 
     <span class="n">T</span><span class="p">,</span> <span class="n">log_srgw</span> <span class="o">=</span> <span class="n">semirelaxed_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
-        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">log_srgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
@@ -362,7 +392,8 @@
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fused_gromov_wasserstein">[docs]</a>
 <span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the semi-relaxed Fused Gromov-Wasserstein transport between two graphs (see [48]).</span>
 
@@ -406,9 +437,14 @@
 <span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
 <span class="sd">    alpha : float, optional</span>
 <span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
 <span class="sd">    max_iter : int, optional</span>
@@ -417,6 +453,8 @@
 <span class="sd">        Stop threshold on relative error (&gt;0)</span>
 <span class="sd">    tol_abs : float, optional</span>
 <span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 <span class="sd">    **kwargs : dict</span>
 <span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
 
@@ -450,7 +488,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
 
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
@@ -461,6 +499,10 @@
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
         <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+            <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># Check first marginal of G0</span>
@@ -504,8 +546,10 @@
 
 <div class="viewcode-block" id="semirelaxed_fused_gromov_wasserstein2">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fused_gromov_wasserstein2">[docs]</a>
-<span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                          <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the semi-relaxed FGW divergence between two graphs (see [48]).</span>
 
@@ -552,9 +596,14 @@
 <span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
 <span class="sd">    alpha : float, optional</span>
 <span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        Record log if True.</span>
 <span class="sd">    max_iter : int, optional</span>
@@ -563,6 +612,8 @@
 <span class="sd">        Stop threshold on relative error (&gt;0)</span>
 <span class="sd">    tol_abs : float, optional</span>
 <span class="sd">        Stop threshold on absolute error (&gt;0)</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 <span class="sd">    **kwargs : dict</span>
 <span class="sd">        Parameters can be directly passed to the ot.optim.cg solver.</span>
 
@@ -599,7 +650,8 @@
 
     <span class="n">T</span><span class="p">,</span> <span class="n">log_fgw</span> <span class="o">=</span> <span class="n">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol_rel</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="n">tol_abs</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">srfgw_dist</span> <span class="o">=</span> <span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;srfgw_dist&#39;</span><span class="p">]</span>
     <span class="n">log_fgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
@@ -719,7 +771,8 @@
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_gromov_wasserstein">[docs]</a>
 <span class="k">def</span> <span class="nf">entropic_semirelaxed_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the entropic-regularized semi-relaxed gromov-wasserstein divergence</span>
 <span class="sd">    transport plan from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}`</span>
@@ -765,9 +818,14 @@
 <span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    max_iter : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    tol : float, optional</span>
@@ -776,6 +834,9 @@
 <span class="sd">        record log if True</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    G : array-like, shape (`ns`, `nt`)</span>
@@ -797,16 +858,21 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
 
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
         <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+            <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># Check first marginal of G0</span>
@@ -874,7 +940,8 @@
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_gromov_wasserstein2">[docs]</a>
 <span class="k">def</span> <span class="nf">entropic_semirelaxed_gromov_wasserstein2</span><span class="p">(</span>
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the entropic-regularized semi-relaxed gromov-wasserstein divergence</span>
 <span class="sd">    from :math:`(\mathbf{C_1}, \mathbf{p})` to :math:`\mathbf{C_2}`</span>
@@ -922,9 +989,14 @@
 <span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    max_iter : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    tol : float, optional</span>
@@ -933,8 +1005,8 @@
 <span class="sd">        record log if True</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
-<span class="sd">    **kwargs : dict</span>
-<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -951,8 +1023,8 @@
 <span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">T</span><span class="p">,</span> <span class="n">log_srgw</span> <span class="o">=</span> <span class="n">entropic_semirelaxed_gromov_wasserstein</span><span class="p">(</span>
-        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span>
-        <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">)</span>
 
     <span class="n">log_srgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
 
@@ -967,7 +1039,8 @@
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_fused_gromov_wasserstein">[docs]</a>
 <span class="k">def</span> <span class="nf">entropic_semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the entropic-regularized semi-relaxed FGW transport between two graphs (see :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`)</span>
 <span class="sd">    estimated using a Mirror Descent algorithm following the KL geometry.</span>
@@ -1016,9 +1089,14 @@
 <span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
 <span class="sd">    alpha : float, optional</span>
 <span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    max_iter : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    tol : float, optional</span>
@@ -1027,8 +1105,8 @@
 <span class="sd">        record log if True</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
-<span class="sd">    **kwargs : dict</span>
-<span class="sd">        parameters can be directly passed to the ot.optim.cg solver</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1051,16 +1129,21 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">G0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
         <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
 
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">unif</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
         <span class="n">G0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+            <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># Check first marginal of G0</span>
@@ -1130,7 +1213,8 @@
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.entropic_semirelaxed_fused_gromov_wasserstein2">[docs]</a>
 <span class="k">def</span> <span class="nf">entropic_semirelaxed_fused_gromov_wasserstein2</span><span class="p">(</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e4</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the entropic-regularized semi-relaxed FGW divergence between two graphs (see :ref:`[48] &lt;references-semirelaxed-fused-gromov-wasserstein&gt;`)</span>
 <span class="sd">    estimated using a Mirror Descent algorithm following the KL geometry.</span>
@@ -1179,9 +1263,14 @@
 <span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymetric).</span>
 <span class="sd">    alpha : float, optional</span>
 <span class="sd">        Trade-off parameter (0 &lt; alpha &lt; 1)</span>
-<span class="sd">    G0: array-like, shape (ns,nt), optional</span>
-<span class="sd">        If None the initial transport plan of the solver is pq^T.</span>
-<span class="sd">        Otherwise G0 must satisfy marginal constraints and will be used as initial transport of the solver.</span>
+<span class="sd">    G0: array-like of shape (ns,nt) or string, optional</span>
+<span class="sd">        If `G0=None` the initial transport plan of the solver is :math:`\mathbf{p} \frac{\mathbf{1}_{nt}}{nt}^\top`.</span>
+<span class="sd">        If G0 is a tensor it must satisfy marginal constraints and will be</span>
+<span class="sd">        used as initial transport of the solver.</span>
+<span class="sd">        if G0 is a string it will be interpreted as a method for</span>
+<span class="sd">        :func:`ot.gromov.semirelaxed_init_plan` taking values in &quot;product&quot;,</span>
+<span class="sd">        &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;, &quot;fluid_soft&quot;, &quot;spectral&quot;,</span>
+<span class="sd">        &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
 <span class="sd">    max_iter : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    tol : float, optional</span>
@@ -1190,8 +1279,8 @@
 <span class="sd">        record log if True</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Print information along iterations</span>
-<span class="sd">    **kwargs : dict</span>
-<span class="sd">        Parameters can be directly passed to the ot.optim.cg solver.</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used in stochastic initialization methods.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1209,8 +1298,8 @@
 <span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">T</span><span class="p">,</span> <span class="n">log_srfgw</span> <span class="o">=</span> <span class="n">entropic_semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
-        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span>
-        <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">)</span>
 
     <span class="n">log_srfgw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
 
@@ -1221,6 +1310,238 @@
 
 
 
+<div class="viewcode-block" id="semirelaxed_gromov_barycenters">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_gromov_barycenters">[docs]</a>
+<span class="k">def</span> <span class="nf">semirelaxed_gromov_barycenters</span><span class="p">(</span>
+        <span class="n">N</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">ps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lambdas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span>
+        <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+        <span class="n">stop_criterion</span><span class="o">=</span><span class="s1">&#39;barycenter&#39;</span><span class="p">,</span> <span class="n">warmstartT</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="s1">&#39;product&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the Semi-relaxed Gromov-Wasserstein barycenters of `S` measured similarity matrices</span>
+<span class="sd">    :math:`(\mathbf{C}_s)_{1 \leq s \leq S}`</span>
+
+<span class="sd">    The function solves the following optimization problem with block coordinate descent:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad \sum_s \lambda_s \mathrm{srGW}(\mathbf{C}_s, \mathbf{p}_s, \mathbf{C})</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}_s`: input metric cost matrix</span>
+<span class="sd">    - :math:`\mathbf{p}_s`: distribution</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    N : int</span>
+<span class="sd">        Size of the targeted barycenter</span>
+<span class="sd">    Cs : list of S array-like of shape (ns, ns)</span>
+<span class="sd">        Metric cost matrices</span>
+<span class="sd">    ps : list of S array-like of shape (ns,), optional</span>
+<span class="sd">        Sample weights in the `S` spaces.</span>
+<span class="sd">        If let to its default value None, uniform distributions are taken.</span>
+<span class="sd">    lambdas : array-like of shape (S,) , optional</span>
+<span class="sd">        List of the `S` spaces&#39; weights.</span>
+<span class="sd">        If let to its default value None, uniform weights are taken.</span>
+<span class="sd">    loss_fun : callable, optional</span>
+<span class="sd">        tensor-matrix multiplication function based on specific loss function</span>
+<span class="sd">    symmetric : bool, optional.</span>
+<span class="sd">        Either structures are to be assumed symmetric or not. Default value is True.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Stop threshold on relative error (&gt;0)</span>
+<span class="sd">    stop_criterion : str, optional. Default is &#39;barycenter&#39;.</span>
+<span class="sd">        Stop criterion taking values in [&#39;barycenter&#39;, &#39;loss&#39;]. If set to &#39;barycenter&#39;</span>
+<span class="sd">        uses absolute norm variations of estimated barycenters. Else if set to &#39;loss&#39;</span>
+<span class="sd">        uses the relative variations of the loss.</span>
+<span class="sd">    warmstartT: bool, optional</span>
+<span class="sd">        Either to perform warmstart of transport plans in the successive</span>
+<span class="sd">        fused gromov-wasserstein transport problems.s</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations.</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        Record log if True.</span>
+<span class="sd">    init_C : array-like of shape (N,N), optional.</span>
+<span class="sd">        Random initial value for the :math:`\mathbf{C}` matrix provided by user.</span>
+<span class="sd">        Default is None and relies `G0` to produce an initial structure.</span>
+<span class="sd">    G0: str, optional. Default is &#39;product&#39;.</span>
+<span class="sd">        Initialization method for transport plans calling :func:`ot.gromov.semirelaxed_init_plan`,</span>
+<span class="sd">        and taking values in &quot;product&quot;, &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;,</span>
+<span class="sd">        &quot;fluid_soft&quot;, &quot;spectral&quot;, &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
+<span class="sd">        Transport plans are used to deduce an initial barycenter structure</span>
+<span class="sd">        if `init_C=None`.</span>
+<span class="sd">    random_state : int or RandomState instance, optional</span>
+<span class="sd">        Fix the seed for reproducibility</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    C : array-like, shape (`N`, `N`)</span>
+<span class="sd">        Barycenters&#39; structure matrix</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Only returned when log=True. It contains the keys:</span>
+
+<span class="sd">        - :math:`\mathbf{T}`: list of (`N`, `ns`) transport matrices</span>
+<span class="sd">        - :math:`\mathbf{p}`: (`N`,) barycenter weights</span>
+<span class="sd">        - values used in convergence evaluation.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [48] Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">stop_criterion</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;loss&#39;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown `stop_criterion=&#39;</span><span class="si">{</span><span class="n">stop_criterion</span><span class="si">}</span><span class="s2">&#39;`. Use one of: </span><span class="si">{</span><span class="s1">&#39;barycenter&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;loss&#39;</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">Cs</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">ps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">+=</span> <span class="p">[</span><span class="o">*</span><span class="n">ps</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="n">unif</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C</span><span class="p">)</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">]</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lambdas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">/</span> <span class="n">S</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">lambdas</span><span class="p">)</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">lambdas</span><span class="p">)</span>
+
+    <span class="c1"># Initialization of transport plans and C (if not provided by user)</span>
+    <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">init_C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">G0</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;product&#39;</span><span class="p">,</span> <span class="s1">&#39;random_product&#39;</span><span class="p">,</span> <span class="s1">&#39;random&#39;</span><span class="p">]:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+                <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">init_C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span>
+                <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">G0</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;product&#39;</span><span class="p">,</span> <span class="s1">&#39;random_product&#39;</span><span class="p">]:</span>
+                <span class="c1"># initial structure is constant so we add a small random noise</span>
+                <span class="c1"># to avoid getting stuck at init</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="p">(</span><span class="n">noise</span> <span class="o">+</span> <span class="n">noise</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
+                <span class="n">C</span> <span class="o">=</span> <span class="n">C</span> <span class="o">+</span> <span class="n">noise</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># relies on partitioning of inputs</span>
+            <span class="n">shapes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">])</span>
+            <span class="n">large_graphs_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">shapes</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">small_graphs_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">shapes</span> <span class="o">&lt;=</span> <span class="n">N</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">S</span>
+            <span class="n">list_init_C</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># store different barycenter structure to average</span>
+
+            <span class="c1"># we first compute an initial informative barycenter structure</span>
+            <span class="c1"># on graphs we can compress</span>
+            <span class="c1"># then use it on graphs to expand</span>
+            <span class="k">for</span> <span class="n">indices</span> <span class="ow">in</span> <span class="p">[</span><span class="n">large_graphs_idx</span><span class="p">,</span> <span class="n">small_graphs_idx</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">sub_T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+                        <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">init_C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+                    <span class="n">sub_Cs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+                    <span class="n">sub_lambdas</span> <span class="o">=</span> <span class="n">lambdas</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lambdas</span><span class="p">[</span><span class="n">indices</span><span class="p">])</span>
+                    <span class="n">init_C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span>
+                        <span class="n">sub_T</span><span class="p">,</span> <span class="n">sub_Cs</span><span class="p">,</span> <span class="n">sub_lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">indices</span><span class="p">):</span>
+                        <span class="n">T</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub_T</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">list_init_C</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_C</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_init_C</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">init_C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span>
+                    <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+            <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">:</span>
+        <span class="n">inner_log</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">inner_log</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">curr_loss</span> <span class="o">=</span> <span class="mf">1e15</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;loss&#39;</span><span class="p">:</span>
+            <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">cpt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">:</span>
+            <span class="n">Cprev</span> <span class="o">=</span> <span class="n">C</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prev_loss</span> <span class="o">=</span> <span class="n">curr_loss</span>
+
+        <span class="c1"># get transport plans</span>
+        <span class="k">if</span> <span class="n">warmstartT</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_gromov_wasserstein</span><span class="p">(</span>
+                <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">inner_log</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_gromov_wasserstein</span><span class="p">(</span>
+                <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">inner_log</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">res</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+            <span class="n">curr_loss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;srgw_dist&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">res</span><span class="p">])</span>
+
+        <span class="c1"># update barycenters</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="mi">0</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+        <span class="c1"># update convergence criterion</span>
+        <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="n">Cprev</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">curr_loss</span> <span class="o">-</span> <span class="n">prev_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">prev_loss</span> <span class="k">if</span> <span class="n">prev_loss</span> <span class="o">!=</span> <span class="mf">0.</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_loss</span><span class="p">)</span>
+                <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;=</span> <span class="n">tol</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+        <span class="n">log_</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+
+        <span class="k">return</span> <span class="n">C</span><span class="p">,</span> <span class="n">log_</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">C</span></div>
+
+
+
 <div class="viewcode-block" id="semirelaxed_fgw_barycenters">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_fgw_barycenters">[docs]</a>
 <span class="k">def</span> <span class="nf">semirelaxed_fgw_barycenters</span><span class="p">(</span>
@@ -1228,7 +1549,7 @@
         <span class="n">fixed_features</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span>
         <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">stop_criterion</span><span class="o">=</span><span class="s1">&#39;barycenter&#39;</span><span class="p">,</span>
         <span class="n">warmstartT</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">G0</span><span class="o">=</span><span class="s1">&#39;product&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the Semi-relaxed Fused Gromov-Wasserstein barycenters of `S` measurable networks</span>
 <span class="sd">    with node features :math:`(\mathbf{C}_s, \mathbf{Y}_s, \mathbf{p}_s)_{1 \leq s \leq S}`</span>
@@ -1258,7 +1579,7 @@
 <span class="sd">    ps : list of array-like, each element has shape (ns,), optional</span>
 <span class="sd">        Masses of all samples.</span>
 <span class="sd">        If let to its default value None, uniform distributions are taken.</span>
-<span class="sd">    lambdas : list of float, optional</span>
+<span class="sd">    lambdas : array-like of shape (S,) , optional</span>
 <span class="sd">        List of the `S` spaces&#39; weights.</span>
 <span class="sd">        If let to its default value None, uniform weights are taken.</span>
 <span class="sd">    alpha : float, optional</span>
@@ -1293,6 +1614,12 @@
 <span class="sd">    init_X : array-like, shape (N,d), optional</span>
 <span class="sd">        Initialization for the barycenters&#39; features. If not set a</span>
 <span class="sd">        random init is used.</span>
+<span class="sd">    G0: str, optional. Default is &quot;product&quot;.</span>
+<span class="sd">        Initialization method for transport plans calling :func:`ot.gromov.semirelaxed_init_plan`,</span>
+<span class="sd">        and taking values in &quot;product&quot;, &quot;random_product&quot;, &quot;random&quot;, &quot;fluid&quot;,</span>
+<span class="sd">        &quot;fluid_soft&quot;, &quot;spectral&quot;, &quot;spectral_soft&quot;, &quot;kmeans&quot;, &quot;kmeans_soft&quot;.</span>
+<span class="sd">        Transport plans are used to deduce an initial barycenter structure</span>
+<span class="sd">        if `init_C=None`.</span>
 <span class="sd">    random_state : int or RandomState instance, optional</span>
 <span class="sd">        Fix the seed for reproducibility</span>
 
@@ -1328,22 +1655,15 @@
 
     <span class="n">S</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">lambdas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">lambdas</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">S</span><span class="p">]</span> <span class="o">*</span> <span class="n">S</span>
-
-    <span class="n">d</span> <span class="o">=</span> <span class="n">Ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># dimension on the node features</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">/</span> <span class="n">S</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">lambdas</span><span class="p">)</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">lambdas</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">fixed_structure</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">UndefinedParameter</span><span class="p">(</span>
                 <span class="s1">&#39;If C is fixed it must be provided in init_C&#39;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">rng</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
-            <span class="n">xalea</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-            <span class="n">C</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">xalea</span><span class="p">,</span> <span class="n">xalea</span><span class="p">)</span>
-            <span class="n">C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
 
@@ -1353,17 +1673,104 @@
                 <span class="s1">&#39;If X is fixed it must be provided in init_X&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">X</span> <span class="o">=</span> <span class="n">init_X</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">init_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">X</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
+    <span class="c1"># Initialization of transport plans, C and X (if not provided by user)</span>
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;product&#39;</span><span class="p">,</span> <span class="s1">&#39;random_product&#39;</span><span class="p">,</span> <span class="s1">&#39;random&#39;</span><span class="p">]:</span>
+        <span class="c1"># both init_X and init_C are simply deduced from transport plans</span>
+        <span class="c1"># if not initialized</span>
+        <span class="k">if</span> <span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">init_C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># to know the barycenter shape</span>
+
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+                <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">init_C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
+            <span class="n">C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span>
+                <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">G0</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;product&#39;</span><span class="p">,</span> <span class="s1">&#39;random_product&#39;</span><span class="p">]:</span>
+                <span class="c1"># initial structure is constant so we add a small random noise</span>
+                <span class="c1"># to avoid getting stuck at init</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="p">(</span><span class="n">noise</span> <span class="o">+</span> <span class="n">noise</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
+                <span class="n">C</span> <span class="o">=</span> <span class="n">C</span> <span class="o">+</span> <span class="n">noise</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+                <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">init_C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
+            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+
+        <span class="k">if</span> <span class="n">init_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">update_barycenter_feature</span><span class="p">(</span>
+                <span class="n">T</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">X</span> <span class="o">=</span> <span class="n">init_X</span>
 
-    <span class="n">Ms</span> <span class="o">=</span> <span class="p">[</span><span class="n">dist</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">X</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ys</span><span class="p">))]</span>
+        <span class="n">Ms</span> <span class="o">=</span> <span class="p">[</span><span class="n">dist</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">X</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ys</span><span class="p">))]</span>
 
-    <span class="k">if</span> <span class="n">warmstartT</span><span class="p">:</span>
-        <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">S</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># more computationally costly inits could be used on structures</span>
+        <span class="c1"># so we assume affordable a Kmeans-like init for features</span>
+        <span class="c1"># and use it by default.</span>
+
+        <span class="k">if</span> <span class="n">init_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stacked_features</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">Ys</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sklearn_import</span><span class="p">:</span>
+                <span class="n">stacked_features</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">stacked_features</span><span class="p">)</span>
+                <span class="n">km</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+                            <span class="n">n_init</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">stacked_features</span><span class="p">)</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Scikit-learn must be installed to use G0=</span><span class="si">{</span><span class="n">G0</span><span class="si">}</span><span class="s2"> while init_X=None.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">init_X</span>
+
+        <span class="n">Ms</span> <span class="o">=</span> <span class="p">[</span><span class="n">dist</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">X</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ys</span><span class="p">))]</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">init_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">init_C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># relies on partitioning of inputs</span>
+            <span class="n">shapes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">Cs</span><span class="p">])</span>
+            <span class="n">large_graphs_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">shapes</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">small_graphs_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">shapes</span> <span class="o">&lt;=</span> <span class="n">N</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">S</span>
+            <span class="n">list_init_C</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># store different barycenter structure to average</span>
+
+            <span class="c1"># we first compute an initial informative barycenter structure</span>
+            <span class="c1"># on graphs we can compress</span>
+            <span class="c1"># then use it on graphs to expand</span>
+            <span class="k">for</span> <span class="n">indices</span> <span class="ow">in</span> <span class="p">[</span><span class="n">large_graphs_idx</span><span class="p">,</span> <span class="n">small_graphs_idx</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">sub_T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+                        <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">init_C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+                    <span class="n">sub_Cs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+                    <span class="n">sub_lambdas</span> <span class="o">=</span> <span class="n">lambdas</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lambdas</span><span class="p">[</span><span class="n">indices</span><span class="p">])</span>
+
+                    <span class="n">init_C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span>
+                        <span class="n">sub_T</span><span class="p">,</span> <span class="n">sub_Cs</span><span class="p">,</span> <span class="n">sub_lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">indices</span><span class="p">):</span>
+                        <span class="n">T</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub_T</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                    <span class="n">list_init_C</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_C</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_init_C</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">init_C</span> <span class="o">=</span> <span class="n">update_barycenter_structure</span><span class="p">(</span>
+                    <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">init_C</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_init_plan</span><span class="p">(</span>
+                <span class="n">Cs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">G0</span><span class="p">,</span> <span class="n">use_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
 
     <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">:</span>
         <span class="n">inner_log</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1393,13 +1800,14 @@
         <span class="k">if</span> <span class="n">warmstartT</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
                 <span class="n">Ms</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span>
-                <span class="n">inner_log</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">inner_log</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">semirelaxed_fused_gromov_wasserstein</span><span class="p">(</span>
-                <span class="n">Ms</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="n">inner_log</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">Ms</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">C</span><span class="p">,</span> <span class="n">ps</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span>
+                <span class="n">inner_log</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol_rel</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">tol_abs</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
         <span class="k">if</span> <span class="n">stop_criterion</span> <span class="o">==</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">:</span>
             <span class="n">T</span> <span class="o">=</span> <span class="n">res</span>
         <span class="k">else</span><span class="p">:</span>
