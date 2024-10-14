@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../../">
 <head>
@@ -5,22 +7,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ot.gromov._utils &mdash; POT Python Optimal Transport 0.9.5dev0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../../_static/documentation_options.js?v=b2dc65b3"></script>
-        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=b2dc65b3"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -38,9 +36,6 @@
             POT Python Optimal Transport
               <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
-              <div class="version">
-                0.9.5dev0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -95,6 +90,7 @@
 <span class="c1">#         Rémi Flamary &lt;remi.flamary@unice.fr&gt;</span>
 <span class="c1">#         Titouan Vayer &lt;titouan.vayer@irisa.fr&gt;</span>
 <span class="c1">#         Cédric Vincent-Cuaz &lt;cedvincentcuaz@gmail.com&gt;</span>
+<span class="c1">#         Quang Huy Tran &lt;quang-huy.tran@univ-ubs.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
@@ -907,6 +903,376 @@
             <span class="n">inv_p</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p_sum</span>
 
     <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">list_features</span><span class="p">)</span> <span class="o">*</span> <span class="n">inv_p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span></div>
+
+
+
+<span class="c1">############################################################################</span>
+<span class="c1"># Methods related to fused unbalanced GW and unbalanced Co-Optimal Transport.</span>
+<span class="c1">############################################################################</span>
+
+<div class="viewcode-block" id="div_to_product">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.div_to_product">[docs]</a>
+<span class="k">def</span> <span class="nf">div_to_product</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pi1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pi2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fast computation of the Bregman divergence between an arbitrary measure and a product measure.</span>
+<span class="sd">    Only support for Kullback-Leibler and half-squared L2 divergences.</span>
+
+<span class="sd">    - For half-squared L2 divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \frac{1}{2} || \pi - a \otimes b ||^2</span>
+<span class="sd">        = \frac{1}{2} \Big[ \sum_{i, j} \pi_{ij}^2 + (\sum_i a_i^2) ( \sum_j b_j^2) - 2 \sum_{i, j} a_i \pi_{ij} b_j \Big]</span>
+
+<span class="sd">    - For Kullback-Leibler divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        KL(\pi | a \otimes b)</span>
+<span class="sd">        = \langle \pi, \log \pi \rangle - \langle \pi_1, \log a \rangle</span>
+<span class="sd">        - \langle \pi_2, \log b \rangle - m(\pi) + m(a) m(b)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\pi` is the (`dim_a`, `dim_b`) transport plan</span>
+<span class="sd">    - :math:`\pi_1` and :math:`\pi_2` are the marginal distributions</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
+<span class="sd">    - :math:`m` denotes the mass of the measure</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pi : array-like (dim_a, dim_b)</span>
+<span class="sd">        Transport plan</span>
+<span class="sd">    a : array-like (dim_a,)</span>
+<span class="sd">        Unnormalized histogram of dimension `dim_a`</span>
+<span class="sd">    b : array-like (dim_b,)</span>
+<span class="sd">        Unnormalized histogram of dimension `dim_b`</span>
+<span class="sd">    pi1 : array-like (dim_a,), optional (default = None)</span>
+<span class="sd">        Marginal distribution with respect to the first dimension of the transport plan</span>
+<span class="sd">        Only used in case of Kullback-Leibler divergence.</span>
+<span class="sd">    pi2 : array-like (dim_a,), optional (default = None)</span>
+<span class="sd">        Marginal distribution with respect to the second dimension of the transport plan</span>
+<span class="sd">        Only used in case of Kullback-Leibler divergence.</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    mass : bool, optional. Default is False.</span>
+<span class="sd">        Only used in case of Kullback-Leibler divergence.</span>
+<span class="sd">        If False, calculate the relative entropy.</span>
+<span class="sd">        If True, calculate the Kullback-Leibler divergence.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Bregman divergence between an arbitrary measure and a product measure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">pi</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">,</span> <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">pi1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pi1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pi2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pi2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pi</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)))</span> \
+            <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">mass</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+               <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">b</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="div_between_product">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.div_between_product">[docs]</a>
+<span class="k">def</span> <span class="nf">div_between_product</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fast computation of the Bregman divergence between two product measures.</span>
+<span class="sd">    Only support for Kullback-Leibler and half-squared L2 divergences.</span>
+
+<span class="sd">    For half-squared L2 divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \frac{1}{2} || \mu \otimes \nu, \alpha \otimes \beta ||^2</span>
+<span class="sd">        = \frac{1}{2} \Big[ ||\alpha||^2 ||\beta||^2 + ||\mu||^2 ||\nu||^2 - 2 \langle \alpha, \mu \rangle \langle \beta, \nu \rangle \Big]</span>
+
+<span class="sd">    For Kullback-Leibler divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        KL(\mu \otimes \nu, \alpha \otimes \beta)</span>
+<span class="sd">        = m(\mu) * KL(\nu, \beta) + m(\nu) * KL(\mu, \alpha) + (m(\mu) - m(\alpha)) * (m(\nu) - m(\beta))</span>
+
+<span class="sd">    where:</span>
+
+<span class="sd">    - :math:`\mu` and :math:`\alpha` are two measures having the same shape.</span>
+<span class="sd">    - :math:`\nu` and :math:`\beta` are two measures having the same shape.</span>
+<span class="sd">    - :math:`m` denotes the mass of the measure</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mu : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    nu : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    alpha : array-like</span>
+<span class="sd">        vector or matrix with the same shape as `\mu`</span>
+<span class="sd">    beta : array-like</span>
+<span class="sd">        vector or matrix with the same shape as `\nu`</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Bregman divergence between two product measures.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">m_mu</span><span class="p">,</span> <span class="n">m_nu</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mu</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
+        <span class="n">m_alpha</span><span class="p">,</span> <span class="n">m_beta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span>
+        <span class="n">const</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_mu</span> <span class="o">-</span> <span class="n">m_alpha</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_nu</span> <span class="o">-</span> <span class="n">m_beta</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">m_nu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="n">m_mu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="n">const</span>
+
+    <span class="k">elif</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">alpha</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">beta</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">mu</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">beta</span> <span class="o">*</span> <span class="n">nu</span><span class="p">)</span>
+               <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nu</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<span class="c1"># Support functions for BCD schemes</span>
+<div class="viewcode-block" id="uot_cost_matrix">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.uot_cost_matrix">[docs]</a>
+<span class="k">def</span> <span class="nf">uot_cost_matrix</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">tuple_p</span><span class="p">,</span> <span class="n">hyperparams</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;The Block Coordinate Descent algorithm for FUGW and UCOOT</span>
+<span class="sd">    requires solving an UOT problem in each iteration.</span>
+<span class="sd">    In particular, we need to specify the following inputs:</span>
+
+<span class="sd">    - Cost matrix</span>
+
+<span class="sd">    - Hyperparameters (marginal-relaxations and regularization)</span>
+
+<span class="sd">    - Reference measures in the marginal-relaxation and regularization terms</span>
+
+<span class="sd">    This method returns the cost matrix.</span>
+<span class="sd">    The method :any:`ot.gromov.uot_parameters_and_measures` returns the rest of the inputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : tuple of arrays</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    pi : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    tuple_p : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation terms</span>
+<span class="sd">        w.r.t the (either sample or feature) coupling</span>
+<span class="sd">    hyperparams : tuple of floats</span>
+<span class="sd">        Hyperparameters of marginal-relaxation and regularization terms</span>
+<span class="sd">        in the fused unbalanced across-domain divergence</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    reg_type : string,</span>
+<span class="sd">        Type of regularization term in the fused unbalanced across-domain divergence</span>
+
+<span class="sd">        - `reg_type = &quot;joint&quot;` corresponds to FUGW</span>
+
+<span class="sd">        - `reg_type = &quot;independent&quot;` corresponds to UCOOT</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cost matrix of the UOT subroutine for UCOOT and FUGW</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="n">hyperparams</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tuple_p</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">A</span><span class="p">,</span> <span class="n">B</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_sqr</span><span class="p">,</span> <span class="n">pi1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Y_sqr</span><span class="p">,</span> <span class="n">pi2</span><span class="p">)</span>
+    <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">A</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pi</span><span class="p">),</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">M</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">rho_x</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">pi1</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">pi2</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="ow">and</span> <span class="n">eps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">div_to_product</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span><span class="p">,</span>
+                                                       <span class="n">divergence</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">uot_cost</span></div>
+
+
+
+<div class="viewcode-block" id="uot_parameters_and_measures">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.uot_parameters_and_measures">[docs]</a>
+<span class="k">def</span> <span class="nf">uot_parameters_and_measures</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">tuple_weights</span><span class="p">,</span> <span class="n">hyperparams</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;The Block Coordinate Descent algorithm for FUGW and UCOOT</span>
+<span class="sd">    requires solving an UOT problem in each iteration.</span>
+<span class="sd">    In particular, we need to specify the following inputs:</span>
+
+<span class="sd">    - Cost matrix</span>
+
+<span class="sd">    - Hyperparameters (marginal-relaxations and regularization)</span>
+
+<span class="sd">    - Reference measures in the marginal-relaxation and regularization terms</span>
+
+<span class="sd">    The method :any:`ot.gromov.uot_cost_matrix` returns the cost matrix.</span>
+<span class="sd">    This method returns the rest of the inputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pi : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    tuple_weights : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation and regularization terms</span>
+<span class="sd">        w.r.t the (either sample or feature) coupling</span>
+<span class="sd">    hyperparams : tuple of floats</span>
+<span class="sd">        Hyperparameters of marginal-relaxation and regularization terms</span>
+<span class="sd">        in the fused unbalanced across-domain divergence</span>
+<span class="sd">    reg_type : string,</span>
+<span class="sd">        Type of regularization term in the fused unbalanced across-domain divergence</span>
+
+<span class="sd">        - `reg_type = &quot;joint&quot;` corresponds to FUGW</span>
+
+<span class="sd">        - `reg_type = &quot;independent&quot;` corresponds to UCOOT</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Tuple of hyperparameters and distributions (weights)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="n">hyperparams</span>
+    <span class="n">wx</span><span class="p">,</span> <span class="n">wy</span><span class="p">,</span> <span class="n">wxy</span> <span class="o">=</span> <span class="n">tuple_weights</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">l2_pi1</span><span class="p">,</span> <span class="n">l2_pi2</span><span class="p">,</span> <span class="n">l2_pi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi2</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">weighted_wx</span> <span class="o">=</span> <span class="n">wx</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span> <span class="o">*</span> <span class="n">wx</span><span class="p">)</span> <span class="o">/</span> <span class="n">l2_pi1</span>
+        <span class="n">weighted_wy</span> <span class="o">=</span> <span class="n">wy</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi2</span> <span class="o">*</span> <span class="n">wy</span><span class="p">)</span> <span class="o">/</span> <span class="n">l2_pi2</span>
+        <span class="n">weighted_wxy</span> <span class="o">=</span> <span class="n">wxy</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="n">wxy</span><span class="p">)</span> <span class="o">/</span> <span class="n">l2_pi</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">wxy</span>
+        <span class="n">weighted_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">weighted_wx</span><span class="p">,</span> <span class="n">weighted_wy</span><span class="p">,</span> <span class="n">weighted_wxy</span><span class="p">)</span>
+
+        <span class="n">new_rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">*</span> <span class="n">l2_pi1</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">l2_pi2</span><span class="p">)</span>
+        <span class="n">new_eps</span> <span class="o">=</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">l2_pi</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">eps</span>
+
+    <span class="k">elif</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">new_rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">*</span> <span class="n">mass</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">mass</span><span class="p">)</span>
+        <span class="n">new_eps</span> <span class="o">=</span> <span class="n">mass</span> <span class="o">*</span> <span class="n">eps</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">eps</span>
+        <span class="n">weighted_w</span> <span class="o">=</span> <span class="n">tuple_weights</span>
+
+    <span class="k">return</span> <span class="n">weighted_w</span><span class="p">,</span> <span class="n">new_rho</span><span class="p">,</span> <span class="n">new_eps</span></div>
+
+
+
+<div class="viewcode-block" id="fused_unbalanced_across_spaces_cost">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.fused_unbalanced_across_spaces_cost">[docs]</a>
+<span class="k">def</span> <span class="nf">fused_unbalanced_across_spaces_cost</span><span class="p">(</span><span class="n">M_linear</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">tuple_pxy_samp</span><span class="p">,</span> <span class="n">tuple_pxy_feat</span><span class="p">,</span>
+                                        <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">hyperparams</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">nx</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the fused unbalanced across-space divergence between two spaces</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M_linear : tuple of arrays</span>
+<span class="sd">        Pair of cost matrices corresponding to the Wasserstein terms w.r.t sample and feature couplings</span>
+<span class="sd">    data : tuple of arrays</span>
+<span class="sd">        Tuple of input spaces represented as matrices</span>
+<span class="sd">    tuple_pxy_samp : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation and regularization terms</span>
+<span class="sd">        w.r.t the sample coupling</span>
+<span class="sd">    tuple_pxy_feat : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation and regularization terms</span>
+<span class="sd">        w.r.t the feature coupling</span>
+<span class="sd">    pi_samp : array-like</span>
+<span class="sd">        Sample coupling</span>
+<span class="sd">    pi_feat : array-like</span>
+<span class="sd">        Feature coupling</span>
+<span class="sd">    hyperparams : tuple of floats</span>
+<span class="sd">        Hyperparameters of marginal-relaxation and regularization terms</span>
+<span class="sd">        in the fused unbalanced across-domain divergence</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    reg_type : string,</span>
+<span class="sd">        Type of regularization term in the fused unbalanced across-domain divergence</span>
+
+<span class="sd">        - `reg_type = &quot;joint&quot;` corresponds to FUGW</span>
+
+<span class="sd">        - `reg_type = &quot;independent&quot;` corresponds to UCOOT</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Fused unbalanced across-space divergence between two spaces</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">hyperparams</span>
+    <span class="n">M_samp</span><span class="p">,</span> <span class="n">M_feat</span> <span class="o">=</span> <span class="n">M_linear</span>
+    <span class="n">px_samp</span><span class="p">,</span> <span class="n">py_samp</span><span class="p">,</span> <span class="n">pxy_samp</span> <span class="o">=</span> <span class="n">tuple_pxy_samp</span>
+    <span class="n">px_feat</span><span class="p">,</span> <span class="n">py_feat</span><span class="p">,</span> <span class="n">pxy_feat</span> <span class="o">=</span> <span class="n">tuple_pxy_feat</span>
+    <span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi2_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">pi1_feat</span><span class="p">,</span> <span class="n">pi2_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">A_sqr</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_sqr</span><span class="p">,</span> <span class="n">pi1_feat</span><span class="p">),</span> <span class="n">pi1_samp</span><span class="p">)</span>
+    <span class="n">B_sqr</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Y_sqr</span><span class="p">,</span> <span class="n">pi2_feat</span><span class="p">),</span> <span class="n">pi2_samp</span><span class="p">)</span>
+    <span class="n">AB</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">),</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">pi_samp</span>
+    <span class="n">linear_cost</span> <span class="o">=</span> <span class="n">A_sqr</span> <span class="o">+</span> <span class="n">B_sqr</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">AB</span><span class="p">)</span>
+
+    <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">linear_cost</span>
+    <span class="k">if</span> <span class="n">M_samp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span> <span class="o">*</span> <span class="n">M_samp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">M_feat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span> <span class="o">*</span> <span class="n">M_feat</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> \
+            <span class="n">rho_x</span> <span class="o">*</span> <span class="n">div_between_product</span><span class="p">(</span><span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi1_feat</span><span class="p">,</span>
+                                        <span class="n">px_samp</span><span class="p">,</span> <span class="n">px_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> \
+            <span class="n">rho_y</span> <span class="o">*</span> <span class="n">div_between_product</span><span class="p">(</span><span class="n">pi2_samp</span><span class="p">,</span> <span class="n">pi2_feat</span><span class="p">,</span>
+                                        <span class="n">py_samp</span><span class="p">,</span> <span class="n">py_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="ow">and</span> <span class="n">eps_samp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">div_cost</span> <span class="o">=</span> <span class="n">div_between_product</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span>
+                                       <span class="n">pxy_samp</span><span class="p">,</span> <span class="n">pxy_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="n">div_cost</span>
+    <span class="k">elif</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;independent&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">eps_samp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">div_samp</span> <span class="o">=</span> <span class="n">div_to_product</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi2_samp</span><span class="p">,</span>
+                                      <span class="n">px_samp</span><span class="p">,</span> <span class="n">py_samp</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+            <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="n">div_samp</span>
+        <span class="k">if</span> <span class="n">eps_feat</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">div_feat</span> <span class="o">=</span> <span class="n">div_to_product</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="n">pi1_feat</span><span class="p">,</span> <span class="n">pi2_feat</span><span class="p">,</span>
+                                      <span class="n">px_feat</span><span class="p">,</span> <span class="n">py_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+            <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">eps_feat</span> <span class="o">*</span> <span class="n">div_feat</span>
+
+    <span class="k">return</span> <span class="n">linear_cost</span><span class="p">,</span> <span class="n">ucoot_cost</span></div>
 
 </pre></div>
 
