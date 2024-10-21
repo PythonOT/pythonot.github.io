@@ -86,13 +86,14 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1"># Author: Laetitia Chapel &lt;laetitia.chapel@irisa.fr&gt;</span>
-<span class="c1">#             Yikun Bai &lt; yikun.bai@vanderbilt.edu &gt;</span>
-<span class="c1">#             Cédric Vincent-Cuaz &lt;cedvincentcuaz@gmail.com&gt;</span>
+<span class="c1">#         Yikun Bai &lt; yikun.bai@vanderbilt.edu &gt;</span>
+<span class="c1">#         Cédric Vincent-Cuaz &lt;cedvincentcuaz@gmail.com&gt;</span>
 
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
 <span class="kn">from</span> <span class="nn">.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span> <span class="nn">.lp</span> <span class="kn">import</span> <span class="n">emd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="c1"># License: MIT License</span>
 
@@ -504,374 +505,6 @@
 
 
 
-<div class="viewcode-block" id="gwgrad_partial">
-<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.gwgrad_partial">[docs]</a>
-<span class="k">def</span> <span class="nf">gwgrad_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the GW gradient. Note: we can not use the trick in :ref:`[12] &lt;references-gwgrad-partial&gt;`</span>
-<span class="sd">    as the marginals may not sum to 1.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    C1: array of shape (n_p,n_p)</span>
-<span class="sd">        intra-source (P) cost matrix</span>
-
-<span class="sd">    C2: array of shape (n_u,n_u)</span>
-<span class="sd">        intra-target (U) cost matrix</span>
-
-<span class="sd">    T : array of shape(n_p+nb_dummies, n_u) (default: None)</span>
-<span class="sd">        Transport matrix</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    numpy.array of shape (n_p+nb_dummies, n_u)</span>
-<span class="sd">        gradient</span>
-
-
-<span class="sd">    .. _references-gwgrad-partial:</span>
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    .. [12] Peyré, Gabriel, Marco Cuturi, and Justin Solomon,</span>
-<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
-<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">cC1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-    <span class="n">cC2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">T</span><span class="p">),</span> <span class="n">C2</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">constC</span> <span class="o">=</span> <span class="n">cC1</span> <span class="o">+</span> <span class="n">cC2</span>
-    <span class="n">A</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-    <span class="n">tens</span> <span class="o">=</span> <span class="n">constC</span> <span class="o">+</span> <span class="n">A</span>
-    <span class="k">return</span> <span class="n">tens</span> <span class="o">*</span> <span class="mi">2</span></div>
-
-
-
-<div class="viewcode-block" id="gwloss_partial">
-<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.gwloss_partial">[docs]</a>
-<span class="k">def</span> <span class="nf">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the GW loss.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    C1: array of shape (n_p,n_p)</span>
-<span class="sd">        intra-source (P) cost matrix</span>
-
-<span class="sd">    C2: array of shape (n_u,n_u)</span>
-<span class="sd">        intra-target (U) cost matrix</span>
-
-<span class="sd">    T : array of shape(n_p+nb_dummies, n_u) (default: None)</span>
-<span class="sd">        Transport matrix</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    GW loss</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">g</span> <span class="o">=</span> <span class="n">gwgrad_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="partial_gromov_wasserstein">
-<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.partial_gromov_wasserstein">[docs]</a>
-<span class="k">def</span> <span class="nf">partial_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nb_dummies</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                               <span class="n">thres</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
-                               <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Solves the partial optimal transport problem</span>
-<span class="sd">    and returns the OT plan</span>
-
-<span class="sd">    The function considers the following problem:</span>
-
-<span class="sd">    .. math::</span>
-<span class="sd">        \gamma = \mathop{\arg \min}_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F</span>
-
-<span class="sd">    .. math::</span>
-<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;\leq \mathbf{a}</span>
-
-<span class="sd">             \gamma^T \mathbf{1} &amp;\leq \mathbf{b}</span>
-
-<span class="sd">             \gamma &amp;\geq 0</span>
-
-<span class="sd">             \mathbf{1}^T \gamma^T \mathbf{1} = m &amp;\leq \min\{\|\mathbf{a}\|_1, \|\mathbf{b}\|_1\}</span>
-
-<span class="sd">    where :</span>
-
-<span class="sd">    - :math:`\mathbf{M}` is the metric cost matrix</span>
-<span class="sd">    - :math:`\Omega` is the entropic regularization term, :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
-<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are the sample weights</span>
-<span class="sd">    - `m` is the amount of mass to be transported</span>
-
-<span class="sd">    The formulation of the problem has been proposed in</span>
-<span class="sd">    :ref:`[29] &lt;references-partial-gromov-wasserstein&gt;`</span>
-
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    C1 : ndarray, shape (ns, ns)</span>
-<span class="sd">        Metric cost matrix in the source space</span>
-<span class="sd">    C2 : ndarray, shape (nt, nt)</span>
-<span class="sd">        Metric costfr matrix in the target space</span>
-<span class="sd">    p : ndarray, shape (ns,)</span>
-<span class="sd">        Distribution in the source space</span>
-<span class="sd">    q : ndarray, shape (nt,)</span>
-<span class="sd">        Distribution in the target space</span>
-<span class="sd">    m : float, optional</span>
-<span class="sd">        Amount of mass to be transported</span>
-<span class="sd">        (default: :math:`\min\{\|\mathbf{p}\|_1, \|\mathbf{q}\|_1\}`)</span>
-<span class="sd">    nb_dummies : int, optional</span>
-<span class="sd">        Number of dummy points to add (avoid instabilities in the EMD solver)</span>
-<span class="sd">    G0 : ndarray, shape (ns, nt), optional</span>
-<span class="sd">        Initialization of the transportation matrix</span>
-<span class="sd">    thres : float, optional</span>
-<span class="sd">        quantile of the gradient matrix to populate the cost matrix when 0</span>
-<span class="sd">        (default: 1)</span>
-<span class="sd">    numItermax : int, optional</span>
-<span class="sd">        Max number of iterations</span>
-<span class="sd">    tol : float, optional</span>
-<span class="sd">        tolerance for stopping iterations</span>
-<span class="sd">    log : bool, optional</span>
-<span class="sd">        return log if True</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        Print information along iterations</span>
-<span class="sd">    **kwargs : dict</span>
-<span class="sd">        parameters can be directly passed to the emd solver</span>
-
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    gamma : (dim_a, dim_b) ndarray</span>
-<span class="sd">        Optimal transportation matrix for the given parameters</span>
-<span class="sd">    log : dict</span>
-<span class="sd">        log dictionary returned only if `log` is `True`</span>
-
-
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; import ot</span>
-<span class="sd">    &gt;&gt;&gt; import scipy as sp</span>
-<span class="sd">    &gt;&gt;&gt; a = np.array([0.25] * 4)</span>
-<span class="sd">    &gt;&gt;&gt; b = np.array([0.25] * 4)</span>
-<span class="sd">    &gt;&gt;&gt; x = np.array([1,2,100,200]).reshape((-1,1))</span>
-<span class="sd">    &gt;&gt;&gt; y = np.array([3,2,98,199]).reshape((-1,1))</span>
-<span class="sd">    &gt;&gt;&gt; C1 = sp.spatial.distance.cdist(x, x)</span>
-<span class="sd">    &gt;&gt;&gt; C2 = sp.spatial.distance.cdist(y, y)</span>
-<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein(C1, C2, a, b),2)</span>
-<span class="sd">    array([[0.  , 0.25, 0.  , 0.  ],</span>
-<span class="sd">           [0.25, 0.  , 0.  , 0.  ],</span>
-<span class="sd">           [0.  , 0.  , 0.25, 0.  ],</span>
-<span class="sd">           [0.  , 0.  , 0.  , 0.25]])</span>
-<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein(C1, C2, a, b, m=0.25),2)</span>
-<span class="sd">    array([[0.  , 0.  , 0.  , 0.  ],</span>
-<span class="sd">           [0.  , 0.  , 0.  , 0.  ],</span>
-<span class="sd">           [0.  , 0.  , 0.25, 0.  ],</span>
-<span class="sd">           [0.  , 0.  , 0.  , 0.  ]])</span>
-
-
-<span class="sd">    .. _references-partial-gromov-wasserstein:</span>
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    ..  [29] Chapel, L., Alaya, M., Gasso, G. (2020). &quot;Partial Optimal</span>
-<span class="sd">        Transport with Applications on Positive-Unlabeled Learning&quot;.</span>
-<span class="sd">        NeurIPS.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">)))</span>
-    <span class="k">elif</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem infeasible. Parameter m should be greater&quot;</span>
-                         <span class="s2">&quot; than 0.&quot;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">))):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem infeasible. Parameter m should lower or&quot;</span>
-                         <span class="s2">&quot; equal than min(|a|_1, |b|_1).&quot;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">G0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="n">m</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>  <span class="c1"># make sure |G0|=m, G01_m\leq p, G0.T1_n\leq q.</span>
-
-    <span class="n">dim_G_extended</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="n">nb_dummies</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">+</span> <span class="n">nb_dummies</span><span class="p">)</span>
-    <span class="n">q_extended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="n">nb_dummies</span><span class="p">]</span> <span class="o">*</span> <span class="n">nb_dummies</span><span class="p">)</span>
-    <span class="n">p_extended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="n">nb_dummies</span><span class="p">]</span> <span class="o">*</span> <span class="n">nb_dummies</span><span class="p">)</span>
-
-    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
-
-    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
-
-    <span class="k">while</span> <span class="p">(</span><span class="n">err</span> <span class="o">&gt;</span> <span class="n">tol</span> <span class="ow">and</span> <span class="n">cpt</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">):</span>
-
-        <span class="n">Gprev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
-
-        <span class="n">M</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">gwgrad_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>  <span class="c1"># rescaling the gradient with 0.5 for line-search while not changing Gc</span>
-        <span class="n">M_emd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim_G_extended</span><span class="p">)</span>
-        <span class="n">M_emd</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)]</span> <span class="o">=</span> <span class="n">M</span>
-        <span class="n">M_emd</span><span class="p">[</span><span class="o">-</span><span class="n">nb_dummies</span><span class="p">:,</span> <span class="o">-</span><span class="n">nb_dummies</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">M</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e2</span>
-        <span class="n">M_emd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M_emd</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-
-        <span class="n">Gc</span><span class="p">,</span> <span class="n">logemd</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">p_extended</span><span class="p">,</span> <span class="n">q_extended</span><span class="p">,</span> <span class="n">M_emd</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">logemd</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Error in the EMD resolution: try to increase the&quot;</span>
-                             <span class="s2">&quot; number of dummy points&quot;</span><span class="p">)</span>
-
-        <span class="n">G0</span> <span class="o">=</span> <span class="n">Gc</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)]</span>
-
-        <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># to speed up the computations</span>
-            <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">G0</span> <span class="o">-</span> <span class="n">Gprev</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">31</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span>
-                                                 <span class="n">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)))</span>
-
-        <span class="n">deltaG</span> <span class="o">=</span> <span class="n">G0</span> <span class="o">-</span> <span class="n">Gprev</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">)</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">deltaG</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># due to numerical precision</span>
-            <span class="n">gamma</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">cpt</span> <span class="o">=</span> <span class="n">numItermax</span>
-        <span class="k">elif</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">gamma</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="o">-</span><span class="n">b</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">a</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">gamma</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">cpt</span> <span class="o">=</span> <span class="n">numItermax</span>
-
-        <span class="n">G0</span> <span class="o">=</span> <span class="n">Gprev</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">deltaG</span>
-        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;partial_gw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">G0</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span> <span class="n">log</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">G0</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)]</span></div>
-
-
-
-<div class="viewcode-block" id="partial_gromov_wasserstein2">
-<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.partial_gromov_wasserstein2">[docs]</a>
-<span class="k">def</span> <span class="nf">partial_gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nb_dummies</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                <span class="n">thres</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
-                                <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Solves the partial optimal transport problem</span>
-<span class="sd">    and returns the partial Gromov-Wasserstein discrepancy</span>
-
-<span class="sd">    The function considers the following problem:</span>
-
-<span class="sd">    .. math::</span>
-<span class="sd">        GW = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F</span>
-
-<span class="sd">    .. math::</span>
-<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;\leq \mathbf{a}</span>
-
-<span class="sd">             \gamma^T \mathbf{1} &amp;\leq \mathbf{b}</span>
-
-<span class="sd">             \gamma &amp;\geq 0</span>
-
-<span class="sd">             \mathbf{1}^T \gamma^T \mathbf{1} = m</span>
-<span class="sd">             &amp;\leq \min\{\|\mathbf{a}\|_1, \|\mathbf{b}\|_1\}</span>
-
-<span class="sd">    where :</span>
-
-<span class="sd">    - :math:`\mathbf{M}` is the metric cost matrix</span>
-<span class="sd">    - :math:`\Omega` is the entropic regularization term,</span>
-<span class="sd">      :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
-<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are the sample weights</span>
-<span class="sd">    - `m` is the amount of mass to be transported</span>
-
-<span class="sd">    The formulation of the problem has been proposed in</span>
-<span class="sd">    :ref:`[29] &lt;references-partial-gromov-wasserstein2&gt;`</span>
-
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    C1 : ndarray, shape (ns, ns)</span>
-<span class="sd">        Metric cost matrix in the source space</span>
-<span class="sd">    C2 : ndarray, shape (nt, nt)</span>
-<span class="sd">        Metric cost matrix in the target space</span>
-<span class="sd">    p : ndarray, shape (ns,)</span>
-<span class="sd">        Distribution in the source space</span>
-<span class="sd">    q : ndarray, shape (nt,)</span>
-<span class="sd">        Distribution in the target space</span>
-<span class="sd">    m : float, optional</span>
-<span class="sd">        Amount of mass to be transported</span>
-<span class="sd">        (default: :math:`\min\{\|\mathbf{p}\|_1, \|\mathbf{q}\|_1\}`)</span>
-<span class="sd">    nb_dummies : int, optional</span>
-<span class="sd">        Number of dummy points to add (avoid instabilities in the EMD solver)</span>
-<span class="sd">    G0 : ndarray, shape (ns, nt), optional</span>
-<span class="sd">        Initialization of the transportation matrix</span>
-<span class="sd">    thres : float, optional</span>
-<span class="sd">        quantile of the gradient matrix to populate the cost matrix when 0</span>
-<span class="sd">        (default: 1)</span>
-<span class="sd">    numItermax : int, optional</span>
-<span class="sd">        Max number of iterations</span>
-<span class="sd">    tol : float, optional</span>
-<span class="sd">        tolerance for stopping iterations</span>
-<span class="sd">    log : bool, optional</span>
-<span class="sd">        return log if True</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        Print information along iterations</span>
-<span class="sd">    **kwargs : dict</span>
-<span class="sd">        parameters can be directly passed to the emd solver</span>
-
-
-<span class="sd">    .. warning::</span>
-<span class="sd">        When dealing with a large number of points, the EMD solver may face</span>
-<span class="sd">        some instabilities, especially when the mass associated to the dummy</span>
-<span class="sd">        point is large. To avoid them, increase the number of dummy points</span>
-<span class="sd">        (allows a smoother repartition of the mass over the points).</span>
-
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    partial_gw_dist : float</span>
-<span class="sd">        partial GW discrepancy</span>
-<span class="sd">    log : dict</span>
-<span class="sd">        log dictionary returned only if `log` is `True`</span>
-
-
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; import ot</span>
-<span class="sd">    &gt;&gt;&gt; import scipy as sp</span>
-<span class="sd">    &gt;&gt;&gt; a = np.array([0.25] * 4)</span>
-<span class="sd">    &gt;&gt;&gt; b = np.array([0.25] * 4)</span>
-<span class="sd">    &gt;&gt;&gt; x = np.array([1,2,100,200]).reshape((-1,1))</span>
-<span class="sd">    &gt;&gt;&gt; y = np.array([3,2,98,199]).reshape((-1,1))</span>
-<span class="sd">    &gt;&gt;&gt; C1 = sp.spatial.distance.cdist(x, x)</span>
-<span class="sd">    &gt;&gt;&gt; C2 = sp.spatial.distance.cdist(y, y)</span>
-<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein2(C1, C2, a, b),2)</span>
-<span class="sd">    1.69</span>
-<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein2(C1, C2, a, b, m=0.25),2)</span>
-<span class="sd">    0.0</span>
-
-
-<span class="sd">    .. _references-partial-gromov-wasserstein2:</span>
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    ..  [29] Chapel, L., Alaya, M., Gasso, G. (2020). &quot;Partial Optimal</span>
-<span class="sd">        Transport with Applications on Positive-Unlabeled Learning&quot;.</span>
-<span class="sd">        NeurIPS.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">partial_gw</span><span class="p">,</span> <span class="n">log_gw</span> <span class="o">=</span> <span class="n">partial_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span>
-                                                    <span class="n">nb_dummies</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">thres</span><span class="p">,</span>
-                                                    <span class="n">numItermax</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-                                                    <span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partial_gw</span>
-
-    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;partial_gw_dist&#39;</span><span class="p">],</span> <span class="n">log_gw</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;partial_gw_dist&#39;</span><span class="p">]</span></div>
-
-
-
 <div class="viewcode-block" id="entropic_partial_wasserstein">
 <a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.entropic_partial_wasserstein">[docs]</a>
 <span class="k">def</span> <span class="nf">entropic_partial_wasserstein</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
@@ -1032,6 +665,405 @@
 
 
 
+<div class="viewcode-block" id="gwgrad_partial">
+<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.gwgrad_partial">[docs]</a>
+<span class="k">def</span> <span class="nf">gwgrad_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the GW gradient. Note: we can not use the trick in :ref:`[12] &lt;references-gwgrad-partial&gt;`</span>
+<span class="sd">    as the marginals may not sum to 1.</span>
+
+<span class="sd">    .. note:: This function will be deprecated in a near future, please use</span>
+<span class="sd">    `ot.gromov.gwggrad` instead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1: array of shape (n_p,n_p)</span>
+<span class="sd">        intra-source (P) cost matrix</span>
+
+<span class="sd">    C2: array of shape (n_u,n_u)</span>
+<span class="sd">        intra-target (U) cost matrix</span>
+
+<span class="sd">    T : array of shape(n_p+nb_dummies, n_u) (default: None)</span>
+<span class="sd">        Transport matrix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.array of shape (n_p+nb_dummies, n_u)</span>
+<span class="sd">        gradient</span>
+
+
+<span class="sd">    .. _references-gwgrad-partial:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Peyré, Gabriel, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;This function will be deprecated in a near future, please use &quot;</span>
+        <span class="s2">&quot;ot.gromov.gwggrad` instead.&quot;</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+    <span class="n">cC1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="n">cC2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">T</span><span class="p">),</span> <span class="n">C2</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">constC</span> <span class="o">=</span> <span class="n">cC1</span> <span class="o">+</span> <span class="n">cC2</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">tens</span> <span class="o">=</span> <span class="n">constC</span> <span class="o">+</span> <span class="n">A</span>
+    <span class="k">return</span> <span class="n">tens</span> <span class="o">*</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="gwloss_partial">
+<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.gwloss_partial">[docs]</a>
+<span class="k">def</span> <span class="nf">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the GW loss.</span>
+
+<span class="sd">    .. note:: This function will be deprecated in a near future, please use</span>
+<span class="sd">    `ot.gromov.gwloss` instead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1: array of shape (n_p,n_p)</span>
+<span class="sd">        intra-source (P) cost matrix</span>
+
+<span class="sd">    C2: array of shape (n_u,n_u)</span>
+<span class="sd">        intra-target (U) cost matrix</span>
+
+<span class="sd">    T : array of shape(n_p+nb_dummies, n_u) (default: None)</span>
+<span class="sd">        Transport matrix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    GW loss</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;This function will be deprecated in a near future, please use &quot;</span>
+        <span class="s2">&quot;ot.gromov.gwloss` instead.&quot;</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gwgrad_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="partial_gromov_wasserstein">
+<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.partial_gromov_wasserstein">[docs]</a>
+<span class="k">def</span> <span class="nf">partial_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nb_dummies</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">thres</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+                               <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the partial optimal transport problem</span>
+<span class="sd">    and returns the OT plan</span>
+
+<span class="sd">    The function considers the following problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = \mathop{\arg \min}_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;\leq \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} &amp;\leq \mathbf{b}</span>
+
+<span class="sd">             \gamma &amp;\geq 0</span>
+
+<span class="sd">             \mathbf{1}^T \gamma^T \mathbf{1} = m &amp;\leq \min\{\|\mathbf{a}\|_1, \|\mathbf{b}\|_1\}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the metric cost matrix</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term, :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are the sample weights</span>
+<span class="sd">    - `m` is the amount of mass to be transported</span>
+
+<span class="sd">    The formulation of the problem has been proposed in</span>
+<span class="sd">    :ref:`[29] &lt;references-partial-gromov-wasserstein&gt;`</span>
+
+<span class="sd">    .. note:: This function will be deprecated in a near future, please use</span>
+<span class="sd">    `ot.gromov.partial_gromov_wasserstein` instead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : ndarray, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : ndarray, shape (nt, nt)</span>
+<span class="sd">        Metric costfr matrix in the target space</span>
+<span class="sd">    p : ndarray, shape (ns,)</span>
+<span class="sd">        Distribution in the source space</span>
+<span class="sd">    q : ndarray, shape (nt,)</span>
+<span class="sd">        Distribution in the target space</span>
+<span class="sd">    m : float, optional</span>
+<span class="sd">        Amount of mass to be transported</span>
+<span class="sd">        (default: :math:`\min\{\|\mathbf{p}\|_1, \|\mathbf{q}\|_1\}`)</span>
+<span class="sd">    nb_dummies : int, optional</span>
+<span class="sd">        Number of dummy points to add (avoid instabilities in the EMD solver)</span>
+<span class="sd">    G0 : ndarray, shape (ns, nt), optional</span>
+<span class="sd">        Initialization of the transportation matrix</span>
+<span class="sd">    thres : float, optional</span>
+<span class="sd">        quantile of the gradient matrix to populate the cost matrix when 0</span>
+<span class="sd">        (default: 1)</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        tolerance for stopping iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        return log if True</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the emd solver</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : (dim_a, dim_b) ndarray</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary returned only if `log` is `True`</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; import scipy as sp</span>
+<span class="sd">    &gt;&gt;&gt; a = np.array([0.25] * 4)</span>
+<span class="sd">    &gt;&gt;&gt; b = np.array([0.25] * 4)</span>
+<span class="sd">    &gt;&gt;&gt; x = np.array([1,2,100,200]).reshape((-1,1))</span>
+<span class="sd">    &gt;&gt;&gt; y = np.array([3,2,98,199]).reshape((-1,1))</span>
+<span class="sd">    &gt;&gt;&gt; C1 = sp.spatial.distance.cdist(x, x)</span>
+<span class="sd">    &gt;&gt;&gt; C2 = sp.spatial.distance.cdist(y, y)</span>
+<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein(C1, C2, a, b),2)</span>
+<span class="sd">    array([[0.  , 0.25, 0.  , 0.  ],</span>
+<span class="sd">           [0.25, 0.  , 0.  , 0.  ],</span>
+<span class="sd">           [0.  , 0.  , 0.25, 0.  ],</span>
+<span class="sd">           [0.  , 0.  , 0.  , 0.25]])</span>
+<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein(C1, C2, a, b, m=0.25),2)</span>
+<span class="sd">    array([[0.  , 0.  , 0.  , 0.  ],</span>
+<span class="sd">           [0.  , 0.  , 0.  , 0.  ],</span>
+<span class="sd">           [0.  , 0.  , 0.25, 0.  ],</span>
+<span class="sd">           [0.  , 0.  , 0.  , 0.  ]])</span>
+
+
+<span class="sd">    .. _references-partial-gromov-wasserstein:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ..  [29] Chapel, L., Alaya, M., Gasso, G. (2020). &quot;Partial Optimal</span>
+<span class="sd">        Transport with Applications on Positive-Unlabeled Learning&quot;.</span>
+<span class="sd">        NeurIPS.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;This function will be deprecated in a near future, please use &quot;</span>
+        <span class="s2">&quot;ot.gromov.partial_gromov_wasserstein` instead.&quot;</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">)))</span>
+    <span class="k">elif</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem infeasible. Parameter m should be greater&quot;</span>
+                         <span class="s2">&quot; than 0.&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">))):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem infeasible. Parameter m should lower or&quot;</span>
+                         <span class="s2">&quot; equal than min(|a|_1, |b|_1).&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="n">m</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>  <span class="c1"># make sure |G0|=m, G01_m\leq p, G0.T1_n\leq q.</span>
+
+    <span class="n">dim_G_extended</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="n">nb_dummies</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">+</span> <span class="n">nb_dummies</span><span class="p">)</span>
+    <span class="n">q_extended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="n">nb_dummies</span><span class="p">]</span> <span class="o">*</span> <span class="n">nb_dummies</span><span class="p">)</span>
+    <span class="n">p_extended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="n">nb_dummies</span><span class="p">]</span> <span class="o">*</span> <span class="n">nb_dummies</span><span class="p">)</span>
+
+    <span class="n">cpt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;err&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">err</span> <span class="o">&gt;</span> <span class="n">tol</span> <span class="ow">and</span> <span class="n">cpt</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">):</span>
+
+        <span class="n">Gprev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
+
+        <span class="n">M</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">gwgrad_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>  <span class="c1"># rescaling the gradient with 0.5 for line-search while not changing Gc</span>
+        <span class="n">M_emd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim_G_extended</span><span class="p">)</span>
+        <span class="n">M_emd</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)]</span> <span class="o">=</span> <span class="n">M</span>
+        <span class="n">M_emd</span><span class="p">[</span><span class="o">-</span><span class="n">nb_dummies</span><span class="p">:,</span> <span class="o">-</span><span class="n">nb_dummies</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">M</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e2</span>
+        <span class="n">M_emd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M_emd</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+        <span class="n">Gc</span><span class="p">,</span> <span class="n">logemd</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">p_extended</span><span class="p">,</span> <span class="n">q_extended</span><span class="p">,</span> <span class="n">M_emd</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">logemd</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Error in the EMD resolution: try to increase the&quot;</span>
+                             <span class="s2">&quot; number of dummy points&quot;</span><span class="p">)</span>
+
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">Gc</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># to speed up the computations</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">G0</span> <span class="o">-</span> <span class="n">Gprev</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cpt</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">|</span><span class="si">{:12s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s1">&#39;It.&#39;</span><span class="p">,</span> <span class="s1">&#39;Err&#39;</span><span class="p">,</span> <span class="s1">&#39;Loss&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">31</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5d}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">|</span><span class="si">{:8e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cpt</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span>
+                                                 <span class="n">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)))</span>
+
+        <span class="n">deltaG</span> <span class="o">=</span> <span class="n">G0</span> <span class="o">-</span> <span class="n">Gprev</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">deltaG</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">deltaG</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># due to numerical precision</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">cpt</span> <span class="o">=</span> <span class="n">numItermax</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="o">-</span><span class="n">b</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">a</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">gamma</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">cpt</span> <span class="o">=</span> <span class="n">numItermax</span>
+
+        <span class="n">G0</span> <span class="o">=</span> <span class="n">Gprev</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">deltaG</span>
+        <span class="n">cpt</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;partial_gw_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gwloss_partial</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G0</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G0</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="partial_gromov_wasserstein2">
+<a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.partial_gromov_wasserstein2">[docs]</a>
+<span class="k">def</span> <span class="nf">partial_gromov_wasserstein2</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nb_dummies</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">thres</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+                                <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the partial optimal transport problem</span>
+<span class="sd">    and returns the partial Gromov-Wasserstein discrepancy</span>
+
+<span class="sd">    The function considers the following problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        GW = \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        s.t. \ \gamma \mathbf{1} &amp;\leq \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} &amp;\leq \mathbf{b}</span>
+
+<span class="sd">             \gamma &amp;\geq 0</span>
+
+<span class="sd">             \mathbf{1}^T \gamma^T \mathbf{1} = m</span>
+<span class="sd">             &amp;\leq \min\{\|\mathbf{a}\|_1, \|\mathbf{b}\|_1\}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}` is the metric cost matrix</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term,</span>
+<span class="sd">      :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are the sample weights</span>
+<span class="sd">    - `m` is the amount of mass to be transported</span>
+
+<span class="sd">    The formulation of the problem has been proposed in</span>
+<span class="sd">    :ref:`[29] &lt;references-partial-gromov-wasserstein2&gt;`</span>
+
+<span class="sd">    .. note:: This function will be deprecated in a near future, please use</span>
+<span class="sd">    `ot.gromov.partial_gromov_wasserstein2` instead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : ndarray, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : ndarray, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space</span>
+<span class="sd">    p : ndarray, shape (ns,)</span>
+<span class="sd">        Distribution in the source space</span>
+<span class="sd">    q : ndarray, shape (nt,)</span>
+<span class="sd">        Distribution in the target space</span>
+<span class="sd">    m : float, optional</span>
+<span class="sd">        Amount of mass to be transported</span>
+<span class="sd">        (default: :math:`\min\{\|\mathbf{p}\|_1, \|\mathbf{q}\|_1\}`)</span>
+<span class="sd">    nb_dummies : int, optional</span>
+<span class="sd">        Number of dummy points to add (avoid instabilities in the EMD solver)</span>
+<span class="sd">    G0 : ndarray, shape (ns, nt), optional</span>
+<span class="sd">        Initialization of the transportation matrix</span>
+<span class="sd">    thres : float, optional</span>
+<span class="sd">        quantile of the gradient matrix to populate the cost matrix when 0</span>
+<span class="sd">        (default: 1)</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        tolerance for stopping iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        return log if True</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        parameters can be directly passed to the emd solver</span>
+
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        When dealing with a large number of points, the EMD solver may face</span>
+<span class="sd">        some instabilities, especially when the mass associated to the dummy</span>
+<span class="sd">        point is large. To avoid them, increase the number of dummy points</span>
+<span class="sd">        (allows a smoother repartition of the mass over the points).</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    partial_gw_dist : float</span>
+<span class="sd">        partial GW discrepancy</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary returned only if `log` is `True`</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; import scipy as sp</span>
+<span class="sd">    &gt;&gt;&gt; a = np.array([0.25] * 4)</span>
+<span class="sd">    &gt;&gt;&gt; b = np.array([0.25] * 4)</span>
+<span class="sd">    &gt;&gt;&gt; x = np.array([1,2,100,200]).reshape((-1,1))</span>
+<span class="sd">    &gt;&gt;&gt; y = np.array([3,2,98,199]).reshape((-1,1))</span>
+<span class="sd">    &gt;&gt;&gt; C1 = sp.spatial.distance.cdist(x, x)</span>
+<span class="sd">    &gt;&gt;&gt; C2 = sp.spatial.distance.cdist(y, y)</span>
+<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein2(C1, C2, a, b),2)</span>
+<span class="sd">    1.69</span>
+<span class="sd">    &gt;&gt;&gt; np.round(partial_gromov_wasserstein2(C1, C2, a, b, m=0.25),2)</span>
+<span class="sd">    0.0</span>
+
+
+<span class="sd">    .. _references-partial-gromov-wasserstein2:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ..  [29] Chapel, L., Alaya, M., Gasso, G. (2020). &quot;Partial Optimal</span>
+<span class="sd">        Transport with Applications on Positive-Unlabeled Learning&quot;.</span>
+<span class="sd">        NeurIPS.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;This function will be deprecated in a near future, please use &quot;</span>
+        <span class="s2">&quot;ot.gromov.partial_gromov_wasserstein2` instead.&quot;</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+
+    <span class="n">partial_gw</span><span class="p">,</span> <span class="n">log_gw</span> <span class="o">=</span> <span class="n">partial_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span>
+                                                    <span class="n">nb_dummies</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">thres</span><span class="p">,</span>
+                                                    <span class="n">numItermax</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                                                    <span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">partial_gw</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;partial_gw_dist&#39;</span><span class="p">],</span> <span class="n">log_gw</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">log_gw</span><span class="p">[</span><span class="s1">&#39;partial_gw_dist&#39;</span><span class="p">]</span></div>
+
+
+
 <div class="viewcode-block" id="entropic_partial_gromov_wasserstein">
 <a class="viewcode-back" href="../../gen_modules/ot.partial.html#ot.partial.entropic_partial_gromov_wasserstein">[docs]</a>
 <span class="k">def</span> <span class="nf">entropic_partial_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">G0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1071,6 +1103,9 @@
 <span class="sd">    The formulation of the GW problem has been proposed in</span>
 <span class="sd">    :ref:`[12] &lt;references-entropic-partial-gromov-wasserstein&gt;` and the</span>
 <span class="sd">    partial GW in :ref:`[29] &lt;references-entropic-partial-gromov-wasserstein&gt;`</span>
+
+<span class="sd">    .. note:: This function will be deprecated in a near future, please use</span>
+<span class="sd">    `ot.gromov.entropic_partial_gromov_wasserstein` instead.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1142,6 +1177,12 @@
 <span class="sd">    --------</span>
 <span class="sd">    ot.partial.partial_gromov_wasserstein: exact Partial Gromov-Wasserstein</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;This function will be deprecated in a near future, please use &quot;</span>
+        <span class="s2">&quot;ot.gromov.entropic_partial_gromov_wasserstein` instead.&quot;</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">G0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
@@ -1224,6 +1265,8 @@
 <span class="sd">    :ref:`[12] &lt;references-entropic-partial-gromov-wasserstein2&gt;` and the</span>
 <span class="sd">    partial GW in :ref:`[29] &lt;references-entropic-partial-gromov-wasserstein2&gt;`</span>
 
+<span class="sd">    .. note:: This function will be deprecated in a near future, please use</span>
+<span class="sd">    `ot.gromov.entropic_partial_gromov_wasserstein2` instead.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1284,6 +1327,11 @@
 <span class="sd">        Transport with Applications on Positive-Unlabeled Learning&quot;.</span>
 <span class="sd">        NeurIPS.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;This function will be deprecated in a near future, please use &quot;</span>
+        <span class="s2">&quot;ot.gromov.entropic_partial_gromov_wasserstein2` instead.&quot;</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
 
     <span class="n">partial_gw</span><span class="p">,</span> <span class="n">log_gw</span> <span class="o">=</span> <span class="n">entropic_partial_gromov_wasserstein</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span>
                                                              <span class="n">m</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span>
