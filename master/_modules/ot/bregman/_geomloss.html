@@ -1,0 +1,409 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.bregman._geomloss &mdash; POT Python Optimal Transport 0.9.5dev0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=b2dc65b3"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.bregman._geomloss</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.bregman._geomloss</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Wrapper functions for geomloss</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">geomloss</span>
+    <span class="kn">from</span> <span class="nn">geomloss</span> <span class="kn">import</span> <span class="n">SamplesLoss</span>
+    <span class="kn">import</span> <span class="nn">torch</span>
+    <span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">grad</span>
+    <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">LazyTensor</span><span class="p">,</span> <span class="n">dist</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">geomloss</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">get_sinkhorn_geomloss_lazytensor</span><span class="p">(</span>
+    <span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span> <span class="n">blur</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get a LazyTensor of sinkhorn solution T = exp((f+g^T-C)/reg)*(ab^T)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_a : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_torch: array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    f : array-like, shape (n_samples_a,)</span>
+<span class="sd">        First dual potentials (log space)</span>
+<span class="sd">    g : array-like, shape (n_samples_b,)</span>
+<span class="sd">        Second dual potentials (log space)</span>
+<span class="sd">    metric : str, default=&#39;sqeuclidean&#39;</span>
+<span class="sd">        Metric used for the cost matrix computation</span>
+<span class="sd">    blur : float, default=1e-1</span>
+<span class="sd">        blur term (blur=sqrt(reg)) &gt;0</span>
+<span class="sd">    nx : Backend(), default=None</span>
+<span class="sd">        Numerical backend used</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    T : LazyTensor</span>
+<span class="sd">        Lowrank tensor T = exp((f+g^T-C)/reg)*(ab^T)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">X_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">blur</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">X_b</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">X_b</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">f</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">blur</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="n">LazyTensor</span><span class="p">(</span>
+        <span class="n">shape</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">X_a</span><span class="o">=</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="o">=</span><span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">blur</span><span class="o">=</span><span class="n">blur</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">T</span>
+
+
+<div class="viewcode-block" id="empirical_sinkhorn2_geomloss">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn2_geomloss">[docs]</a>
+<span class="k">def</span> <span class="nf">empirical_sinkhorn2_geomloss</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">reg</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">scaling</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">debias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solve the entropic regularization optimal transport problem with geomloss</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \gamma = arg\min_\gamma &lt;\gamma,C&gt;_F + reg\cdot\Omega(\gamma)</span>
+
+<span class="sd">        s.t. \gamma 1 = a</span>
+
+<span class="sd">                \gamma^T 1= b</span>
+
+<span class="sd">                \gamma\geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`C` is the cost matrix such that :math:`C_{i,j}=d(x_i^s,x_j^t)` and</span>
+<span class="sd">      :math:`d` is a metric.</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term</span>
+<span class="sd">      :math:`\Omega(\gamma)=\sum_{i,j}\gamma_{i,j}\log(\gamma_{i,j})-\gamma_{i,j}+1`</span>
+<span class="sd">    - :math:`a` and :math:`b` are source and target weights (sum to 1)</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp matrix</span>
+<span class="sd">    scaling algorithm as proposed in and computed in log space for</span>
+<span class="sd">    better stability and epsilon-scaling. The solution is computed in a lazy way</span>
+<span class="sd">    using the Geomloss [60] and the KeOps library [61].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    a : array-like, shape (n_samples_a,), default=None</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,), default=None</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    metric : str, default=&#39;sqeuclidean&#39;</span>
+<span class="sd">        Metric used for the cost matrix computation Only accepted values are</span>
+<span class="sd">        &#39;sqeuclidean&#39; and &#39;euclidean&#39;.</span>
+<span class="sd">    scaling : float, default=0.95</span>
+<span class="sd">        Scaling parameter used for epsilon scaling. Value close to one promote</span>
+<span class="sd">        precision while value close to zero promote speed.</span>
+<span class="sd">    verbose : bool, default=False</span>
+<span class="sd">        Print information</span>
+<span class="sd">    debias : bool, default=False</span>
+<span class="sd">        Use the debiased version of Sinkhorn algorithm [12]_.</span>
+<span class="sd">    log : bool, default=False</span>
+<span class="sd">        Return log dictionary containing all computed objects</span>
+<span class="sd">    backend : str, default=&#39;auto&#39;</span>
+<span class="sd">        Numerical backend for geomloss. Only &#39;auto&#39; and &#39;tensorized&#39; &#39;online&#39;</span>
+<span class="sd">        and &#39;multiscale&#39; are accepted values.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    value : float</span>
+<span class="sd">        OT value</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [60] Feydy, J., Roussillon, P., Trouvé, A., &amp; Gori, P. (2019). [Fast</span>
+<span class="sd">           and scalable optimal transport for brain tractograms. In Medical Image</span>
+<span class="sd">           Computing and Computer Assisted Intervention–MICCAI 2019: 22nd</span>
+<span class="sd">           International Conference, Shenzhen, China, October 13–17, 2019,</span>
+<span class="sd">           Proceedings, Part III 22 (pp. 636-644). Springer International</span>
+<span class="sd">           Publishing.</span>
+
+<span class="sd">    .. [61] Charlier, B., Feydy, J., Glaunes, J. A., Collin, F. D., &amp; Durif, G.</span>
+<span class="sd">            (2021). Kernel operations on the gpu, with autodiff, without memory</span>
+<span class="sd">            overflows. The Journal of Machine Learning Research, 22(1), 3457-3462.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">geomloss</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;torch&quot;</span><span class="p">,</span> <span class="s2">&quot;numpy&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;geomloss only support torch or numpy backend&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span> <span class="o">/</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_t</span><span class="p">)</span> <span class="o">/</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
+            <span class="n">X_s_torch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">X_s</span><span class="p">)</span>
+            <span class="n">X_t_torch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+
+            <span class="n">a_torch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="n">b_torch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">X_s_torch</span> <span class="o">=</span> <span class="n">X_s</span>
+            <span class="n">X_t_torch</span> <span class="o">=</span> <span class="n">X_t</span>
+
+            <span class="n">a_torch</span> <span class="o">=</span> <span class="n">a</span>
+            <span class="n">b_torch</span> <span class="o">=</span> <span class="n">b</span>
+
+        <span class="c1"># after that we are all in torch</span>
+
+        <span class="c1"># set blur value and p</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">blur</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">reg</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># because geomloss divides cost by two</span>
+        <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">blur</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;geomloss only supports sqeuclidean and euclidean metrics&quot;</span><span class="p">)</span>
+
+        <span class="c1"># force gradients for computing dual</span>
+        <span class="n">a_torch</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">b_torch</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">SamplesLoss</span><span class="p">(</span>
+            <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+            <span class="n">blur</span><span class="o">=</span><span class="n">blur</span><span class="p">,</span>
+            <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+            <span class="n">debias</span><span class="o">=</span><span class="n">debias</span><span class="p">,</span>
+            <span class="n">scaling</span><span class="o">=</span><span class="n">scaling</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># compute value</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span>
+            <span class="n">a_torch</span><span class="p">,</span> <span class="n">X_s_torch</span><span class="p">,</span> <span class="n">b_torch</span><span class="p">,</span> <span class="n">X_t_torch</span>
+        <span class="p">)</span>  <span class="c1"># linear + entropic/KL reg?</span>
+
+        <span class="c1"># get dual potentials</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">grad</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="n">a_torch</span><span class="p">,</span> <span class="n">b_torch</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">*=</span> <span class="mi">2</span>  <span class="c1"># because geomloss divides cost by two</span>
+
+        <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;f&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;lazy_plan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_sinkhorn_geomloss_lazytensor</span><span class="p">(</span>
+                <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">blur</span><span class="o">=</span><span class="n">blur</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">value</span><span class="p">,</span> <span class="n">log</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;geomloss not installed&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

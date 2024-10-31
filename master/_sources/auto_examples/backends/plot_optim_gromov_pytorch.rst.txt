@@ -70,7 +70,7 @@ Dictionary Learning, International Conference on Machine Learning (ICML), 2021.
 Graph generation
 ----------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 42-96
+.. GENERATED FROM PYTHON SOURCE LINES 42-98
 
 .. code-block:: Python
 
@@ -85,13 +85,13 @@ Graph generation
         for c1 in range(nc):
             for c2 in range(c1 + 1):
                 if c1 == c2:
-                    for i in range(np.sum(nbpc[:c1]), np.sum(nbpc[:c1 + 1])):
+                    for i in range(np.sum(nbpc[:c1]), np.sum(nbpc[: c1 + 1])):
                         for j in range(np.sum(nbpc[:c2]), i):
                             if rng.rand() <= P[c1, c2]:
                                 C[i, j] = 1
                 else:
-                    for i in range(np.sum(nbpc[:c1]), np.sum(nbpc[:c1 + 1])):
-                        for j in range(np.sum(nbpc[:c2]), np.sum(nbpc[:c2 + 1])):
+                    for i in range(np.sum(nbpc[:c1]), np.sum(nbpc[: c1 + 1])):
+                        for j in range(np.sum(nbpc[:c2]), np.sum(nbpc[: c2 + 1])):
                             if rng.rand() <= P[c1, c2]:
                                 C[i, j] = 1
 
@@ -100,30 +100,32 @@ Graph generation
 
     n = 100
     nc = 3
-    ratio = np.array([.5, .3, .2])
+    ratio = np.array([0.5, 0.3, 0.2])
     P = np.array(0.6 * np.eye(3) + 0.05 * np.ones((3, 3)))
     C1 = get_sbm(n, nc, ratio, P)
 
     # get 2d position for nodes
-    x1 = MDS(dissimilarity='precomputed', random_state=0).fit_transform(1 - C1)
+    x1 = MDS(dissimilarity="precomputed", random_state=0).fit_transform(1 - C1)
 
 
-    def plot_graph(x, C, color='C0', s=None):
+    def plot_graph(x, C, color="C0", s=None):
         for j in range(C.shape[0]):
             for i in range(j):
                 if C[i, j] > 0:
-                    pl.plot([x[i, 0], x[j, 0]], [x[i, 1], x[j, 1]], alpha=0.2, color='k')
-        pl.scatter(x[:, 0], x[:, 1], c=color, s=s, zorder=10, edgecolors='k', cmap='tab10', vmax=9)
+                    pl.plot([x[i, 0], x[j, 0]], [x[i, 1], x[j, 1]], alpha=0.2, color="k")
+        pl.scatter(
+            x[:, 0], x[:, 1], c=color, s=s, zorder=10, edgecolors="k", cmap="tab10", vmax=9
+        )
 
 
     pl.figure(1, (10, 5))
     pl.clf()
     pl.subplot(1, 2, 1)
-    plot_graph(x1, C1, color='C0')
+    plot_graph(x1, C1, color="C0")
     pl.title("SBM Graph")
     pl.axis("off")
     pl.subplot(1, 2, 2)
-    pl.imshow(C1, interpolation='nearest')
+    pl.imshow(C1, interpolation="nearest")
     pl.title("Adjacency matrix")
     pl.axis("off")
 
@@ -142,13 +144,13 @@ Graph generation
  .. code-block:: none
 
     /home/circleci/project/examples/backends/plot_optim_gromov_pytorch.py:81: UserWarning: No data for colormapping provided via 'c'. Parameters 'cmap', 'vmax' will be ignored
-      pl.scatter(x[:, 0], x[:, 1], c=color, s=s, zorder=10, edgecolors='k', cmap='tab10', vmax=9)
+      pl.scatter(
 
-    (-0.5, 99.5, 99.5, -0.5)
+    (np.float64(-0.5), np.float64(99.5), np.float64(99.5), np.float64(-0.5))
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 97-102
+.. GENERATED FROM PYTHON SOURCE LINES 99-104
 
 Optimizing GW w.r.t. the weights on a template structure
 --------------------------------------------------------
@@ -156,7 +158,7 @@ The adjacency matrix C1 is block diagonal with 3 blocks. We want to
 optimize the weights of a simple template C0=eye(3) and see if we can
 recover the proportion of classes from the SBM (up to a permutation).
 
-.. GENERATED FROM PYTHON SOURCE LINES 102-151
+.. GENERATED FROM PYTHON SOURCE LINES 104-152
 
 .. code-block:: Python
 
@@ -165,7 +167,7 @@ recover the proportion of classes from the SBM (up to a permutation).
 
 
     def min_weight_gw(C1, C2, a2, nb_iter_max=100, lr=1e-2):
-        """ solve min_a GW(C1,C2,a, a2) by gradient descent"""
+        """solve min_a GW(C1,C2,a, a2) by gradient descent"""
 
         # use pyTorch for our data
         C1_torch = torch.tensor(C1)
@@ -179,18 +181,17 @@ recover the proportion of classes from the SBM (up to a permutation).
         loss_iter = []
 
         for i in range(nb_iter_max):
-
             loss = gromov_wasserstein2(C1_torch, C2_torch, a1_torch, a2_torch)
 
             loss_iter.append(loss.clone().detach().cpu().numpy())
             loss.backward()
 
-            #print("{:03d} | {}".format(i, loss_iter[-1]))
+            # print("{:03d} | {}".format(i, loss_iter[-1]))
 
             # performs a step of projected gradient descent
             with torch.no_grad():
                 grad = a1_torch.grad
-                a1_torch -= grad * lr   # step
+                a1_torch -= grad * lr  # step
                 a1_torch.grad.zero_()
                 a1_torch.data = ot.utils.proj_simplex(a1_torch)
 
@@ -228,24 +229,24 @@ recover the proportion of classes from the SBM (up to a permutation).
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 152-154
+.. GENERATED FROM PYTHON SOURCE LINES 153-155
 
 It is clear that the optimization has converged and that we recover the
 ratio of the different classes in the SBM graph up to a permutation.
 
-.. GENERATED FROM PYTHON SOURCE LINES 157-166
+.. GENERATED FROM PYTHON SOURCE LINES 158-167
 
 Community clustering with uniform and estimated weights
 -------------------------------------------------------
 The GW OT  plan can be used to perform a clustering of the nodes of a graph
 when computing the GW with a simple template like C0 by labeling nodes in
-the original graph using by the index of the noe in the template receiving
+the original graph using by the index of the node in the template receiving
 the most mass.
 
 We show here the result of such a clustering when using uniform weights on
 the template C0 and when using the optimal weights previously estimated.
 
-.. GENERATED FROM PYTHON SOURCE LINES 166-186
+.. GENERATED FROM PYTHON SOURCE LINES 167-187
 
 .. code-block:: Python
 
@@ -283,11 +284,11 @@ the template C0 and when using the optimal weights previously estimated.
  .. code-block:: none
 
 
-    (-0.7760154087783518, 0.5785554952306606, -0.7708789474385981, 0.6510858680020267)
+    (np.float64(-0.7760154087783518), np.float64(0.5785554952306606), np.float64(-0.7708789474385981), np.float64(0.6510858680020267))
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 187-194
+.. GENERATED FROM PYTHON SOURCE LINES 188-195
 
 Graph compression with GW
 -------------------------
@@ -297,14 +298,14 @@ compression but can also recover important properties of an SBM such
 as its class proportion but also its matrix of probability of links between
 classes
 
-.. GENERATED FROM PYTHON SOURCE LINES 194-260
+.. GENERATED FROM PYTHON SOURCE LINES 195-261
 
 .. code-block:: Python
 
 
 
     def graph_compression_gw(nb_nodes, C2, a2, nb_iter_max=100, lr=1e-2):
-        """ solve min_a GW(C1,C2,a, a2) by gradient descent"""
+        """solve min_a GW(C1,C2,a, a2) by gradient descent"""
 
         # use pyTorch for our data
 
@@ -320,23 +321,22 @@ classes
         loss_iter = []
 
         for i in range(nb_iter_max):
-
             loss = gromov_wasserstein2(C1_torch, C2_torch, a1_torch, a2_torch)
 
             loss_iter.append(loss.clone().detach().cpu().numpy())
             loss.backward()
 
-            #print("{:03d} | {}".format(i, loss_iter[-1]))
+            # print("{:03d} | {}".format(i, loss_iter[-1]))
 
             # performs a step of projected gradient descent
             with torch.no_grad():
                 grad = a1_torch.grad
-                a1_torch -= grad * lr   # step
+                a1_torch -= grad * lr  # step
                 a1_torch.grad.zero_()
                 a1_torch.data = ot.utils.proj_simplex(a1_torch)
 
                 grad = C1_torch.grad
-                C1_torch -= grad * lr   # step
+                C1_torch -= grad * lr  # step
                 C1_torch.grad.zero_()
                 C1_torch.data = torch.clamp(C1_torch, 0, 1)
 
@@ -347,8 +347,9 @@ classes
 
 
     nb_nodes = 3
-    a0_est2, C0_est2, loss_iter2 = graph_compression_gw(nb_nodes, C1, ot.unif(n),
-                                                        nb_iter_max=100, lr=5e-2)
+    a0_est2, C0_est2, loss_iter2 = graph_compression_gw(
+        nb_nodes, C1, ot.unif(n), nb_iter_max=100, lr=5e-2
+    )
 
     pl.figure(4)
     pl.plot(loss_iter2)
@@ -362,10 +363,10 @@ classes
     pl.clf()
     pl.subplot(1, 2, 1)
     pl.imshow(P, vmin=0, vmax=1)
-    pl.title('True SBM P matrix')
+    pl.title("True SBM P matrix")
     pl.subplot(1, 2, 2)
     pl.imshow(C0_est2, vmin=0, vmax=1)
-    pl.title('Estimated C0 matrix')
+    pl.title("Estimated C0 matrix")
     pl.colorbar()
 
 
@@ -395,14 +396,14 @@ classes
     Estimated weights :  [0.30274241 0.19965944 0.49759815]
     True proportions :  [0.5 0.3 0.2]
 
-    <matplotlib.colorbar.Colorbar object at 0x7fa86904bbe0>
+    <matplotlib.colorbar.Colorbar object at 0x7f69a3fcf1f0>
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 8.317 seconds)
+   **Total running time of the script:** (0 minutes 8.020 seconds)
 
 
 .. _sphx_glr_download_auto_examples_backends_plot_optim_gromov_pytorch.py:
