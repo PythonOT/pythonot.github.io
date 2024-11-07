@@ -1,0 +1,1458 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.gromov._unbalanced &mdash; POT Python Optimal Transport 0.9.5 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=61b282d3"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.gromov._unbalanced</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.gromov._unbalanced</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Unbalanced Co-Optimal Transport and Fused Unbalanced Gromov-Wasserstein solvers</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Quang Huy Tran &lt;quang-huy.tran@univ-ubs.fr&gt;</span>
+<span class="c1">#         Alexis Thual &lt;alexis.thual@cea.fr&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">ot</span>
+<span class="kn">from</span> <span class="nn">ot.backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">ot.utils</span> <span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">get_parameter_pair</span>
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">fused_unbalanced_across_spaces_cost</span><span class="p">,</span>
+    <span class="n">uot_cost_matrix</span><span class="p">,</span>
+    <span class="n">uot_parameters_and_measures</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="fused_unbalanced_across_spaces_divergence">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.fused_unbalanced_across_spaces_divergence">[docs]</a>
+<span class="k">def</span> <span class="nf">fused_unbalanced_across_spaces_divergence</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">Y</span><span class="p">,</span>
+    <span class="n">wx_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wx_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg_marginals</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;joint&quot;</span><span class="p">,</span>
+    <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span>
+    <span class="n">unbalanced_solver</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">M_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">M_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rescale_plan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">init_pi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_duals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">max_iter_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">tol_ot</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs_solver</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the fused unbalanced cross-spaces divergence between two matrices equipped</span>
+<span class="sd">    with the distributions on rows and columns. We consider two cases of matrix:</span>
+
+<span class="sd">    - (Squared) similarity matrix in Gromov-Wasserstein setting,</span>
+<span class="sd">    whose rows and columns represent the samples.</span>
+
+<span class="sd">    - Arbitrary-size matrix in Co-Optimal Transport setting,</span>
+<span class="sd">    whose rows represent samples, and columns represent corresponding features/dimensions.</span>
+
+<span class="sd">    More precisely, this function returns the sample and feature transport plans between</span>
+<span class="sd">    :math:`(\mathbf{X}, \mathbf{w}_{xs}, \mathbf{w}_{xf})` and</span>
+<span class="sd">    :math:`(\mathbf{Y}, \mathbf{w}_{ys}, \mathbf{w}_{yf})`,</span>
+<span class="sd">    by solving the following problem using Block Coordinate Descent algorithm:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathop{\arg \min}_{\mathbf{P}, \mathbf{Q}}</span>
+<span class="sd">        &amp;\quad \sum_{i,j,k,l}</span>
+<span class="sd">        (\mathbf{X}_{i,k} - \mathbf{Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l} \\</span>
+<span class="sd">        &amp;+ \rho_s \mathbf{Div}(\mathbf{P}_{\# 1} \mathbf{Q}_{\# 1}^T | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \rho_f \mathbf{Div}(\mathbf{P}_{\# 2} \mathbf{Q}_{\# 2}^T | \mathbf{w}_{xf} \mathbf{w}_{yf}^T) \\</span>
+<span class="sd">        &amp;+ \alpha_s \sum_{i,j} \mathbf{P}_{i,j} \mathbf{M^{(s)}}_{i, j}</span>
+<span class="sd">        + \alpha_f \sum_{k, l} \mathbf{Q}_{k,l} \mathbf{M^{(f)}}_{k, l}</span>
+<span class="sd">        + \mathbf{Reg}(\mathbf{P}, \mathbf{Q})</span>
+
+<span class="sd">    Where:</span>
+
+<span class="sd">    - :math:`\mathbf{X}`: Source input (arbitrary-size) matrix</span>
+<span class="sd">    - :math:`\mathbf{Y}`: Target input (arbitrary-size) matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(s)}}`: Additional sample matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(f)}}`: Additional feature matrix</span>
+<span class="sd">    - :math:`\mathbf{w}_{xs}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{xf}`: Distribution of the features in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{ys}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{w}_{yf}`: Distribution of the features in the target space</span>
+<span class="sd">    - :math:`\mathbf{Div}`: Either Kullback-Leibler divergence or half-squared L2 norm.</span>
+<span class="sd">    - :math:`\mathbf{Reg}`: Regularizer for sample and feature couplings.</span>
+
+<span class="sd">    We consider two types of regularizer:</span>
+<span class="sd">        + Independent regularization used in unbalanced Co-Optimal Transport</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \mathbf{Reg}(\mathbf{P}, \mathbf{Q}) =</span>
+<span class="sd">            \varepsilon_s \mathbf{Div}(\mathbf{P} | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">            + \varepsilon_f \mathbf{Div}(\mathbf{Q} | \mathbf{w}_{xf} \mathbf{w}_{yf}^T)</span>
+
+<span class="sd">        + Joint regularization used in fused unbalanced Gromov-Wasserstein</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \mathbf{Reg}(\mathbf{P}, \mathbf{Q}) =</span>
+<span class="sd">            \varepsilon \mathbf{Div}(\mathbf{P} \otimes \mathbf{Q} | (\mathbf{w}_{xs} \mathbf{w}_{ys}^T) \otimes (\mathbf{w}_{xf} \mathbf{w}_{yf}^T) )</span>
+
+<span class="sd">    .. note:: This function allows epsilon to be zero. In that case, `unbalanced_method` must be either &quot;mm&quot; or &quot;lbfgsb&quot;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        Source input matrix.</span>
+<span class="sd">    Y : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Target input matrix.</span>
+<span class="sd">    wx_samp : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wx_feat : (n_feature_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_samp : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_feat : (n_feature_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    reg_marginals: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation terms for sample and feature couplings.</span>
+<span class="sd">        If `reg_marginals` is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same value is applied to both marginal relaxations.</span>
+<span class="sd">    epsilon : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where `epsilon` contains 0. In that case, the MM solver is used by default</span>
+<span class="sd">        instead of Sinkhorn solver. If `epsilon` is scalar, then the same value is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    reg_type: string, optional</span>
+
+<span class="sd">        - If `reg_type` = &quot;joint&quot;: then use joint regularization for couplings.</span>
+
+<span class="sd">        - If `reg_type` = &quot;independent&quot;: then use independent regularization for couplings.</span>
+<span class="sd">    divergence : string, optional (default = &quot;kl&quot;)</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then Div is the Kullback-Leibler divergence.</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then Div is the half squared Euclidean norm.</span>
+<span class="sd">    unbalanced_solver : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Solver for the unbalanced OT subroutine.</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then `unbalanced_solver` can be: &quot;sinkhorn&quot;, &quot;sinkhorn_log&quot;, &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then `unbalanced_solver` can be &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+<span class="sd">    alpha : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M_samp : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix associated to the Wasserstein linear term on sample coupling.</span>
+<span class="sd">    M_feat : (n_feature_x, n_feature_y), float, optional (default = None)</span>
+<span class="sd">        Feature matrix associated to the Wasserstein linear term on feature coupling.</span>
+<span class="sd">    rescale_plan : boolean, optional (default = True)</span>
+<span class="sd">        If True, then rescale the sample and feature transport plans within each BCD iteration,</span>
+<span class="sd">        so that they always have equal mass.</span>
+<span class="sd">    init_pi : tuple of two matrices of size (n_sample_x, n_sample_y) and</span>
+<span class="sd">        (n_feature_x, n_feature_y), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature couplings.</span>
+<span class="sd">        Uniform distributions by default.</span>
+<span class="sd">    init_duals : tuple of two tuples ((n_sample_x, ), (n_sample_y, )) and ((n_feature_x, ), (n_feature_y, )), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature dual vectors</span>
+<span class="sd">        if using Sinkhorn algorithm. Zero vectors by default.</span>
+<span class="sd">    max_iter : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations.</span>
+<span class="sd">    tol : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    max_iter_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_ot : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of unbalanced solver for each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and four dual vectors, including</span>
+<span class="sd">        two from sample and two from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pi_samp : (n_sample_x, n_sample_y) array-like, float</span>
+<span class="sd">        Sample coupling matrix.</span>
+<span class="sd">    pi_feat : (n_feature_x, n_feature_y) array-like, float</span>
+<span class="sd">        Feature coupling matrix.</span>
+<span class="sd">    log : dictionary, optional</span>
+<span class="sd">        Returned if `log` is True. The keys are:</span>
+
+<span class="sd">            error : array-like, float</span>
+<span class="sd">                list of L1 norms between the current and previous sample coupling.</span>
+<span class="sd">            duals_sample : (n_sample_x, n_sample_y) tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the sample coupling.</span>
+<span class="sd">            duals_feature : (n_feature_x, n_feature_y) tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the feature coupling.</span>
+<span class="sd">            linear : float</span>
+<span class="sd">                Linear part of the cost.</span>
+<span class="sd">            ucoot : float</span>
+<span class="sd">                Total cost.</span>
+<span class="sd">            backend</span>
+<span class="sd">                The proper backend for all input arrays</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># MAIN FUNCTION</span>
+
+    <span class="k">if</span> <span class="n">reg_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;joint&quot;</span><span class="p">,</span> <span class="s2">&quot;independent&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown reg_type=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">divergence</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="s2">&quot;l2&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown divergence=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">divergence</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">unbalanced_solver</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="s2">&quot;sinkhorn_log&quot;</span><span class="p">,</span> <span class="s2">&quot;mm&quot;</span><span class="p">,</span> <span class="s2">&quot;lbfgsb&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown method=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unbalanced_solver</span><span class="p">)))</span>
+
+    <span class="c1"># hyperparameters</span>
+    <span class="n">alpha_samp</span><span class="p">,</span> <span class="n">alpha_feat</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_marginals</span><span class="p">)</span>
+    <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span><span class="p">:</span>  <span class="c1"># same regularization</span>
+        <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">eps_samp</span>
+    <span class="k">if</span> <span class="n">unbalanced_solver</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="s2">&quot;sinkhorn_log&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Sinkhorn algorithm does not support L2 norm. </span><span class="se">\</span>
+<span class="s2">                      Divergence is set to &#39;kl&#39;.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">divergence</span> <span class="o">=</span> <span class="s2">&quot;kl&quot;</span>
+    <span class="k">if</span> <span class="n">unbalanced_solver</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="s2">&quot;sinkhorn_log&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="n">eps_samp</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">eps_feat</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Sinkhorn algorithm does not support unregularized problem. </span><span class="se">\</span>
+<span class="s2">                      Solver is set to &#39;mm&#39;.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">unbalanced_solver</span> <span class="o">=</span> <span class="s2">&quot;mm&quot;</span>
+
+    <span class="k">if</span> <span class="n">init_pi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span> <span class="o">=</span> <span class="n">init_pi</span>
+
+    <span class="k">if</span> <span class="n">init_duals</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">init_duals</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">duals_samp</span><span class="p">,</span> <span class="n">duals_feat</span> <span class="o">=</span> <span class="n">init_duals</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="nb">tuple</span> <span class="ow">in</span> <span class="p">[</span><span class="n">duals_samp</span><span class="p">,</span> <span class="n">duals_feat</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">tuple</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">duals_feat</span>
+            <span class="k">if</span> <span class="n">d1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">d1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">d2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_to_array</span><span class="p">(</span><span class="n">d2</span><span class="p">))</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span>
+        <span class="o">*</span><span class="n">arr</span><span class="p">,</span> <span class="n">wx_samp</span><span class="p">,</span> <span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">,</span> <span class="n">M_samp</span><span class="p">,</span> <span class="n">M_feat</span><span class="p">,</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span>
+    <span class="p">)</span>
+
+    <span class="c1"># constant input variables</span>
+    <span class="k">if</span> <span class="n">M_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">alpha_samp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;M_samp is None but alpha_samp = </span><span class="si">{}</span><span class="s2"> &gt; 0. </span><span class="se">\</span>
+<span class="s2">                          The algo will treat as if alpha_samp = 0.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alpha_samp</span><span class="p">)</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M_samp</span> <span class="o">=</span> <span class="n">alpha_samp</span> <span class="o">*</span> <span class="n">M_samp</span>
+
+    <span class="k">if</span> <span class="n">M_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">alpha_feat</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;M_feat is None but alpha_feat = </span><span class="si">{}</span><span class="s2"> &gt; 0. </span><span class="se">\</span>
+<span class="s2">                          The algo will treat as if alpha_feat = 0.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alpha_feat</span><span class="p">)</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M_feat</span> <span class="o">=</span> <span class="n">alpha_feat</span> <span class="o">*</span> <span class="n">M_feat</span>
+
+    <span class="n">nx_samp</span><span class="p">,</span> <span class="n">nx_feat</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ny_samp</span><span class="p">,</span> <span class="n">ny_feat</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># measures on rows and columns</span>
+    <span class="k">if</span> <span class="n">wx_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_samp</span>
+    <span class="k">if</span> <span class="n">wx_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_feat</span>
+    <span class="k">if</span> <span class="n">wy_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_samp</span>
+    <span class="k">if</span> <span class="n">wy_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_feat</span>
+    <span class="n">wxy_samp</span> <span class="o">=</span> <span class="n">wx_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">wy_samp</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">wxy_feat</span> <span class="o">=</span> <span class="n">wx_feat</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">wy_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="c1"># initialize coupling and dual vectors</span>
+    <span class="n">pi_samp</span> <span class="o">=</span> <span class="n">wxy_samp</span> <span class="k">if</span> <span class="n">pi_samp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pi_samp</span>
+    <span class="n">pi_feat</span> <span class="o">=</span> <span class="n">wxy_feat</span> <span class="k">if</span> <span class="n">pi_feat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pi_feat</span>
+
+    <span class="k">if</span> <span class="n">unbalanced_solver</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span> <span class="s2">&quot;sinkhorn_log&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">duals_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">duals_samp</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nx_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ny_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">duals_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">duals_feat</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nx_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ny_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">))</span>
+
+    <span class="c1"># shortcut functions</span>
+    <span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span> <span class="o">=</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">Y</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">local_cost_samp</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+        <span class="n">uot_cost_matrix</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="p">(</span><span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">M_samp</span><span class="p">),</span>
+        <span class="n">tuple_p</span><span class="o">=</span><span class="p">(</span><span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">),</span>
+        <span class="n">hyperparams</span><span class="o">=</span><span class="p">(</span><span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_feat</span><span class="p">),</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">local_cost_feat</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+        <span class="n">uot_cost_matrix</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="p">(</span><span class="n">X_sqr</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">M_feat</span><span class="p">),</span>
+        <span class="n">tuple_p</span><span class="o">=</span><span class="p">(</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">),</span>
+        <span class="n">hyperparams</span><span class="o">=</span><span class="p">(</span><span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_samp</span><span class="p">),</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parameters_uot_l2_samp</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+        <span class="n">uot_parameters_and_measures</span><span class="p">,</span>
+        <span class="n">tuple_weights</span><span class="o">=</span><span class="p">(</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">,</span> <span class="n">wxy_samp</span><span class="p">),</span>
+        <span class="n">hyperparams</span><span class="o">=</span><span class="p">(</span><span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_samp</span><span class="p">),</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parameters_uot_l2_feat</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+        <span class="n">uot_parameters_and_measures</span><span class="p">,</span>
+        <span class="n">tuple_weights</span><span class="o">=</span><span class="p">(</span><span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">,</span> <span class="n">wxy_feat</span><span class="p">),</span>
+        <span class="n">hyperparams</span><span class="o">=</span><span class="p">(</span><span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_feat</span><span class="p">),</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">solver</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+        <span class="n">ot</span><span class="o">.</span><span class="n">solve</span><span class="p">,</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">unbalanced_type</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">method</span><span class="o">=</span><span class="n">unbalanced_solver</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter_ot</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol_ot</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># initialize log</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dict_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;backend&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+        <span class="n">pi_samp_prev</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">)</span>
+
+        <span class="c1"># Update feature coupling</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">)</span>
+        <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">local_cost_feat</span><span class="p">(</span><span class="n">pi</span><span class="o">=</span><span class="n">pi_samp</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+            <span class="n">new_rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">*</span> <span class="n">mass</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">mass</span><span class="p">)</span>
+            <span class="n">new_eps</span> <span class="o">=</span> <span class="n">mass</span> <span class="o">*</span> <span class="n">eps_feat</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">eps_feat</span>
+            <span class="n">new_wx</span><span class="p">,</span> <span class="n">new_wy</span><span class="p">,</span> <span class="n">new_wxy</span> <span class="o">=</span> <span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">,</span> <span class="n">wxy_feat</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># divergence == &quot;l2&quot;</span>
+            <span class="n">new_w</span><span class="p">,</span> <span class="n">new_rho</span><span class="p">,</span> <span class="n">new_eps</span> <span class="o">=</span> <span class="n">parameters_uot_l2_feat</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">)</span>
+            <span class="n">new_wx</span><span class="p">,</span> <span class="n">new_wy</span><span class="p">,</span> <span class="n">new_wxy</span> <span class="o">=</span> <span class="n">new_w</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">solver</span><span class="p">(</span>
+            <span class="n">M</span><span class="o">=</span><span class="n">uot_cost</span><span class="p">,</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">new_wx</span><span class="p">,</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">new_wy</span><span class="p">,</span>
+            <span class="n">reg</span><span class="o">=</span><span class="n">new_eps</span><span class="p">,</span>
+            <span class="n">c</span><span class="o">=</span><span class="n">new_wxy</span><span class="p">,</span>
+            <span class="n">unbalanced</span><span class="o">=</span><span class="n">new_rho</span><span class="p">,</span>
+            <span class="n">plan_init</span><span class="o">=</span><span class="n">pi_feat</span><span class="p">,</span>
+            <span class="n">potentials_init</span><span class="o">=</span><span class="n">duals_feat</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pi_feat</span><span class="p">,</span> <span class="n">duals_feat</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">potentials</span>
+
+        <span class="k">if</span> <span class="n">rescale_plan</span><span class="p">:</span>
+            <span class="n">pi_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mass</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">))</span> <span class="o">*</span> <span class="n">pi_feat</span>
+
+        <span class="c1"># Update sample coupling</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">)</span>
+        <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">local_cost_samp</span><span class="p">(</span><span class="n">pi</span><span class="o">=</span><span class="n">pi_feat</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+            <span class="n">new_rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">*</span> <span class="n">mass</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">mass</span><span class="p">)</span>
+            <span class="n">new_eps</span> <span class="o">=</span> <span class="n">mass</span> <span class="o">*</span> <span class="n">eps_feat</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">eps_feat</span>
+            <span class="n">new_wx</span><span class="p">,</span> <span class="n">new_wy</span><span class="p">,</span> <span class="n">new_wxy</span> <span class="o">=</span> <span class="n">wx_samp</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">,</span> <span class="n">wxy_samp</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># divergence == &quot;l2&quot;</span>
+            <span class="n">new_w</span><span class="p">,</span> <span class="n">new_rho</span><span class="p">,</span> <span class="n">new_eps</span> <span class="o">=</span> <span class="n">parameters_uot_l2_samp</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">)</span>
+            <span class="n">new_wx</span><span class="p">,</span> <span class="n">new_wy</span><span class="p">,</span> <span class="n">new_wxy</span> <span class="o">=</span> <span class="n">new_w</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">solver</span><span class="p">(</span>
+            <span class="n">M</span><span class="o">=</span><span class="n">uot_cost</span><span class="p">,</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">new_wx</span><span class="p">,</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">new_wy</span><span class="p">,</span>
+            <span class="n">reg</span><span class="o">=</span><span class="n">new_eps</span><span class="p">,</span>
+            <span class="n">c</span><span class="o">=</span><span class="n">new_wxy</span><span class="p">,</span>
+            <span class="n">unbalanced</span><span class="o">=</span><span class="n">new_rho</span><span class="p">,</span>
+            <span class="n">plan_init</span><span class="o">=</span><span class="n">pi_samp</span><span class="p">,</span>
+            <span class="n">potentials_init</span><span class="o">=</span><span class="n">duals_samp</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pi_samp</span><span class="p">,</span> <span class="n">duals_samp</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">potentials</span>
+
+        <span class="k">if</span> <span class="n">rescale_plan</span><span class="p">:</span>
+            <span class="n">pi_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mass</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">))</span> <span class="o">*</span> <span class="n">pi_samp</span>  <span class="c1"># shape nx x ny</span>
+
+        <span class="c1"># get L1 error</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pi_samp</span> <span class="o">-</span> <span class="n">pi_samp_prev</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="c1"># sanity check</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="p">(</span>
+            <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;There is NaN in coupling. </span><span class="se">\</span>
+<span class="s2">                          Adjust the relaxation or regularization parameters.&quot;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">linear_cost</span><span class="p">,</span> <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">fused_unbalanced_across_spaces_cost</span><span class="p">(</span>
+            <span class="n">M_linear</span><span class="o">=</span><span class="p">(</span><span class="n">M_samp</span><span class="p">,</span> <span class="n">M_feat</span><span class="p">),</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">(</span><span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">),</span>
+            <span class="n">tuple_pxy_samp</span><span class="o">=</span><span class="p">(</span><span class="n">wx_samp</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">,</span> <span class="n">wxy_samp</span><span class="p">),</span>
+            <span class="n">tuple_pxy_feat</span><span class="o">=</span><span class="p">(</span><span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">,</span> <span class="n">wxy_feat</span><span class="p">),</span>
+            <span class="n">pi_samp</span><span class="o">=</span><span class="n">pi_samp</span><span class="p">,</span>
+            <span class="n">pi_feat</span><span class="o">=</span><span class="n">pi_feat</span><span class="p">,</span>
+            <span class="n">hyperparams</span><span class="o">=</span><span class="p">(</span><span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span><span class="p">),</span>
+            <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+            <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+            <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;duals_sample&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duals_samp</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;duals_feature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duals_feat</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;linear_cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linear_cost</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;ucoot_cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ucoot_cost</span>
+
+        <span class="k">return</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">dict_log</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span></div>
+
+
+
+<div class="viewcode-block" id="unbalanced_co_optimal_transport">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.unbalanced_co_optimal_transport">[docs]</a>
+<span class="k">def</span> <span class="nf">unbalanced_co_optimal_transport</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">Y</span><span class="p">,</span>
+    <span class="n">wx_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wx_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg_marginals</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span>
+    <span class="n">unbalanced_solver</span><span class="o">=</span><span class="s2">&quot;mm&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">M_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">M_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rescale_plan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">init_pi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_duals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">max_iter_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">tol_ot</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the unbalanced Co-Optimal Transport between two Euclidean point clouds</span>
+<span class="sd">    (represented as matrices whose rows are samples and columns are the features/dimensions).</span>
+
+<span class="sd">    More precisely, this function returns the sample and feature transport plans between</span>
+<span class="sd">    :math:`(\mathbf{X}, \mathbf{w}_{xs}, \mathbf{w}_{xf})` and</span>
+<span class="sd">    :math:`(\mathbf{Y}, \mathbf{w}_{ys}, \mathbf{w}_{yf})`,</span>
+<span class="sd">    by solving the following problem using Block Coordinate Descent algorithm:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathop{\arg \min}_{\mathbf{P}, \mathbf{Q}} &amp;\quad \sum_{i,j,k,l}</span>
+<span class="sd">        (\mathbf{X}_{i,k} - \mathbf{Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l} \\</span>
+<span class="sd">        &amp;+ \rho_s \mathbf{Div}(\mathbf{P}_{\# 1} \mathbf{Q}_{\# 1}^T | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \rho_f \mathbf{Div}(\mathbf{P}_{\# 2} \mathbf{Q}_{\# 2}^T | \mathbf{w}_{xf} \mathbf{w}_{yf}^T) \\</span>
+<span class="sd">        &amp;+ \alpha_s \sum_{i,j} \mathbf{P}_{i,j} \mathbf{M^{(s)}}_{i, j}</span>
+<span class="sd">        + \alpha_f \sum_{k, l} \mathbf{Q}_{k,l} \mathbf{M^{(f)}}_{k, l} \\</span>
+<span class="sd">        &amp;+ \varepsilon_s \mathbf{Div}(\mathbf{P} | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \varepsilon_f \mathbf{Div}(\mathbf{Q} | \mathbf{w}_{xf} \mathbf{w}_{yf}^T)</span>
+
+<span class="sd">    Where:</span>
+
+<span class="sd">    - :math:`\mathbf{X}`: Source input (arbitrary-size) matrix</span>
+<span class="sd">    - :math:`\mathbf{Y}`: Target input (arbitrary-size) matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(s)}}`: Additional sample matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(f)}}`: Additional feature matrix</span>
+<span class="sd">    - :math:`\mathbf{w}_{xs}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{xf}`: Distribution of the features in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{ys}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{w}_{yf}`: Distribution of the features in the target space</span>
+<span class="sd">    - :math:`\mathbf{Div}`: Either Kullback-Leibler divergence or half-squared L2 norm.</span>
+
+<span class="sd">    .. note:: This function allows `epsilon` to be zero. In that case, `unbalanced_method` must be either &quot;mm&quot; or &quot;lbfgsb&quot;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        Source input matrix.</span>
+<span class="sd">    Y : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Target input matrix.</span>
+<span class="sd">    wx_samp : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wx_feat : (n_feature_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_samp : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_feat : (n_feature_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    reg_marginals: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation terms for sample and feature couplings.</span>
+<span class="sd">        If `reg_marginals is a scalar` or an indexable object of length 1,</span>
+<span class="sd">        then the same value is applied to both marginal relaxations.</span>
+<span class="sd">    epsilon : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where `epsilon` contains 0. In that case, the MM solver is used by default</span>
+<span class="sd">        instead of Sinkhorn solver. If `epsilon` is scalar, then the same value is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    divergence : string, optional (default = &quot;kl&quot;)</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then Div is the Kullback-Leibler divergence.</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then Div is the half squared Euclidean norm.</span>
+<span class="sd">    unbalanced_solver : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Solver for the unbalanced OT subroutine.</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then `unbalanced_solver` can be: &quot;sinkhorn&quot;, &quot;sinkhorn_log&quot;, &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then `unbalanced_solver` can be &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+<span class="sd">    alpha : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M_samp : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix associated to the Wasserstein linear term on sample coupling.</span>
+<span class="sd">    M_feat : (n_feature_x, n_feature_y), float, optional (default = None)</span>
+<span class="sd">        Feature matrix associated to the Wasserstein linear term on feature coupling.</span>
+<span class="sd">    rescale_plan : boolean, optional (default = True)</span>
+<span class="sd">        If True, then rescale the sample and feature transport plans within each BCD iteration,</span>
+<span class="sd">        so that they always have equal mass.</span>
+<span class="sd">    init_pi : tuple of two matrices of size (n_sample_x, n_sample_y) and</span>
+<span class="sd">        (n_feature_x, n_feature_y), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature couplings.</span>
+<span class="sd">        Uniform distributions by default.</span>
+<span class="sd">    init_duals : tuple of two tuples ((n_sample_x, ), (n_sample_y, )) and ((n_feature_x, ), (n_feature_y, )), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature dual vectors</span>
+<span class="sd">        if using Sinkhorn algorithm. Zero vectors by default.</span>
+<span class="sd">    max_iter : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations.</span>
+<span class="sd">    tol : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    max_iter_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_ot : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of unbalanced solver for each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and four dual vectors, including</span>
+<span class="sd">        two from sample and two from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pi_samp : (n_sample_x, n_sample_y) array-like, float</span>
+<span class="sd">        Sample coupling matrix.</span>
+<span class="sd">    pi_feat : (n_feature_x, n_feature_y) array-like, float</span>
+<span class="sd">        Feature coupling matrix.</span>
+<span class="sd">    log : dictionary, optional</span>
+<span class="sd">        Returned if `log` is True. The keys are:</span>
+
+<span class="sd">            error : array-like, float</span>
+<span class="sd">                list of L1 norms between the current and previous sample coupling.</span>
+<span class="sd">            duals_sample : (n_sample_x, n_sample_y)-tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the sample coupling.</span>
+<span class="sd">            duals_feature : (n_feature_x, n_feature_y)-tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the feature coupling.</span>
+<span class="sd">            linear : float</span>
+<span class="sd">                Linear part of the cost.</span>
+<span class="sd">            ucoot : float</span>
+<span class="sd">                Total cost.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [71] Tran, H., Janati, H., Courty, N., Flamary, R., Redko, I., Demetci, P., &amp; Singh, R.</span>
+<span class="sd">            Unbalanced Co-Optimal Transport. AAAI Conference on Artificial Intelligence, 2023.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">fused_unbalanced_across_spaces_divergence</span><span class="p">(</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
+        <span class="n">Y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>
+        <span class="n">wx_samp</span><span class="o">=</span><span class="n">wx_samp</span><span class="p">,</span>
+        <span class="n">wx_feat</span><span class="o">=</span><span class="n">wx_feat</span><span class="p">,</span>
+        <span class="n">wy_samp</span><span class="o">=</span><span class="n">wy_samp</span><span class="p">,</span>
+        <span class="n">wy_feat</span><span class="o">=</span><span class="n">wy_feat</span><span class="p">,</span>
+        <span class="n">reg_marginals</span><span class="o">=</span><span class="n">reg_marginals</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;independent&quot;</span><span class="p">,</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">unbalanced_solver</span><span class="o">=</span><span class="n">unbalanced_solver</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">M_samp</span><span class="o">=</span><span class="n">M_samp</span><span class="p">,</span>
+        <span class="n">M_feat</span><span class="o">=</span><span class="n">M_feat</span><span class="p">,</span>
+        <span class="n">rescale_plan</span><span class="o">=</span><span class="n">rescale_plan</span><span class="p">,</span>
+        <span class="n">init_pi</span><span class="o">=</span><span class="n">init_pi</span><span class="p">,</span>
+        <span class="n">init_duals</span><span class="o">=</span><span class="n">init_duals</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+        <span class="n">max_iter_ot</span><span class="o">=</span><span class="n">max_iter_ot</span><span class="p">,</span>
+        <span class="n">tol_ot</span><span class="o">=</span><span class="n">tol_ot</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="unbalanced_co_optimal_transport2">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.unbalanced_co_optimal_transport2">[docs]</a>
+<span class="k">def</span> <span class="nf">unbalanced_co_optimal_transport2</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">Y</span><span class="p">,</span>
+    <span class="n">wx_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wx_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg_marginals</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span>
+    <span class="n">unbalanced_solver</span><span class="o">=</span><span class="s2">&quot;sinkhorn&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">M_samp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">M_feat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rescale_plan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">init_pi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_duals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">max_iter_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">tol_ot</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the unbalanced Co-Optimal Transport between two Euclidean point clouds</span>
+<span class="sd">    (represented as matrices whose rows are samples and columns are the features/dimensions).</span>
+
+<span class="sd">    More precisely, this function returns the unbalanced Co-Optimal Transport cost between</span>
+<span class="sd">    :math:`(\mathbf{X}, \mathbf{w}_{xs}, \mathbf{w}_{xf})` and</span>
+<span class="sd">    :math:`(\mathbf{Y}, \mathbf{w}_{ys}, \mathbf{w}_{yf})`,</span>
+<span class="sd">    by solving the following problem using Block Coordinate Descent algorithm:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathop{\min}_{\mathbf{P}, \mathbf{Q}} &amp;\quad \sum_{i,j,k,l}</span>
+<span class="sd">        (\mathbf{X}_{i,k} - \mathbf{Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l} \\</span>
+<span class="sd">        &amp;+ \rho_s \mathbf{Div}(\mathbf{P}_{\# 1} \mathbf{Q}_{\# 1}^T | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \rho_f \mathbf{Div}(\mathbf{P}_{\# 2} \mathbf{Q}_{\# 2}^T | \mathbf{w}_{xf} \mathbf{w}_{yf}^T) \\</span>
+<span class="sd">        &amp;+ \alpha_s \sum_{i,j} \mathbf{P}_{i,j} \mathbf{M^{(s)}}_{i, j}</span>
+<span class="sd">        + \alpha_f \sum_{k, l} \mathbf{Q}_{k,l} \mathbf{M^{(f)}}_{k, l} \\</span>
+<span class="sd">        &amp;+ \varepsilon_s \mathbf{Div}(\mathbf{P} | \mathbf{w}_{xs} \mathbf{w}_{ys}^T)</span>
+<span class="sd">        + \varepsilon_f \mathbf{Div}(\mathbf{Q} | \mathbf{w}_{xf} \mathbf{w}_{yf}^T)</span>
+
+<span class="sd">    Where:</span>
+
+<span class="sd">    - :math:`\mathbf{X}`: Source input (arbitrary-size) matrix</span>
+<span class="sd">    - :math:`\mathbf{Y}`: Target input (arbitrary-size) matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(s)}}`: Additional sample matrix</span>
+<span class="sd">    - :math:`\mathbf{M^{(f)}}`: Additional feature matrix</span>
+<span class="sd">    - :math:`\mathbf{w}_{xs}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{xf}`: Distribution of the features in the source space</span>
+<span class="sd">    - :math:`\mathbf{w}_{ys}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{w}_{yf}`: Distribution of the features in the target space</span>
+<span class="sd">    - :math:`\mathbf{Div}`: Either Kullback-Leibler divergence or half-squared L2 norm.</span>
+
+<span class="sd">    .. note:: This function allows `epsilon` to be zero. In that case, `unbalanced_method` must be either &quot;mm&quot; or &quot;lbfgsb&quot;.</span>
+<span class="sd">            Also the computation of gradients is only supported for KL divergence. The case of half squared-L2 norm uses those of KL divergence.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        Source input matrix.</span>
+<span class="sd">    Y : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Target input matrix.</span>
+<span class="sd">    wx_samp : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wx_feat : (n_feature_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix X.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_samp : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy_feat : (n_feature_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on columns (features) of matrix Y.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    reg_marginals: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation terms for sample and feature couplings.</span>
+<span class="sd">        If `reg_marginals` is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same value is applied to both marginal relaxations.</span>
+<span class="sd">    epsilon : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where `epsilon` contains 0. In that case, the MM solver is used by default</span>
+<span class="sd">        instead of Sinkhorn solver. If `epsilon` is scalar, then the same value is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    divergence : string, optional (default = &quot;kl&quot;)</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then Div is the Kullback-Leibler divergence.</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then Div is the half squared Euclidean norm.</span>
+<span class="sd">    unbalanced_solver : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Solver for the unbalanced OT subroutine.</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then `unbalanced_solver` can be: &quot;sinkhorn&quot;, &quot;sinkhorn_log&quot;, &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then `unbalanced_solver` can be &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+<span class="sd">    alpha : scalar or indexable object of length 2, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M_samp : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix associated to the Wasserstein linear term on sample coupling.</span>
+<span class="sd">    M_feat : (n_feature_x, n_feature_y), float, optional (default = None)</span>
+<span class="sd">        Feature matrix associated to the Wasserstein linear term on feature coupling.</span>
+<span class="sd">    rescale_plan : boolean, optional (default = True)</span>
+<span class="sd">        If True, then rescale the transport plans in each BCD iteration,</span>
+<span class="sd">        so that they always have equal mass.</span>
+<span class="sd">    init_pi : tuple of two matrices of size (n_sample_x, n_sample_y) and</span>
+<span class="sd">        (n_feature_x, n_feature_y), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature couplings.</span>
+<span class="sd">        Uniform distributions by default.</span>
+<span class="sd">    init_duals : tuple of two tuples ((n_sample_x, ), (n_sample_y, )) and ((n_feature_x, ), (n_feature_y, )), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature dual vectors</span>
+<span class="sd">        if using Sinkhorn algorithm. Zero vectors by default.</span>
+<span class="sd">    max_iter : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations.</span>
+<span class="sd">    tol : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    max_iter_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_ot : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of unbalanced solver for each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and four dual vectors, including</span>
+<span class="sd">        two from sample and two from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ucoot : float</span>
+<span class="sd">        UCOOT cost.</span>
+<span class="sd">    log : dictionary, optional</span>
+<span class="sd">        Returned if `log` is True. The keys are:</span>
+
+<span class="sd">            error : array-like, float</span>
+<span class="sd">                list of L1 norms between the current and previous sample coupling.</span>
+<span class="sd">            duals_sample : (n_sample_x, n_sample_y)-tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the sample coupling.</span>
+<span class="sd">            duals_feature : (n_feature_x, n_feature_y)-tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the feature coupling.</span>
+<span class="sd">            linear : float</span>
+<span class="sd">                Linear part of UCOOT cost.</span>
+<span class="sd">            ucoot : float</span>
+<span class="sd">                UCOOT cost.</span>
+<span class="sd">            backend</span>
+<span class="sd">                The proper backend for all input arrays</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [71] Tran, H., Janati, H., Courty, N., Flamary, R., Redko, I., Demetci, P., &amp; Singh, R.</span>
+<span class="sd">            Unbalanced Co-Optimal Transport. AAAI Conference on Artificial Intelligence, 2023.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">!=</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;The computation of gradients is only supported for KL divergence, not </span><span class="se">\</span>
+<span class="s2">                      for </span><span class="si">{}</span><span class="s2"> divergence&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">divergence</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">log_ucoot</span> <span class="o">=</span> <span class="n">unbalanced_co_optimal_transport</span><span class="p">(</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
+        <span class="n">Y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>
+        <span class="n">wx_samp</span><span class="o">=</span><span class="n">wx_samp</span><span class="p">,</span>
+        <span class="n">wx_feat</span><span class="o">=</span><span class="n">wx_feat</span><span class="p">,</span>
+        <span class="n">wy_samp</span><span class="o">=</span><span class="n">wy_samp</span><span class="p">,</span>
+        <span class="n">wy_feat</span><span class="o">=</span><span class="n">wy_feat</span><span class="p">,</span>
+        <span class="n">reg_marginals</span><span class="o">=</span><span class="n">reg_marginals</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">unbalanced_solver</span><span class="o">=</span><span class="n">unbalanced_solver</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">M_samp</span><span class="o">=</span><span class="n">M_samp</span><span class="p">,</span>
+        <span class="n">M_feat</span><span class="o">=</span><span class="n">M_feat</span><span class="p">,</span>
+        <span class="n">rescale_plan</span><span class="o">=</span><span class="n">rescale_plan</span><span class="p">,</span>
+        <span class="n">init_pi</span><span class="o">=</span><span class="n">init_pi</span><span class="p">,</span>
+        <span class="n">init_duals</span><span class="o">=</span><span class="n">init_duals</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+        <span class="n">max_iter_ot</span><span class="o">=</span><span class="n">max_iter_ot</span><span class="p">,</span>
+        <span class="n">tol_ot</span><span class="o">=</span><span class="n">tol_ot</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">log_ucoot</span><span class="p">[</span><span class="s2">&quot;backend&quot;</span><span class="p">]</span>
+
+    <span class="n">nx_samp</span><span class="p">,</span> <span class="n">nx_feat</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ny_samp</span><span class="p">,</span> <span class="n">ny_feat</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># measures on rows and columns</span>
+    <span class="k">if</span> <span class="n">wx_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_samp</span>
+    <span class="k">if</span> <span class="n">wx_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nx_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx_feat</span>
+    <span class="k">if</span> <span class="n">wy_samp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_samp</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_samp</span>
+    <span class="k">if</span> <span class="n">wy_feat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny_feat</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny_feat</span>
+
+    <span class="c1"># extract parameters</span>
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_marginals</span><span class="p">)</span>
+    <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="c1"># calculate marginals</span>
+    <span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi2_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">pi1_feat</span><span class="p">,</span> <span class="n">pi2_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">m_samp</span><span class="p">,</span> <span class="n">m_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1_samp</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1_feat</span><span class="p">)</span>
+    <span class="n">m_wx_feat</span><span class="p">,</span> <span class="n">m_wx_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wx_feat</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wx_samp</span><span class="p">)</span>
+    <span class="n">m_wy_feat</span><span class="p">,</span> <span class="n">m_wy_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wy_feat</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wy_samp</span><span class="p">)</span>
+
+    <span class="c1"># calculate subgradients</span>
+    <span class="n">gradX</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi1_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pi1_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="n">Y</span><span class="p">),</span> <span class="n">pi_feat</span><span class="o">.</span><span class="n">T</span>
+    <span class="p">)</span>  <span class="c1"># shape (nx_samp, nx_feat)</span>
+    <span class="n">gradY</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Y</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi2_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pi2_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pi_samp</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">X</span><span class="p">),</span> <span class="n">pi_feat</span>
+    <span class="p">)</span>  <span class="c1"># shape (ny_samp, ny_feat)</span>
+
+    <span class="n">grad_wx_samp</span> <span class="o">=</span> <span class="n">rho_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_wx_feat</span> <span class="o">-</span> <span class="n">m_feat</span> <span class="o">*</span> <span class="n">pi1_samp</span> <span class="o">/</span> <span class="n">wx_samp</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">m_wy_samp</span> <span class="o">-</span> <span class="n">pi1_samp</span> <span class="o">/</span> <span class="n">wx_samp</span>
+    <span class="p">)</span>
+    <span class="n">grad_wx_feat</span> <span class="o">=</span> <span class="n">rho_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_wx_samp</span> <span class="o">-</span> <span class="n">m_samp</span> <span class="o">*</span> <span class="n">pi1_feat</span> <span class="o">/</span> <span class="n">wx_feat</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps_feat</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">m_wy_feat</span> <span class="o">-</span> <span class="n">pi1_feat</span> <span class="o">/</span> <span class="n">wx_feat</span>
+    <span class="p">)</span>
+    <span class="n">grad_wy_samp</span> <span class="o">=</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_wy_feat</span> <span class="o">-</span> <span class="n">m_feat</span> <span class="o">*</span> <span class="n">pi2_samp</span> <span class="o">/</span> <span class="n">wy_samp</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">m_wx_samp</span> <span class="o">-</span> <span class="n">pi2_samp</span> <span class="o">/</span> <span class="n">wy_samp</span>
+    <span class="p">)</span>
+    <span class="n">grad_wy_feat</span> <span class="o">=</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_wy_samp</span> <span class="o">-</span> <span class="n">m_samp</span> <span class="o">*</span> <span class="n">pi2_feat</span> <span class="o">/</span> <span class="n">wy_feat</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps_feat</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">m_wx_feat</span> <span class="o">-</span> <span class="n">pi2_feat</span> <span class="o">/</span> <span class="n">wy_feat</span>
+    <span class="p">)</span>
+
+    <span class="c1"># set gradients</span>
+    <span class="n">ucoot</span> <span class="o">=</span> <span class="n">log_ucoot</span><span class="p">[</span><span class="s2">&quot;ucoot_cost&quot;</span><span class="p">]</span>
+    <span class="n">ucoot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
+        <span class="n">ucoot</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">wx_samp</span><span class="p">,</span> <span class="n">wx_feat</span><span class="p">,</span> <span class="n">wy_samp</span><span class="p">,</span> <span class="n">wy_feat</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">gradX</span><span class="p">,</span> <span class="n">gradY</span><span class="p">,</span> <span class="n">grad_wx_samp</span><span class="p">,</span> <span class="n">grad_wx_feat</span><span class="p">,</span> <span class="n">grad_wy_samp</span><span class="p">,</span> <span class="n">grad_wy_feat</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ucoot</span><span class="p">,</span> <span class="n">log_ucoot</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ucoot</span></div>
+
+
+
+<div class="viewcode-block" id="fused_unbalanced_gromov_wasserstein">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.fused_unbalanced_gromov_wasserstein">[docs]</a>
+<span class="k">def</span> <span class="nf">fused_unbalanced_gromov_wasserstein</span><span class="p">(</span>
+    <span class="n">Cx</span><span class="p">,</span>
+    <span class="n">Cy</span><span class="p">,</span>
+    <span class="n">wx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg_marginals</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span>
+    <span class="n">unbalanced_solver</span><span class="o">=</span><span class="s2">&quot;mm&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_duals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_pi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">max_iter_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">tol_ot</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the lower bound of the fused unbalanced Gromov-Wasserstein (FUGW) between two similarity matrices.</span>
+<span class="sd">    In practice, this lower bound is used interchangeably with the true FUGW.</span>
+
+<span class="sd">    More precisely, this function returns the transport plan between</span>
+<span class="sd">    :math:`(\mathbf{C^X}, \mathbf{w_X})` and :math:`(\mathbf{C^Y}, \mathbf{w_Y})`,</span>
+<span class="sd">    by solving the following problem using Block Coordinate Descent algorithm:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathop{\arg \min}_{\substack{\mathbf{P}, \mathbf{Q}: \\ mass(P) = mass(Q)}}</span>
+<span class="sd">        &amp;\quad \sum_{i,j,k,l} (\mathbf{C^X}_{i,k} - \mathbf{C^Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l}</span>
+<span class="sd">        + \frac{\alpha}{2} \sum_{i,j} (\mathbf{P}_{i,j} + \mathbf{Q}_{i,j}) \mathbf{M}_{i, j} \\</span>
+<span class="sd">        &amp;+ \rho_1 \mathbf{Div}(\mathbf{P}_{\# 1} \mathbf{Q}_{\# 1}^T | \mathbf{w_X} \mathbf{w_X}^T)</span>
+<span class="sd">        + \rho_2 \mathbf{Div}(\mathbf{P}_{\# 2} \mathbf{Q}_{\# 2}^T | \mathbf{w_Y} \mathbf{w_Y}^T) \\</span>
+<span class="sd">        &amp;+ \varepsilon \mathbf{Div}(\mathbf{P} \otimes \mathbf{Q} | (\mathbf{w_X} \mathbf{w_Y}^T) \otimes (\mathbf{w_X} \mathbf{w_Y}^T))</span>
+
+<span class="sd">    Where:</span>
+
+<span class="sd">    - :math:`\mathbf{C^X}`: Source similarity matrix</span>
+<span class="sd">    - :math:`\mathbf{C^Y}`: Target similarity matrix</span>
+<span class="sd">    - :math:`\mathbf{M}`: Sample matrix corresponding to the Wasserstein term</span>
+<span class="sd">    - :math:`\mathbf{w_X}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w_Y}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{Div}`: Either Kullback-Leibler divergence or half-squared L2 norm.</span>
+
+<span class="sd">    .. note:: This function allows epsilon to be zero. In that case, `unbalanced_method` must be either &quot;mm&quot; or &quot;lbfgsb&quot;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cx : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        Source similarity matrix.</span>
+<span class="sd">    Cy : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Target similarity matrix.</span>
+<span class="sd">    wx : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Cx.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Cy.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    reg_marginals: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation terms for sample and feature couplings.</span>
+<span class="sd">        If `reg_marginals` is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same value is applied to both marginal relaxations.</span>
+<span class="sd">    epsilon : scalar, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where `epsilon` contains 0. In that case, the MM solver is used by default</span>
+<span class="sd">        instead of Sinkhorn solver. If `epsilon` is scalar, then the same value is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    divergence : string, optional (default = &quot;kl&quot;)</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then Div is the Kullback-Leibler divergence.</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then Div is the half squared Euclidean norm.</span>
+<span class="sd">    unbalanced_solver : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Solver for the unbalanced OT subroutine.</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then `unbalanced_solver` can be: &quot;sinkhorn&quot;, &quot;sinkhorn_log&quot;, &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then `unbalanced_solver` can be &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+<span class="sd">    alpha : scalar, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix associated to the Wasserstein linear term on sample coupling.</span>
+<span class="sd">    init_pi :(n_sample_x, n_sample_y) array-like, optional (default = None)</span>
+<span class="sd">        Initialization of sample coupling. By default = :math:`w_X w_Y^T`.</span>
+<span class="sd">    init_duals : tuple of vectors ((n_sample_x, ), (n_sample_y, )), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature dual vectors</span>
+<span class="sd">        if using Sinkhorn algorithm. Zero vectors by default.</span>
+<span class="sd">    max_iter : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations.</span>
+<span class="sd">    tol : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    max_iter_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_ot : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of unbalanced solver for each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and four dual vectors, including</span>
+<span class="sd">        two from sample and two from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pi_samp : (n_sample_x, n_sample_y) array-like, float</span>
+<span class="sd">        Sample coupling matrix.</span>
+<span class="sd">        In practice, we use this matrix as solution of FUGW.</span>
+<span class="sd">    pi_samp2 : (n_sample_x, n_sample_y) array-like, float</span>
+<span class="sd">        Second sample coupling matrix.</span>
+<span class="sd">        In practice, we usually ignore this output.</span>
+<span class="sd">    log : dictionary, optional</span>
+<span class="sd">        Returned if `log` is True. The keys are:</span>
+
+<span class="sd">            error : array-like, float</span>
+<span class="sd">                list of L1 norms between the current and previous sample couplings.</span>
+<span class="sd">            duals : (n_sample_x, n_sample_y)-tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the sample coupling.</span>
+<span class="sd">            linear : float</span>
+<span class="sd">                Linear part of FUGW cost.</span>
+<span class="sd">            fugw_cost : float</span>
+<span class="sd">                Total FUGW cost.</span>
+<span class="sd">            backend</span>
+<span class="sd">                The proper backend for all input arrays</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [70] Thual, A., Tran, H., Zemskova, T., Courty, N., Flamary, R., Dehaene, S., &amp; Thirion, B.</span>
+<span class="sd">            Aligning individual brains with Fused Unbalanced Gromov-Wasserstein.</span>
+<span class="sd">            Advances in Neural Information Systems, 35 (2022).</span>
+
+<span class="sd">    .. [72] Thibault Séjourné, François-Xavier Vialard, &amp; Gabriel Peyré.</span>
+<span class="sd">            The Unbalanced Gromov Wasserstein Distance: Conic Formulation and Relaxation.</span>
+<span class="sd">            Neural Information Processing Systems, 34 (2021).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">fused_unbalanced_across_spaces_divergence</span><span class="p">(</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">Cx</span><span class="p">,</span>
+        <span class="n">Y</span><span class="o">=</span><span class="n">Cy</span><span class="p">,</span>
+        <span class="n">wx_samp</span><span class="o">=</span><span class="n">wx</span><span class="p">,</span>
+        <span class="n">wx_feat</span><span class="o">=</span><span class="n">wx</span><span class="p">,</span>
+        <span class="n">wy_samp</span><span class="o">=</span><span class="n">wy</span><span class="p">,</span>
+        <span class="n">wy_feat</span><span class="o">=</span><span class="n">wy</span><span class="p">,</span>
+        <span class="n">reg_marginals</span><span class="o">=</span><span class="n">reg_marginals</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;joint&quot;</span><span class="p">,</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">unbalanced_solver</span><span class="o">=</span><span class="n">unbalanced_solver</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">M_samp</span><span class="o">=</span><span class="n">M</span><span class="p">,</span>
+        <span class="n">M_feat</span><span class="o">=</span><span class="n">M</span><span class="p">,</span>
+        <span class="n">rescale_plan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">init_pi</span><span class="o">=</span><span class="p">(</span><span class="n">init_pi</span><span class="p">,</span> <span class="n">init_pi</span><span class="p">),</span>
+        <span class="n">init_duals</span><span class="o">=</span><span class="p">(</span><span class="n">init_duals</span><span class="p">,</span> <span class="n">init_duals</span><span class="p">),</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+        <span class="n">max_iter_ot</span><span class="o">=</span><span class="n">max_iter_ot</span><span class="p">,</span>
+        <span class="n">tol_ot</span><span class="o">=</span><span class="n">tol_ot</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_fugw</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;duals&quot;</span><span class="p">:</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;duals_sample&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;linear_cost&quot;</span><span class="p">:</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;linear_cost&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;fugw_cost&quot;</span><span class="p">:</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;ucoot_cost&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;backend&quot;</span><span class="p">:</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;backend&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">log_fugw</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span></div>
+
+
+
+<div class="viewcode-block" id="fused_unbalanced_gromov_wasserstein2">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.fused_unbalanced_gromov_wasserstein2">[docs]</a>
+<span class="k">def</span> <span class="nf">fused_unbalanced_gromov_wasserstein2</span><span class="p">(</span>
+    <span class="n">Cx</span><span class="p">,</span>
+    <span class="n">Cy</span><span class="p">,</span>
+    <span class="n">wx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">wy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg_marginals</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span>
+    <span class="n">unbalanced_solver</span><span class="o">=</span><span class="s2">&quot;mm&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_duals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">init_pi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">max_iter_ot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">tol_ot</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the lower bound of the fused unbalanced Gromov-Wasserstein (FUGW) between two similarity matrices.</span>
+<span class="sd">    In practice, this lower bound is used interchangeably with the true FUGW.</span>
+
+<span class="sd">    More precisely, this function returns the lower bound of the fused unbalanced Gromov-Wasserstein cost between</span>
+<span class="sd">    :math:`(\mathbf{C^X}, \mathbf{w_X})` and :math:`(\mathbf{C^Y}, \mathbf{w_Y})`,</span>
+<span class="sd">    by solving the following problem using Block Coordinate Descent algorithm:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathop{\min}_{\substack{\mathbf{P}, \mathbf{Q}: \\ mass(P) = mass(Q)}}</span>
+<span class="sd">        &amp;\quad \sum_{i,j,k,l} (\mathbf{C^X}_{i,k} - \mathbf{C^Y}_{j,l})^2 \mathbf{P}_{i,j} \mathbf{Q}_{k,l}</span>
+<span class="sd">        + \frac{\alpha}{2} \sum_{i,j} (\mathbf{P}_{i,j} + \mathbf{Q}_{i,j}) \mathbf{M}_{i, j} \\</span>
+<span class="sd">        &amp;+ \rho_1 \mathbf{Div}(\mathbf{P}_{\# 1} \mathbf{Q}_{\# 1}^T | \mathbf{w_X} \mathbf{w_X}^T)</span>
+<span class="sd">        + \rho_2 \mathbf{Div}(\mathbf{P}_{\# 2} \mathbf{Q}_{\# 2}^T | \mathbf{w_Y} \mathbf{w_Y}^T) \\</span>
+<span class="sd">        &amp;+ \varepsilon \mathbf{Div}(\mathbf{P} \otimes \mathbf{Q} | (\mathbf{w_X} \mathbf{w_Y}^T) \otimes (\mathbf{w_X} \mathbf{w_Y}^T))</span>
+
+<span class="sd">    Where:</span>
+
+<span class="sd">    - :math:`\mathbf{C^X}`: Source similarity matrix</span>
+<span class="sd">    - :math:`\mathbf{C^Y}`: Target similarity matrix</span>
+<span class="sd">    - :math:`\mathbf{M}`: Sample matrix corresponding to the Wasserstein term</span>
+<span class="sd">    - :math:`\mathbf{w_X}`: Distribution of the samples in the source space</span>
+<span class="sd">    - :math:`\mathbf{w_Y}`: Distribution of the samples in the target space</span>
+<span class="sd">    - :math:`\mathbf{Div}`: Either Kullback-Leibler divergence or half-squared L2 norm.</span>
+
+<span class="sd">    .. note:: This function allows `epsilon` to be zero. In that case, unbalanced_method must be either &quot;mm&quot; or &quot;lbfgsb&quot;.</span>
+<span class="sd">            Also the computation of gradients is only supported for KL divergence, but not for half squared-L2 norm. In case of half squared-L2 norm, the calculation of KL divergence will be used.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cx : (n_sample_x, n_feature_x) array-like, float</span>
+<span class="sd">        Source similarity matrix.</span>
+<span class="sd">    Cy : (n_sample_y, n_feature_y) array-like, float</span>
+<span class="sd">        Target similarity matrix.</span>
+<span class="sd">    wx : (n_sample_x, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Cx.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    wy : (n_sample_y, ) array-like, float, optional (default = None)</span>
+<span class="sd">        Histogram assigned on rows (samples) of matrix Cy.</span>
+<span class="sd">        Uniform distribution by default.</span>
+<span class="sd">    reg_marginals: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation terms for sample and feature couplings.</span>
+<span class="sd">        If `reg_marginals` is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same value is applied to both marginal relaxations.</span>
+<span class="sd">    epsilon : scalar, float or int, optional (default = 0)</span>
+<span class="sd">        Regularization parameters for entropic approximation of sample and feature couplings.</span>
+<span class="sd">        Allow the case where `epsilon` contains 0. In that case, the MM solver is used by default</span>
+<span class="sd">        instead of Sinkhorn solver. If `epsilon` is scalar, then the same value is applied to</span>
+<span class="sd">        both regularization of sample and feature couplings.</span>
+<span class="sd">    divergence : string, optional (default = &quot;kl&quot;)</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then Div is the Kullback-Leibler divergence.</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then Div is the half squared Euclidean norm.</span>
+<span class="sd">    unbalanced_solver : string, optional (default = &quot;sinkhorn&quot;)</span>
+<span class="sd">        Solver for the unbalanced OT subroutine.</span>
+
+<span class="sd">        - If `divergence` = &quot;kl&quot;, then `unbalanced_solver` can be: &quot;sinkhorn&quot;, &quot;sinkhorn_log&quot;, &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+
+<span class="sd">        - If `divergence` = &quot;l2&quot;, then `unbalanced_solver` can be &quot;mm&quot;, &quot;lbfgsb&quot;</span>
+<span class="sd">    alpha : scalar, float or int, optional (default = 0)</span>
+<span class="sd">        Coeffficient parameter of linear terms with respect to the sample and feature couplings.</span>
+<span class="sd">        If alpha is scalar, then the same alpha is applied to both linear terms.</span>
+<span class="sd">    M : (n_sample_x, n_sample_y), float, optional (default = None)</span>
+<span class="sd">        Sample matrix associated to the Wasserstein linear term on sample coupling.</span>
+<span class="sd">    init_pi :(n_sample_x, n_sample_y) array-like, optional (default = None)</span>
+<span class="sd">        Initialization of sample coupling. By default = :math:`w_X w_Y^T`.</span>
+<span class="sd">    init_duals : tuple of vectors ((n_sample_x, ), (n_sample_y, )), optional (default = None).</span>
+<span class="sd">        Initialization of sample and feature dual vectors</span>
+<span class="sd">        if using Sinkhorn algorithm. Zero vectors by default.</span>
+<span class="sd">    max_iter : int, optional (default = 100)</span>
+<span class="sd">        Number of Block Coordinate Descent (BCD) iterations.</span>
+<span class="sd">    tol : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of BCD scheme. If the L1-norm between the current and previous</span>
+<span class="sd">        sample couplings is under this threshold, then stop BCD scheme.</span>
+<span class="sd">    max_iter_ot : int, optional (default = 100)</span>
+<span class="sd">        Number of iterations to solve each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    tol_ot : float, optional (default = 1e-7)</span>
+<span class="sd">        Tolerance of unbalanced solver for each of the</span>
+<span class="sd">        two unbalanced optimal transport problems in each BCD iteration.</span>
+<span class="sd">    log : bool, optional (default = False)</span>
+<span class="sd">        If True then the cost and four dual vectors, including</span>
+<span class="sd">        two from sample and two from feature couplings, are recorded.</span>
+<span class="sd">    verbose : bool, optional (default = False)</span>
+<span class="sd">        If True then print the COOT cost at every multiplier of `eval_bcd`-th iteration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fugw : float</span>
+<span class="sd">        Total FUGW cost</span>
+<span class="sd">    log : dictionary, optional</span>
+<span class="sd">        Returned if `log` is True. The keys are:</span>
+
+<span class="sd">            error : array-like, float</span>
+<span class="sd">                list of L1 norms between the current and previous sample couplings.</span>
+<span class="sd">            duals : (n_sample_x, n_sample_y)-tuple, float</span>
+<span class="sd">                Pair of dual vectors when solving OT problem w.r.t the sample coupling.</span>
+<span class="sd">            linear : float</span>
+<span class="sd">                Linear part of FUGW cost.</span>
+<span class="sd">            fugw_cost : float</span>
+<span class="sd">                Total FUGW cost.</span>
+<span class="sd">            backend</span>
+<span class="sd">                The proper backend for all input arrays</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [70] Thual, A., Tran, H., Zemskova, T., Courty, N., Flamary, R., Dehaene, S., &amp; Thirion, B.</span>
+<span class="sd">            Aligning individual brains with Fused Unbalanced Gromov-Wasserstein.</span>
+<span class="sd">            Advances in Neural Information Systems, 35 (2022).</span>
+
+<span class="sd">    .. [72] Thibault Séjourné, François-Xavier Vialard, &amp; Gabriel Peyré.</span>
+<span class="sd">            The Unbalanced Gromov Wasserstein Distance: Conic Formulation and Relaxation.</span>
+<span class="sd">            Neural Information Processing Systems, 34 (2021).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">!=</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;The computation of gradients is only supported for KL divergence, </span><span class="se">\</span>
+<span class="s2">                      but not for </span><span class="si">{}</span><span class="s2"> divergence. The gradient of the KL case will be used.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">divergence</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">log_fugw</span> <span class="o">=</span> <span class="n">fused_unbalanced_gromov_wasserstein</span><span class="p">(</span>
+        <span class="n">Cx</span><span class="o">=</span><span class="n">Cx</span><span class="p">,</span>
+        <span class="n">Cy</span><span class="o">=</span><span class="n">Cy</span><span class="p">,</span>
+        <span class="n">wx</span><span class="o">=</span><span class="n">wx</span><span class="p">,</span>
+        <span class="n">wy</span><span class="o">=</span><span class="n">wy</span><span class="p">,</span>
+        <span class="n">reg_marginals</span><span class="o">=</span><span class="n">reg_marginals</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+        <span class="n">divergence</span><span class="o">=</span><span class="n">divergence</span><span class="p">,</span>
+        <span class="n">unbalanced_solver</span><span class="o">=</span><span class="n">unbalanced_solver</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="n">M</span><span class="o">=</span><span class="n">M</span><span class="p">,</span>
+        <span class="n">init_duals</span><span class="o">=</span><span class="n">init_duals</span><span class="p">,</span>
+        <span class="n">init_pi</span><span class="o">=</span><span class="n">init_pi</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+        <span class="n">max_iter_ot</span><span class="o">=</span><span class="n">max_iter_ot</span><span class="p">,</span>
+        <span class="n">tol_ot</span><span class="o">=</span><span class="n">tol_ot</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs_solve</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">log_fugw</span><span class="p">[</span><span class="s2">&quot;backend&quot;</span><span class="p">]</span>
+    <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">Cx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Cy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># measures on rows and columns</span>
+    <span class="k">if</span> <span class="n">wx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">sx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cx</span><span class="p">)</span> <span class="o">/</span> <span class="n">sx</span>
+    <span class="k">if</span> <span class="n">wy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wy</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">sy</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">Cy</span><span class="p">)</span> <span class="o">/</span> <span class="n">sy</span>
+
+    <span class="c1"># calculate marginals</span>
+    <span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi2_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">pi1_feat</span><span class="p">,</span> <span class="n">pi2_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">m_samp</span><span class="p">,</span> <span class="n">m_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1_samp</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1_feat</span><span class="p">)</span>
+    <span class="n">m_wx</span><span class="p">,</span> <span class="n">m_wy</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wx</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wy</span><span class="p">)</span>
+
+    <span class="c1"># calculate subgradients</span>
+    <span class="n">gradX</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Cx</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi1_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pi1_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="n">Cy</span><span class="p">),</span> <span class="n">pi_feat</span><span class="o">.</span><span class="n">T</span>
+    <span class="p">)</span>  <span class="c1"># shape (nx_samp, nx_feat)</span>
+    <span class="n">gradY</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Cy</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi2_samp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pi2_feat</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pi_samp</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Cx</span><span class="p">),</span> <span class="n">pi_feat</span>
+    <span class="p">)</span>  <span class="c1"># shape (ny_samp, ny_feat)</span>
+
+    <span class="n">gradM</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi_samp</span> <span class="o">+</span> <span class="n">pi_feat</span><span class="p">)</span>
+
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_marginals</span><span class="p">)</span>
+    <span class="n">grad_wx</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">m_wx</span> <span class="o">*</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">+</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="n">m_wy</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="o">-</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_feat</span> <span class="o">*</span> <span class="n">pi1_samp</span> <span class="o">+</span> <span class="n">m_samp</span> <span class="o">*</span> <span class="n">pi1_feat</span><span class="p">)</span> <span class="o">/</span> <span class="n">wx</span>
+    <span class="p">)</span>
+    <span class="n">grad_wy</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">m_wy</span> <span class="o">*</span> <span class="p">(</span><span class="n">rho_y</span> <span class="o">+</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="n">m_wx</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="o">-</span> <span class="p">(</span><span class="n">rho_y</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_feat</span> <span class="o">*</span> <span class="n">pi2_samp</span> <span class="o">+</span> <span class="n">m_samp</span> <span class="o">*</span> <span class="n">pi2_feat</span><span class="p">)</span> <span class="o">/</span> <span class="n">wy</span>
+    <span class="p">)</span>
+
+    <span class="c1"># set gradients</span>
+    <span class="n">fugw</span> <span class="o">=</span> <span class="n">log_fugw</span><span class="p">[</span><span class="s2">&quot;fugw_cost&quot;</span><span class="p">]</span>
+    <span class="n">fugw</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
+        <span class="n">fugw</span><span class="p">,</span> <span class="p">(</span><span class="n">Cx</span><span class="p">,</span> <span class="n">Cy</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">wx</span><span class="p">,</span> <span class="n">wy</span><span class="p">),</span> <span class="p">(</span><span class="n">gradX</span><span class="p">,</span> <span class="n">gradY</span><span class="p">,</span> <span class="n">gradM</span><span class="p">,</span> <span class="n">grad_wx</span><span class="p">,</span> <span class="n">grad_wy</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fugw</span><span class="p">,</span> <span class="n">log_fugw</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fugw</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span>
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

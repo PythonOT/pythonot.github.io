@@ -28,7 +28,7 @@ as proposed in [10] for Unbalanced inputs.
 
 [10] Chizat, L., Peyré, G., Schmitzer, B., & Vialard, F. X. (2016). Scaling algorithms for unbalanced transport problems. arXiv preprint arXiv:1607.05816.
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-28
+.. GENERATED FROM PYTHON SOURCE LINES 14-29
 
 .. code-block:: Python
 
@@ -42,6 +42,7 @@ as proposed in [10] for Unbalanced inputs.
     import numpy as np
     import matplotlib.pylab as pl
     import ot
+
     # necessary for 3d plot even if not used
     from mpl_toolkits.mplot3d import Axes3D  # noqa
     from matplotlib.collections import PolyCollection
@@ -53,12 +54,12 @@ as proposed in [10] for Unbalanced inputs.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 29-31
+.. GENERATED FROM PYTHON SOURCE LINES 30-32
 
 Generate data
 -------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 31-54
+.. GENERATED FROM PYTHON SOURCE LINES 32-55
 
 .. code-block:: Python
 
@@ -75,7 +76,7 @@ Generate data
     a2 = ot.datasets.make_1D_gauss(n, m=60, s=8)
 
     # make unbalanced dists
-    a2 *= 3.
+    a2 *= 3.0
 
     # creating matrix A containing all distributions
     A = np.vstack((a1, a2)).T
@@ -92,12 +93,12 @@ Generate data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 55-57
+.. GENERATED FROM PYTHON SOURCE LINES 56-58
 
 Plot data
 ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 57-66
+.. GENERATED FROM PYTHON SOURCE LINES 58-67
 
 .. code-block:: Python
 
@@ -107,7 +108,7 @@ Plot data
     pl.figure(1, figsize=(6.4, 3))
     for i in range(n_distributions):
         pl.plot(x, A[:, i])
-    pl.title('Distributions')
+    pl.title("Distributions")
     pl.tight_layout()
 
 
@@ -122,12 +123,12 @@ Plot data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 67-69
+.. GENERATED FROM PYTHON SOURCE LINES 68-70
 
 Barycenter computation
 ----------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 69-98
+.. GENERATED FROM PYTHON SOURCE LINES 70-99
 
 .. code-block:: Python
 
@@ -142,7 +143,7 @@ Barycenter computation
 
     # wasserstein
     reg = 1e-3
-    alpha = 1.
+    alpha = 1.0
 
     bary_wass = ot.unbalanced.barycenter_unbalanced(A, M, reg, alpha, weights=weights)
 
@@ -151,13 +152,13 @@ Barycenter computation
     pl.subplot(2, 1, 1)
     for i in range(n_distributions):
         pl.plot(x, A[:, i])
-    pl.title('Distributions')
+    pl.title("Distributions")
 
     pl.subplot(2, 1, 2)
-    pl.plot(x, bary_l2, 'r', label='l2')
-    pl.plot(x, bary_wass, 'g', label='Wasserstein')
+    pl.plot(x, bary_l2, "r", label="l2")
+    pl.plot(x, bary_wass, "g", label="Wasserstein")
     pl.legend()
-    pl.title('Barycenters')
+    pl.title("Barycenters")
     pl.tight_layout()
 
 
@@ -172,12 +173,12 @@ Barycenter computation
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 99-101
+.. GENERATED FROM PYTHON SOURCE LINES 100-102
 
 Barycentric interpolation
 -------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 101-167
+.. GENERATED FROM PYTHON SOURCE LINES 102-170
 
 .. code-block:: Python
 
@@ -196,54 +197,56 @@ Barycentric interpolation
         weight = weight_list[i]
         weights = np.array([1 - weight, weight])
         B_l2[:, i] = A.dot(weights)
-        B_wass[:, i] = ot.unbalanced.barycenter_unbalanced(A, M, reg, alpha, weights=weights)
+        B_wass[:, i] = ot.unbalanced.barycenter_unbalanced(
+            A, M, reg, alpha, weights=weights
+        )
 
 
     # plot interpolation
 
     pl.figure(3)
 
-    cmap = pl.get_cmap('viridis')
+    cmap = pl.get_cmap("viridis")
     verts = []
     zs = weight_list
     for i, z in enumerate(zs):
         ys = B_l2[:, i]
         verts.append(list(zip(x, ys)))
 
-    ax = pl.gcf().add_subplot(projection='3d')
+    ax = pl.gcf().add_subplot(projection="3d")
 
     poly = PolyCollection(verts, facecolors=[cmap(a) for a in weight_list])
     poly.set_alpha(0.7)
-    ax.add_collection3d(poly, zs=zs, zdir='y')
-    ax.set_xlabel('x')
+    ax.add_collection3d(poly, zs=zs, zdir="y")
+    ax.set_xlabel("x")
     ax.set_xlim3d(0, n)
-    ax.set_ylabel(r'$\alpha$')
+    ax.set_ylabel(r"$\alpha$")
     ax.set_ylim3d(0, 1)
-    ax.set_zlabel('')
+    ax.set_zlabel("")
     ax.set_zlim3d(0, B_l2.max() * 1.01)
-    pl.title('Barycenter interpolation with l2')
+    pl.title("Barycenter interpolation with l2")
     pl.tight_layout()
 
     pl.figure(4)
-    cmap = pl.get_cmap('viridis')
+    cmap = pl.get_cmap("viridis")
     verts = []
     zs = weight_list
     for i, z in enumerate(zs):
         ys = B_wass[:, i]
         verts.append(list(zip(x, ys)))
 
-    ax = pl.gcf().add_subplot(projection='3d')
+    ax = pl.gcf().add_subplot(projection="3d")
 
     poly = PolyCollection(verts, facecolors=[cmap(a) for a in weight_list])
     poly.set_alpha(0.7)
-    ax.add_collection3d(poly, zs=zs, zdir='y')
-    ax.set_xlabel('x')
+    ax.add_collection3d(poly, zs=zs, zdir="y")
+    ax.set_xlabel("x")
     ax.set_xlim3d(0, n)
-    ax.set_ylabel(r'$\alpha$')
+    ax.set_ylabel(r"$\alpha$")
     ax.set_ylim3d(0, 1)
-    ax.set_zlabel('')
+    ax.set_zlabel("")
     ax.set_zlim3d(0, B_l2.max() * 1.01)
-    pl.title('Barycenter interpolation with Wasserstein')
+    pl.title("Barycenter interpolation with Wasserstein")
     pl.tight_layout()
 
     pl.show()
@@ -272,22 +275,22 @@ Barycentric interpolation
 
  .. code-block:: none
 
-    /home/circleci/project/ot/unbalanced.py:1022: RuntimeWarning: overflow encountered in divide
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1641: RuntimeWarning: overflow encountered in divide
       u = (A / Kv) ** fi
-    /home/circleci/project/ot/unbalanced.py:1027: RuntimeWarning: invalid value encountered in divide
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1646: RuntimeWarning: invalid value encountered in divide
       v = (Q / Ktu) ** fi
-    /home/circleci/project/ot/unbalanced.py:1034: UserWarning: Numerical errors at iteration 595
-      warnings.warn('Numerical errors at iteration %s' % i)
-    /home/circleci/project/ot/unbalanced.py:1027: RuntimeWarning: overflow encountered in divide
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1657: UserWarning: Numerical errors at iteration 595
+      warnings.warn("Numerical errors at iteration %s" % i)
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1646: RuntimeWarning: overflow encountered in divide
       v = (Q / Ktu) ** fi
-    /home/circleci/project/ot/unbalanced.py:1034: UserWarning: Numerical errors at iteration 974
-      warnings.warn('Numerical errors at iteration %s' % i)
-    /home/circleci/project/ot/unbalanced.py:1034: UserWarning: Numerical errors at iteration 615
-      warnings.warn('Numerical errors at iteration %s' % i)
-    /home/circleci/project/ot/unbalanced.py:1034: UserWarning: Numerical errors at iteration 455
-      warnings.warn('Numerical errors at iteration %s' % i)
-    /home/circleci/project/ot/unbalanced.py:1034: UserWarning: Numerical errors at iteration 361
-      warnings.warn('Numerical errors at iteration %s' % i)
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1657: UserWarning: Numerical errors at iteration 974
+      warnings.warn("Numerical errors at iteration %s" % i)
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1657: UserWarning: Numerical errors at iteration 615
+      warnings.warn("Numerical errors at iteration %s" % i)
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1657: UserWarning: Numerical errors at iteration 455
+      warnings.warn("Numerical errors at iteration %s" % i)
+    /home/circleci/project/ot/unbalanced/_sinkhorn.py:1657: UserWarning: Numerical errors at iteration 361
+      warnings.warn("Numerical errors at iteration %s" % i)
 
 
 
@@ -295,7 +298,7 @@ Barycentric interpolation
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.535 seconds)
+   **Total running time of the script:** (0 minutes 1.256 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unbalanced-partial_plot_UOT_barycenter_1D.py:
@@ -311,6 +314,10 @@ Barycentric interpolation
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_UOT_barycenter_1D.py <plot_UOT_barycenter_1D.py>`
+
+    .. container:: sphx-glr-download sphx-glr-download-zip
+
+      :download:`Download zipped: plot_UOT_barycenter_1D.zip <plot_UOT_barycenter_1D.zip>`
 
 
 .. only:: html

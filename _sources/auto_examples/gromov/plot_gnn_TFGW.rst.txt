@@ -19,7 +19,7 @@
 
 
 ==============================
-Graph classification with Tempate Based Fused Gromov Wasserstein
+Graph classification with Template Based Fused Gromov Wasserstein
 ==============================
 
 This example first illustrates how to train a graph classification gnn based on the Template Fused Gromov Wasserstein layer as proposed in [52] .
@@ -76,7 +76,7 @@ This example first illustrates how to train a graph classification gnn based on 
 Generate data
 -------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 39-79
+.. GENERATED FROM PYTHON SOURCE LINES 39-85
 
 .. code-block:: Python
 
@@ -91,15 +91,15 @@ Generate data
     n_nodes = 10
     n_node_classes = 2
 
-    #edge probabilities for the SBMs
+    # edge probabilities for the SBMs
     P1 = [[0.8]]
     P2 = [[0.9, 0.1], [0.1, 0.9]]
 
-    #block sizes
+    # block sizes
     block_sizes1 = [n_nodes]
     block_sizes2 = [n_nodes // 2, n_nodes // 2]
 
-    #node features
+    # node features
     x1 = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
     x1 = one_hot(x1, num_classes=n_node_classes)
     x1 = torch.reshape(x1, (n_nodes, n_node_classes))
@@ -108,12 +108,18 @@ Generate data
     x2 = one_hot(x2, num_classes=n_node_classes)
     x2 = torch.reshape(x2, (n_nodes, n_node_classes))
 
-    graphs1 = [GraphData(x=x1, edge_index=sbm(block_sizes1, P1), y=torch.tensor([0])) for i in range(n_graphs)]
-    graphs2 = [GraphData(x=x2, edge_index=sbm(block_sizes2, P2), y=torch.tensor([1])) for i in range(n_graphs)]
+    graphs1 = [
+        GraphData(x=x1, edge_index=sbm(block_sizes1, P1), y=torch.tensor([0]))
+        for i in range(n_graphs)
+    ]
+    graphs2 = [
+        GraphData(x=x2, edge_index=sbm(block_sizes2, P2), y=torch.tensor([1]))
+        for i in range(n_graphs)
+    ]
 
     graphs = graphs1 + graphs2
 
-    #split the data into train and test sets
+    # split the data into train and test sets
     train_graphs, test_graphs = random_split(graphs, [n_graphs, n_graphs])
 
     train_loader = DataLoader(train_graphs, batch_size=10, shuffle=True)
@@ -127,12 +133,12 @@ Generate data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 82-84
+.. GENERATED FROM PYTHON SOURCE LINES 88-90
 
 Plot data
 ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 84-109
+.. GENERATED FROM PYTHON SOURCE LINES 90-119
 
 .. code-block:: Python
 
@@ -144,19 +150,23 @@ Plot data
     pl.figure(0, figsize=(8, 2.5))
     pl.clf()
     pl.subplot(121)
-    pl.axis('off')
-    pl.title('Graph of class 1', fontsize=fontsize)
+    pl.axis("off")
+    pl.title("Graph of class 1", fontsize=fontsize)
     G = to_networkx(graphs1[0], to_undirected=True)
     pos = nx.spring_layout(G, seed=0)
     nx.draw_networkx(G, pos, with_labels=False, node_color="tab:blue")
 
     pl.subplot(122)
-    pl.axis('off')
-    pl.title('Graph of class 2', fontsize=fontsize)
+    pl.axis("off")
+    pl.title("Graph of class 2", fontsize=fontsize)
     G = to_networkx(graphs2[0], to_undirected=True)
     pos = nx.spring_layout(G, seed=0)
-    nx.draw_networkx(G, pos, with_labels=False, nodelist=[0, 1, 2, 3, 4], node_color="tab:blue")
-    nx.draw_networkx(G, pos, with_labels=False, nodelist=[5, 6, 7, 8, 9], node_color="tab:red")
+    nx.draw_networkx(
+        G, pos, with_labels=False, nodelist=[0, 1, 2, 3, 4], node_color="tab:blue"
+    )
+    nx.draw_networkx(
+        G, pos, with_labels=False, nodelist=[5, 6, 7, 8, 9], node_color="tab:red"
+    )
 
     pl.tight_layout()
     pl.show()
@@ -173,12 +183,12 @@ Plot data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 112-114
+.. GENERATED FROM PYTHON SOURCE LINES 122-124
 
 Pooling architecture using the TFGW layer
 ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 114-150
+.. GENERATED FROM PYTHON SOURCE LINES 124-175
 
 .. code-block:: Python
 
@@ -189,7 +199,16 @@ Pooling architecture using the TFGW layer
         Pooling architecture using the TFGW layer.
         """
 
-        def __init__(self, n_features, n_templates, n_template_nodes, n_classes, n_hidden_layers, feature_init_mean=0., feature_init_std=1.):
+        def __init__(
+            self,
+            n_features,
+            n_templates,
+            n_template_nodes,
+            n_classes,
+            n_hidden_layers,
+            feature_init_mean=0.0,
+            feature_init_std=1.0,
+        ):
             """
             Pooling architecture using the TFGW layer.
             """
@@ -202,7 +221,13 @@ Pooling architecture using the TFGW layer
 
             self.conv = GCNConv(self.n_features, self.n_hidden_layers)
 
-            self.TFGW = TFGWPooling(self.n_hidden_layers, self.n_templates, self.n_template_nodes, feature_init_mean=feature_init_mean, feature_init_std=feature_init_std)
+            self.TFGW = TFGWPooling(
+                self.n_hidden_layers,
+                self.n_templates,
+                self.n_template_nodes,
+                feature_init_mean=feature_init_mean,
+                feature_init_std=feature_init_std,
+            )
 
             self.linear = Linear(self.n_templates, n_classes)
 
@@ -225,12 +250,12 @@ Pooling architecture using the TFGW layer
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 151-153
+.. GENERATED FROM PYTHON SOURCE LINES 176-178
 
 Graph classification training
 ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 153-230
+.. GENERATED FROM PYTHON SOURCE LINES 178-264
 
 .. code-block:: Python
 
@@ -238,11 +263,19 @@ Graph classification training
 
     n_epochs = 25
 
-    #store latent embeddings and classes for TSNE visualization
+    # store latent embeddings and classes for TSNE visualization
     embeddings_for_TSNE = []
     classes = []
 
-    model = pooling_TFGW(n_features=2, n_templates=2, n_template_nodes=2, n_classes=2, n_hidden_layers=2, feature_init_mean=0.5, feature_init_std=0.5)
+    model = pooling_TFGW(
+        n_features=2,
+        n_templates=2,
+        n_template_nodes=2,
+        n_classes=2,
+        n_hidden_layers=2,
+        feature_init_mean=0.5,
+        feature_init_std=0.5,
+    )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=0.0005)
     criterion = torch.nn.CrossEntropyLoss()
@@ -251,7 +284,6 @@ Graph classification training
     all_loss = []
 
     for epoch in range(n_epochs):
-
         losses = []
         accs = []
 
@@ -268,12 +300,14 @@ Graph classification training
             accs.append(train_acc)
             losses.append(loss.item())
 
-            #store last classes and embeddings for TSNE visualization
+            # store last classes and embeddings for TSNE visualization
             if epoch == n_epochs - 1:
                 embeddings_for_TSNE.append(latent_embedding)
                 classes.append(data.y)
 
-        print(f'Epoch: {epoch:03d}, Loss: {torch.mean(torch.tensor(losses)):.4f},Train Accuracy: {torch.mean(torch.tensor(accs)):.4f}')
+        print(
+            f"Epoch: {epoch:03d}, Loss: {torch.mean(torch.tensor(losses)):.4f},Train Accuracy: {torch.mean(torch.tensor(accs)):.4f}"
+        )
 
         all_accuracy.append(torch.mean(torch.tensor(accs)))
         all_loss.append(torch.mean(torch.tensor(losses)))
@@ -283,18 +317,18 @@ Graph classification training
     pl.clf()
     pl.subplot(121)
     pl.plot(all_loss)
-    pl.xlabel('epochs')
-    pl.title('Loss')
+    pl.xlabel("epochs")
+    pl.title("Loss")
 
     pl.subplot(122)
     pl.plot(all_accuracy)
-    pl.xlabel('epochs')
-    pl.title('Accuracy')
+    pl.xlabel("epochs")
+    pl.title("Accuracy")
 
     pl.tight_layout()
     pl.show()
 
-    #Test
+    # Test
 
     test_accs = []
 
@@ -309,7 +343,7 @@ Graph classification training
 
     classes = torch.hstack(classes)
 
-    print(f'Test Accuracy: {torch.mean(torch.tensor(test_acc)):.4f}')
+    print(f"Test Accuracy: {torch.mean(torch.tensor(test_acc)):.4f}")
 
 
 
@@ -328,47 +362,51 @@ Graph classification training
     Epoch: 001, Loss: 0.6222,Train Accuracy: 0.7400
     Epoch: 002, Loss: 0.5858,Train Accuracy: 1.0000
     Epoch: 003, Loss: 0.5570,Train Accuracy: 1.0000
-    Epoch: 004, Loss: 0.5235,Train Accuracy: 0.9800
-    Epoch: 005, Loss: 0.4945,Train Accuracy: 0.9600
-    Epoch: 006, Loss: 0.4595,Train Accuracy: 1.0000
-    Epoch: 007, Loss: 0.4248,Train Accuracy: 1.0000
-    Epoch: 008, Loss: 0.3867,Train Accuracy: 1.0000
-    Epoch: 009, Loss: 0.3455,Train Accuracy: 1.0000
-    Epoch: 010, Loss: 0.3008,Train Accuracy: 1.0000
-    Epoch: 011, Loss: 0.2525,Train Accuracy: 1.0000
-    Epoch: 012, Loss: 0.2050,Train Accuracy: 1.0000
-    Epoch: 013, Loss: 0.1598,Train Accuracy: 1.0000
-    Epoch: 014, Loss: 0.1277,Train Accuracy: 1.0000
-    Epoch: 015, Loss: 0.1046,Train Accuracy: 1.0000
-    Epoch: 016, Loss: 0.0875,Train Accuracy: 1.0000
-    Epoch: 017, Loss: 0.0725,Train Accuracy: 1.0000
-    Epoch: 018, Loss: 0.0554,Train Accuracy: 1.0000
-    Epoch: 019, Loss: 0.0355,Train Accuracy: 1.0000
-    Epoch: 020, Loss: 0.0194,Train Accuracy: 1.0000
-    Epoch: 021, Loss: 0.0095,Train Accuracy: 1.0000
-    Epoch: 022, Loss: 0.0052,Train Accuracy: 1.0000
-    Epoch: 023, Loss: 0.0047,Train Accuracy: 1.0000
-    Epoch: 024, Loss: 0.0054,Train Accuracy: 1.0000
+    Epoch: 004, Loss: 0.5233,Train Accuracy: 0.9800
+    Epoch: 005, Loss: 0.4939,Train Accuracy: 0.9800
+    Epoch: 006, Loss: 0.4590,Train Accuracy: 1.0000
+    Epoch: 007, Loss: 0.4255,Train Accuracy: 1.0000
+    Epoch: 008, Loss: 0.3871,Train Accuracy: 1.0000
+    Epoch: 009, Loss: 0.3445,Train Accuracy: 1.0000
+    Epoch: 010, Loss: 0.2980,Train Accuracy: 1.0000
+    Epoch: 011, Loss: 0.2485,Train Accuracy: 1.0000
+    Epoch: 012, Loss: 0.2041,Train Accuracy: 1.0000
+    Epoch: 013, Loss: 0.1627,Train Accuracy: 1.0000
+    Epoch: 014, Loss: 0.1308,Train Accuracy: 1.0000
+    Epoch: 015, Loss: 0.1064,Train Accuracy: 1.0000
+    Epoch: 016, Loss: 0.0860,Train Accuracy: 1.0000
+    Epoch: 017, Loss: 0.0664,Train Accuracy: 1.0000
+    Epoch: 018, Loss: 0.0464,Train Accuracy: 1.0000
+    Epoch: 019, Loss: 0.0279,Train Accuracy: 1.0000
+    Epoch: 020, Loss: 0.0152,Train Accuracy: 1.0000
+    Epoch: 021, Loss: 0.0086,Train Accuracy: 1.0000
+    Epoch: 022, Loss: 0.0057,Train Accuracy: 1.0000
+    Epoch: 023, Loss: 0.0053,Train Accuracy: 1.0000
+    Epoch: 024, Loss: 0.0056,Train Accuracy: 1.0000
     Test Accuracy: 1.0000
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 231-234
+.. GENERATED FROM PYTHON SOURCE LINES 265-268
 
 #############################################################################
  TSNE visualization of graph classification
  ---------
 
-.. GENERATED FROM PYTHON SOURCE LINES 234-256
+.. GENERATED FROM PYTHON SOURCE LINES 268-304
 
 .. code-block:: Python
 
 
-    indices = torch.randint(2 * n_graphs, (60,))  # select a subset of embeddings for TSNE visualization
+    indices = torch.randint(
+        2 * n_graphs, (60,)
+    )  # select a subset of embeddings for TSNE visualization
     latent_embeddings = torch.vstack(embeddings_for_TSNE).detach().numpy()[indices, :]
 
-    TSNE_embeddings = TSNE(n_components=2, perplexity=20, random_state=1).fit_transform(latent_embeddings)
+    TSNE_embeddings = TSNE(n_components=2, perplexity=20, random_state=1).fit_transform(
+        latent_embeddings
+    )
 
     class_0 = classes[indices] == 0
     class_1 = classes[indices] == 1
@@ -377,12 +415,22 @@ Graph classification training
     TSNE_embeddings_1 = TSNE_embeddings[class_1, :]
 
     pl.figure(2, figsize=(6, 2.5))
-    pl.scatter(TSNE_embeddings_0[:, 0], TSNE_embeddings_0[:, 1],
-               alpha=0.5, marker='o', label='class 1')
-    pl.scatter(TSNE_embeddings_1[:, 0], TSNE_embeddings_1[:, 1],
-               alpha=0.5, marker='o', label='class 2')
+    pl.scatter(
+        TSNE_embeddings_0[:, 0],
+        TSNE_embeddings_0[:, 1],
+        alpha=0.5,
+        marker="o",
+        label="class 1",
+    )
+    pl.scatter(
+        TSNE_embeddings_1[:, 0],
+        TSNE_embeddings_1[:, 1],
+        alpha=0.5,
+        marker="o",
+        label="class 2",
+    )
     pl.legend()
-    pl.title('TSNE in the latent space after training')
+    pl.title("TSNE in the latent space after training")
     pl.show()
 
 
@@ -401,7 +449,7 @@ Graph classification training
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (2 minutes 54.459 seconds)
+   **Total running time of the script:** (2 minutes 6.305 seconds)
 
 
 .. _sphx_glr_download_auto_examples_gromov_plot_gnn_TFGW.py:
@@ -417,6 +465,10 @@ Graph classification training
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_gnn_TFGW.py <plot_gnn_TFGW.py>`
+
+    .. container:: sphx-glr-download sphx-glr-download-zip
+
+      :download:`Download zipped: plot_gnn_TFGW.zip <plot_gnn_TFGW.zip>`
 
 
 .. only:: html

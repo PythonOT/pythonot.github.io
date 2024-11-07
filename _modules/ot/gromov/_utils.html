@@ -1,26 +1,24 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.gromov._utils &mdash; POT Python Optimal Transport 0.9.4 documentation</title>
+  <title>ot.gromov._utils &mdash; POT Python Optimal Transport 0.9.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../../_static/documentation_options.js?v=c5ca06ca"></script>
-        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=61b282d3"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -38,9 +36,6 @@
             POT Python Optimal Transport
               <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
-              <div class="version">
-                0.9.4
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -95,17 +90,151 @@
 <span class="c1">#         Rémi Flamary &lt;remi.flamary@unice.fr&gt;</span>
 <span class="c1">#         Titouan Vayer &lt;titouan.vayer@irisa.fr&gt;</span>
 <span class="c1">#         Cédric Vincent-Cuaz &lt;cedvincentcuaz@gmail.com&gt;</span>
+<span class="c1">#         Quang Huy Tran &lt;quang-huy.tran@univ-ubs.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
-
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">euclidean_distances</span>
 <span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span> <span class="nn">..lp</span> <span class="kn">import</span> <span class="n">emd</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">networkx.algorithms.community</span> <span class="kn">import</span> <span class="n">asyn_fluidc</span>
+    <span class="kn">from</span> <span class="nn">networkx</span> <span class="kn">import</span> <span class="n">from_numpy_array</span>
+
+    <span class="n">networkx_import</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">networkx_import</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">SpectralClustering</span><span class="p">,</span> <span class="n">KMeans</span>
+
+    <span class="n">sklearn_import</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">sklearn_import</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="k">def</span> <span class="nf">_transform_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s2">&quot;square_loss&quot;</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return transformed structure matrices for Gromov-Wasserstein fast computation</span>
+
+<span class="sd">    Returns the matrices involved in the computation of :math:`\mathcal{L}(\mathbf{C_1}, \mathbf{C_2})`</span>
+<span class="sd">    with the selected loss function as the loss function of Gromov-Wasserstein discrepancy.</span>
+
+<span class="sd">    The matrices are computed as described in Proposition 1 in :ref:`[12] &lt;references-init-matrix&gt;`</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C_1}`: Metric cost matrix in the source space</span>
+<span class="sd">    - :math:`\mathbf{C_2}`: Metric cost matrix in the target space</span>
+
+<span class="sd">    The square-loss function :math:`L(a, b) = |a - b|^2` is read as :</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        L(a, b) = f_1(a) + f_2(b) - h_1(a) h_2(b)</span>
+
+<span class="sd">        \mathrm{with} \ f_1(a) &amp;= a^2</span>
+
+<span class="sd">                        f_2(b) &amp;= b^2</span>
+
+<span class="sd">                        h_1(a) &amp;= a</span>
+
+<span class="sd">                        h_2(b) &amp;= 2b</span>
+
+<span class="sd">    The kl-loss function :math:`L(a, b) = a \log\left(\frac{a}{b}\right) - a + b` is read as :</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        L(a, b) = f_1(a) + f_2(b) - h_1(a) h_2(b)</span>
+
+<span class="sd">        \mathrm{with} \ f_1(a) &amp;= a \log(a) - a</span>
+
+<span class="sd">                        f_2(b) &amp;= b</span>
+
+<span class="sd">                        h_1(a) &amp;= a</span>
+
+<span class="sd">                        h_2(b) &amp;= \log(b)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space</span>
+<span class="sd">    loss_fun : str, optional</span>
+<span class="sd">        Name of loss function to use: either &#39;square_loss&#39; or &#39;kl_loss&#39; (default=&#39;square_loss&#39;)</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fC1 : array-like, shape (ns, ns)</span>
+<span class="sd">        :math:`\mathbf{f1}(\mathbf{C1})` matrix in Eq. (6)</span>
+<span class="sd">    fC2 : array-like, shape (nt, nt)</span>
+<span class="sd">        :math:`\mathbf{f2}(\mathbf{C2})` matrix in Eq. (6)</span>
+<span class="sd">    hC1 : array-like, shape (ns, ns)</span>
+<span class="sd">        :math:`\mathbf{h1}(\mathbf{C1})` matrix in Eq. (6)</span>
+<span class="sd">    hC2 : array-like, shape (nt, nt)</span>
+<span class="sd">        :math:`\mathbf{h2}(\mathbf{C2})` matrix in Eq. (6)</span>
+
+
+<span class="sd">    .. _references-transform_matrix:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s2">&quot;square_loss&quot;</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">def</span> <span class="nf">f2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span>
+
+        <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">b</span>
+    <span class="k">elif</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s2">&quot;kl_loss&quot;</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mf">1e-18</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span>
+
+        <span class="k">def</span> <span class="nf">f2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">b</span>
+
+        <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span>
+
+        <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mf">1e-18</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Unknown `loss_fun=&#39;</span><span class="si">{</span><span class="n">loss_fun</span><span class="si">}</span><span class="s2">&#39;`. Use one of: </span><span class="si">{</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;kl_loss&#39;</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">fC1</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
+    <span class="n">fC2</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+    <span class="n">hC1</span> <span class="o">=</span> <span class="n">h1</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
+    <span class="n">hC2</span> <span class="o">=</span> <span class="n">h2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fC1</span><span class="p">,</span> <span class="n">fC2</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span>
 
 
 <div class="viewcode-block" id="init_matrix">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.init_matrix">[docs]</a>
-<span class="k">def</span> <span class="nf">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">init_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s2">&quot;square_loss&quot;</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return loss matrices and tensors for Gromov-Wasserstein fast computation</span>
 
 <span class="sd">    Returns the value of :math:`\mathcal{L}(\mathbf{C_1}, \mathbf{C_2}) \otimes \mathbf{T}` with the</span>
@@ -184,44 +313,14 @@
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
         <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
-        <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">f2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">a</span>
-
-        <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">b</span>
-    <span class="k">elif</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
-        <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span>
-
-        <span class="k">def</span> <span class="nf">f2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">b</span>
-
-        <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">a</span>
-
-        <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown `loss_fun=&#39;</span><span class="si">{</span><span class="n">loss_fun</span><span class="si">}</span><span class="s2">&#39;`. Use one of: </span><span class="si">{</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;kl_loss&#39;</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-
+    <span class="n">fC1</span><span class="p">,</span> <span class="n">fC2</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">_transform_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
     <span class="n">constC1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">f1</span><span class="p">(</span><span class="n">C1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">q</span><span class="p">)</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">fC1</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">q</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">constC2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">),</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">f2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">fC2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">constC</span> <span class="o">=</span> <span class="n">constC1</span> <span class="o">+</span> <span class="n">constC2</span>
-    <span class="n">hC1</span> <span class="o">=</span> <span class="n">h1</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
-    <span class="n">hC2</span> <span class="o">=</span> <span class="n">h2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span></div>
 
@@ -262,9 +361,7 @@
         <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
         <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
 
-    <span class="n">A</span> <span class="o">=</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">hC1</span><span class="p">,</span> <span class="n">T</span><span class="p">),</span> <span class="n">hC2</span><span class="o">.</span><span class="n">T</span>
-    <span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="o">-</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">hC1</span><span class="p">,</span> <span class="n">T</span><span class="p">),</span> <span class="n">hC2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
     <span class="n">tens</span> <span class="o">=</span> <span class="n">constC</span> <span class="o">+</span> <span class="n">A</span>
     <span class="c1"># tens -= tens.min()</span>
     <span class="k">return</span> <span class="n">tens</span></div>
@@ -347,177 +444,13 @@
 <span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tensor_product</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span>
-                              <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>  <span class="c1"># [12] Prop. 2 misses a 2 factor</span></div>
-
-
-
-<div class="viewcode-block" id="update_square_loss">
-<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_square_loss">[docs]</a>
-<span class="k">def</span> <span class="nf">update_square_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Updates :math:`\mathbf{C}` according to the L2 Loss kernel with the `S`</span>
-<span class="sd">    :math:`\mathbf{T}_s` couplings calculated at each iteration of the GW</span>
-<span class="sd">    barycenter problem in :ref:`[12]`:</span>
-
-<span class="sd">    .. math::</span>
-
-<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad \sum_s \lambda_s \mathrm{GW}(\mathbf{C}, \mathbf{C}_s, \mathbf{p}, \mathbf{p}_s)</span>
-
-<span class="sd">    Where :</span>
-
-<span class="sd">    - :math:`\mathbf{C}_s`: metric cost matrix</span>
-<span class="sd">    - :math:`\mathbf{p}_s`: distribution</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    p : array-like, shape (N,)</span>
-<span class="sd">        Masses in the targeted barycenter.</span>
-<span class="sd">    lambdas : list of float</span>
-<span class="sd">        List of the `S` spaces&#39; weights.</span>
-<span class="sd">    T : list of S array-like of shape (N, ns)</span>
-<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
-<span class="sd">    Cs : list of S array-like, shape(ns,ns)</span>
-<span class="sd">        Metric cost matrices.</span>
-<span class="sd">    nx : backend, optional</span>
-<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    ----------</span>
-<span class="sd">    C : array-like, shape (`nt`, `nt`)</span>
-<span class="sd">        Updated :math:`\mathbf{C}` matrix.</span>
-
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
-<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
-<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
-
-    <span class="c1"># Correct order mistake in Equation 14 in [12]</span>
-    <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
-        <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span>
-            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-        <span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
-    <span class="p">])</span>
-    <span class="n">ppt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">tmpsum</span> <span class="o">/</span> <span class="n">ppt</span></div>
-
-
-
-<div class="viewcode-block" id="update_kl_loss">
-<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_kl_loss">[docs]</a>
-<span class="k">def</span> <span class="nf">update_kl_loss</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">lambdas</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Updates :math:`\mathbf{C}` according to the KL Loss kernel with the `S`</span>
-<span class="sd">    :math:`\mathbf{T}_s` couplings calculated at each iteration of the GW</span>
-<span class="sd">    barycenter problem in :ref:`[12]`:</span>
-
-<span class="sd">    .. math::</span>
-
-<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad \sum_s \lambda_s \mathrm{GW}(\mathbf{C}, \mathbf{C}_s, \mathbf{p}, \mathbf{p}_s)</span>
-
-<span class="sd">    Where :</span>
-
-<span class="sd">    - :math:`\mathbf{C}_s`: metric cost matrix</span>
-<span class="sd">    - :math:`\mathbf{p}_s`: distribution</span>
-
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    p  : array-like, shape (N,)</span>
-<span class="sd">        Weights in the targeted barycenter.</span>
-<span class="sd">    lambdas : list of float</span>
-<span class="sd">        List of the `S` spaces&#39; weights</span>
-<span class="sd">    T : list of S array-like of shape (N, ns)</span>
-<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
-<span class="sd">    Cs : list of S array-like, shape(ns,ns)</span>
-<span class="sd">        Metric cost matrices.</span>
-<span class="sd">    nx : backend, optional</span>
-<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    ----------</span>
-<span class="sd">    C : array-like, shape (`ns`, `ns`)</span>
-<span class="sd">        updated :math:`\mathbf{C}` matrix</span>
-
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
-<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
-<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">T</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">)</span>
-
-    <span class="c1"># Correct order mistake in Equation 15 in [12]</span>
-    <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
-        <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-            <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="mf">1e-15</span><span class="p">))),</span>
-            <span class="n">T</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-        <span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
-    <span class="p">])</span>
-    <span class="n">ppt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">tmpsum</span> <span class="o">/</span> <span class="n">ppt</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="update_feature_matrix">
-<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_feature_matrix">[docs]</a>
-<span class="k">def</span> <span class="nf">update_feature_matrix</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span> <span class="n">Ys</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Updates the feature with respect to the `S` :math:`\mathbf{T}_s` couplings.</span>
-
-
-<span class="sd">    See &quot;Solving the barycenter problem with Block Coordinate Descent (BCD)&quot;</span>
-<span class="sd">    in :ref:`[24] &lt;references-update-feature-matrix&gt;` calculated at each iteration</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    p : array-like, shape (N,)</span>
-<span class="sd">        masses in the targeted barycenter</span>
-<span class="sd">    lambdas : list of float</span>
-<span class="sd">        List of the `S` spaces&#39; weights</span>
-<span class="sd">    Ts : list of S array-like, shape (N, ns)</span>
-<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration</span>
-<span class="sd">    Ys : list of S array-like, shape (d,ns)</span>
-<span class="sd">        The features.</span>
-<span class="sd">    nx : backend, optional</span>
-<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    X : array-like, shape (`d`, `N`)</span>
-
-
-<span class="sd">    .. _references-update-feature-matrix:</span>
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain and Courty Nicolas</span>
-<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
-<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
-
-    <span class="n">p</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span>
-    <span class="n">tmpsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
-        <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
-        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ts</span><span class="p">))</span>
-    <span class="p">])</span>
-    <span class="k">return</span> <span class="n">tmpsum</span></div>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tensor_product</span><span class="p">(</span><span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>  <span class="c1"># [12] Prop. 2 misses a 2 factor</span></div>
 
 
 
 <div class="viewcode-block" id="init_matrix_semirelaxed">
 <a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.init_matrix_semirelaxed">[docs]</a>
-<span class="k">def</span> <span class="nf">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">init_matrix_semirelaxed</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">loss_fun</span><span class="o">=</span><span class="s2">&quot;square_loss&quot;</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return loss matrices and tensors for semi-relaxed Gromov-Wasserstein fast computation</span>
 
 <span class="sd">    Returns the value of :math:`\mathcal{L}(\mathbf{C_1}, \mathbf{C_2}) \otimes \mathbf{T}` with the</span>
@@ -566,6 +499,7 @@
 <span class="sd">    C2 : array-like, shape (nt, nt)</span>
 <span class="sd">        Metric cost matrix in the target space</span>
 <span class="sd">    p : array-like, shape (ns,)</span>
+<span class="sd">        Probability distribution in the source space</span>
 <span class="sd">    loss_fun : str, optional</span>
 <span class="sd">        Name of loss function to use: either &#39;square_loss&#39; or &#39;kl_loss&#39; (default=&#39;square_loss&#39;)</span>
 <span class="sd">    nx : backend, optional</span>
@@ -598,40 +532,882 @@
         <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
         <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;square_loss&#39;</span><span class="p">:</span>
-        <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">fC1</span><span class="p">,</span> <span class="n">fC2</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span> <span class="o">=</span> <span class="n">_transform_matrix</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">loss_fun</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">f2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">constC</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">fC1</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+    <span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">a</span>
-
-        <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">b</span>
-    <span class="k">elif</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span>
-        <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span>
-
-        <span class="k">def</span> <span class="nf">f2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">b</span>
-
-        <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">a</span>
-
-        <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown `loss_fun=&#39;</span><span class="si">{</span><span class="n">loss_fun</span><span class="si">}</span><span class="s2">&#39;`. Use one of: </span><span class="si">{</span><span class="s1">&#39;square_loss&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;kl_loss&#39;</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-
-    <span class="n">constC</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">f1</span><span class="p">(</span><span class="n">C1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
-                    <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">))</span>
-
-    <span class="n">hC1</span> <span class="o">=</span> <span class="n">h1</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
-    <span class="n">hC2</span> <span class="o">=</span> <span class="n">h2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
-    <span class="n">fC2t</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">fC2t</span> <span class="o">=</span> <span class="n">fC2</span><span class="o">.</span><span class="n">T</span>
     <span class="k">return</span> <span class="n">constC</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">hC2</span><span class="p">,</span> <span class="n">fC2t</span></div>
+
+
+
+<div class="viewcode-block" id="semirelaxed_init_plan">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.semirelaxed_init_plan">[docs]</a>
+<span class="k">def</span> <span class="nf">semirelaxed_init_plan</span><span class="p">(</span>
+    <span class="n">C1</span><span class="p">,</span>
+    <span class="n">C2</span><span class="p">,</span>
+    <span class="n">p</span><span class="p">,</span>
+    <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;product&quot;</span><span class="p">,</span>
+    <span class="n">use_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Heuristics to initialize the semi-relaxed (F)GW transport plan</span>
+<span class="sd">    :math:`\mathbf{T} \in \mathcal{U}_{nt}(\mathbf{p})`, between a graph</span>
+<span class="sd">    :math:`(\mathbf{C1}, \mathbf{p})` and a structure matrix :math:`\mathbf{C2}`,</span>
+<span class="sd">    where :math:`\mathcal{U}_{nt}(\mathbf{p}) = \{\mathbf{T} \in \mathbb{R}_{+}^{ns * nt}, \mathbf{T} \mathbf{1}_{nt} = \mathbf{p} \}`.</span>
+<span class="sd">    Available methods are:</span>
+<span class="sd">        - &quot;product&quot; or &quot;random_product&quot;: :math:`\mathbf{T} = \mathbf{pq}^{T}`</span>
+<span class="sd">          with :math:`\mathbf{q}` uniform or randomly samples in the nt probability simplex.</span>
+
+<span class="sd">        - &quot;random&quot;: random sampling in :math:`\mathcal{U}_{nt}(\mathbf{p})`.</span>
+
+<span class="sd">        - &quot;fluid&quot;: Fluid algorithm from networkx for graph partitioning.</span>
+
+<span class="sd">        - &quot;spectral&quot;, &quot;kmeans&quot; : Spectral or Kmeans clustering from sklearn.</span>
+
+<span class="sd">        - &quot;fluid_soft&quot;, &quot;spectral_soft&quot;, &quot;kmeans_soft&quot;: :math:`\mathbf{T}_0` given</span>
+<span class="sd">          by corresponding clustering with target marginal :math:`\mathbf{q}_0`, further</span>
+<span class="sd">          centered as :math:`\mathbf{T} = (\mathbf{T}_0 + \mathbf{pq}_0^T) / 2` .</span>
+
+<span class="sd">    If a metric cost matrix between features across domains :math:`\mathbf{M}`</span>
+<span class="sd">    is a provided, it will be used as cost matrix in a semi-relaxed Wasserstein</span>
+<span class="sd">    problem providing :math:`\mathbf{T}_M \in \mathcal{U}_{nt}(\mathbf{p})`. Then</span>
+<span class="sd">    the outputted transport plan is :math:`\alpha \mathbf{T}  + (1 - \alpha ) \mathbf{T}_{M}`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (ns, ns)</span>
+<span class="sd">        Metric cost matrix in the source space.</span>
+<span class="sd">    C2 : array-like, shape (nt, nt)</span>
+<span class="sd">        Metric cost matrix in the target space.</span>
+<span class="sd">    p : array-like, shape (ns,), optional.</span>
+<span class="sd">        Probability distribution in the source space. If let to None, uniform</span>
+<span class="sd">        weights are assumed on C1.</span>
+<span class="sd">    M : array-like, shape (ns, nt), optional.</span>
+<span class="sd">        Metric cost matrix between features across domains.</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Trade-off parameter (0 &lt;= alpha &lt;= 1)</span>
+<span class="sd">    method : str, optional</span>
+<span class="sd">        Method to initialize the transport plan. The default is &#39;product&#39;.</span>
+<span class="sd">    use_target : bool, optional.</span>
+<span class="sd">        Whether or not to use the target structure/features to further align</span>
+<span class="sd">        transport plan provided by the `method`.</span>
+<span class="sd">    random_state: int, optional</span>
+<span class="sd">        Random seed used for stochastic methods.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        POT backend.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    T : array-like, shape (ns, ns)</span>
+<span class="sd">        Admissible transport plan for the sr(F)GW problems.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [48]  Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">list_partitioning_methods</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;fluid&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;spectral&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;kmeans&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;fluid_soft&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;spectral_soft&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;kmeans_soft&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">list_partitioning_methods</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="s2">&quot;product&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;random_product&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;random&quot;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported initialization method = </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kmeans&quot;</span><span class="p">,</span> <span class="s2">&quot;kmeans_soft&quot;</span><span class="p">])</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">sklearn_import</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scikit-learn must be installed to use method = </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;fluid&quot;</span><span class="p">,</span> <span class="s2">&quot;fluid_soft&quot;</span><span class="p">])</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">networkx_import</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Networkx must be installed to use method = </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">min_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">list_partitioning_methods</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">m</span><span class="p">:</span>  <span class="c1"># partition C1 to deduce map from C1 to C2</span>
+            <span class="n">C_to_partition</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="n">n</span><span class="p">:</span>  <span class="c1"># partition C2 to deduce map from C1 to C2</span>
+            <span class="n">C_to_partition</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># equal size -&gt; simple Wasserstein alignment</span>
+            <span class="n">C_to_partition</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Both structures have the same size so no partitioning is&quot;</span>
+                <span class="s2">&quot;performed to initialize the transport plan even though&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;initialization method is </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">get_transport_from_partition</span><span class="p">(</span><span class="n">part</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">m</span><span class="p">:</span>  <span class="c1"># partition C1 to deduce map from C1 to C2</span>
+                <span class="n">T_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)[</span><span class="n">part</span><span class="p">]</span>
+                <span class="n">T_</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">T_</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+                <span class="n">factored_C1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">C1</span><span class="p">),</span> <span class="n">T_</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+
+                <span class="c1"># alignment of both structure seen as feature matrices</span>
+                <span class="k">if</span> <span class="n">use_target</span><span class="p">:</span>
+                    <span class="n">M_structure</span> <span class="o">=</span> <span class="n">euclidean_distances</span><span class="p">(</span><span class="n">factored_C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+                    <span class="n">T_emd</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">M_structure</span><span class="p">)</span>
+                    <span class="n">inv_q</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">q</span>
+
+                    <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_</span><span class="p">,</span> <span class="n">inv_q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">T_emd</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">T</span> <span class="o">=</span> <span class="n">T_</span>
+
+            <span class="k">elif</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="n">n</span><span class="p">:</span>
+                <span class="n">T_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)[</span><span class="n">part</span><span class="p">]</span> <span class="o">/</span> <span class="n">m</span>  <span class="c1"># assume uniform masses on C2</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T_</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+                <span class="n">factored_C2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">C2</span><span class="p">),</span> <span class="n">T_</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+
+                <span class="c1"># alignment of both structure seen as feature matrices</span>
+                <span class="n">M_structure</span> <span class="o">=</span> <span class="n">euclidean_distances</span><span class="p">(</span><span class="n">factored_C2</span><span class="p">,</span> <span class="n">C1</span><span class="p">)</span>
+                <span class="n">T_emd</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">M_structure</span><span class="p">)</span>
+                <span class="n">inv_q</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">q</span>
+
+                <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_</span><span class="p">,</span> <span class="n">inv_q</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">T_emd</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># uniform one</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># alignment of both structure seen as feature matrices</span>
+                <span class="n">M_structure</span> <span class="o">=</span> <span class="n">euclidean_distances</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">)</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">p</span>
+                <span class="n">T</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">M_structure</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">T</span><span class="p">,</span> <span class="n">q</span>
+
+    <span class="c1"># Handle initialization via structure information</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;product&quot;</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span> <span class="o">/</span> <span class="n">m</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;random_product&quot;</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">m</span><span class="p">,))</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">/</span> <span class="n">q</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">m</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="n">U</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">))[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">U</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;fluid&quot;</span><span class="p">,</span> <span class="s2">&quot;fluid_soft&quot;</span><span class="p">]:</span>
+        <span class="c1"># compute fluid partitioning on the biggest graph</span>
+        <span class="k">if</span> <span class="n">C_to_partition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">T</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">get_transport_from_partition</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graph</span> <span class="o">=</span> <span class="n">from_numpy_array</span><span class="p">(</span><span class="n">C_to_partition</span><span class="p">)</span>
+            <span class="n">part_sets</span> <span class="o">=</span> <span class="n">asyn_fluidc</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">min_size</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">part</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">C_to_partition</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">iset_</span><span class="p">,</span> <span class="n">set_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">part_sets</span><span class="p">):</span>
+                <span class="n">set_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">set_</span><span class="p">)</span>
+                <span class="n">part</span><span class="p">[</span><span class="n">set_</span><span class="p">]</span> <span class="o">=</span> <span class="n">iset_</span>
+            <span class="n">part</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+            <span class="n">T</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">get_transport_from_partition</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;soft&quot;</span> <span class="ow">in</span> <span class="n">method</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;spectral&quot;</span><span class="p">,</span> <span class="s2">&quot;spectral_soft&quot;</span><span class="p">]:</span>
+        <span class="c1"># compute spectral partitioning on the biggest graph</span>
+        <span class="k">if</span> <span class="n">C_to_partition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">T</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">get_transport_from_partition</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sc</span> <span class="o">=</span> <span class="n">SpectralClustering</span><span class="p">(</span>
+                <span class="n">n_clusters</span><span class="o">=</span><span class="n">min_size</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">affinity</span><span class="o">=</span><span class="s2">&quot;precomputed&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">C_to_partition</span><span class="p">)</span>
+            <span class="n">part</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">labels_</span>
+            <span class="n">T</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">get_transport_from_partition</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;soft&quot;</span> <span class="ow">in</span> <span class="n">method</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kmeans&quot;</span><span class="p">,</span> <span class="s2">&quot;kmeans_soft&quot;</span><span class="p">]:</span>
+        <span class="c1"># compute spectral partitioning on the biggest graph</span>
+        <span class="k">if</span> <span class="n">C_to_partition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">T</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">get_transport_from_partition</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">km</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">min_size</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+                <span class="n">C_to_partition</span>
+            <span class="p">)</span>
+
+            <span class="n">part</span> <span class="o">=</span> <span class="n">km</span><span class="o">.</span><span class="n">labels_</span>
+            <span class="n">T</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">get_transport_from_partition</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;soft&quot;</span> <span class="ow">in</span> <span class="n">method</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+    <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Add feature information solving a semi-relaxed Wasserstein problem</span>
+        <span class="c1"># get minimum by rows as binary mask</span>
+        <span class="n">TM</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">M</span> <span class="o">==</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="n">TM</span> <span class="o">*=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">p</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">TM</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">T</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">TM</span>
+
+    <span class="k">return</span> <span class="n">T</span></div>
+
+
+
+<div class="viewcode-block" id="update_barycenter_structure">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_barycenter_structure">[docs]</a>
+<span class="k">def</span> <span class="nf">update_barycenter_structure</span><span class="p">(</span>
+    <span class="n">Ts</span><span class="p">,</span>
+    <span class="n">Cs</span><span class="p">,</span>
+    <span class="n">lambdas</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">loss_fun</span><span class="o">=</span><span class="s2">&quot;square_loss&quot;</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">check_zeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Updates :math:`\mathbf{C}` according to the inner loss L with the `S`</span>
+<span class="sd">    :math:`\mathbf{T}_s` couplings calculated at each iteration of variants of</span>
+<span class="sd">    the GW barycenter problem (e.g GW :ref:`[12]`, srGW :ref:`[48]`).</span>
+<span class="sd">    If `target=True` it solves for:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad</span>
+<span class="sd">        \sum_s \lambda_s \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C}^{(s)}_{i,k}, \mathbf{C}_{j,l}) \mathbf{T}^{(s)}_{i,j} \mathbf{T}^{(s)}_{k,l}</span>
+
+<span class="sd">    Else it solves the symmetric problem:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \mathbf{C}^* = \mathop{\arg \min}_{\mathbf{C}\in \mathbb{R}^{N \times N}} \quad</span>
+<span class="sd">        \sum_s \lambda_s \sum_{i,j,k,l}</span>
+<span class="sd">        L(\mathbf{C}_{j,l}, \mathbf{C}^{(s)}_{i,k}) \mathbf{T}^{(s)}_{i,j} \mathbf{T}^{(s)}_{k,l}</span>
+
+<span class="sd">    Where :</span>
+
+<span class="sd">    - :math:`\mathbf{C}^{(s)}`: pairwise matrix in the s^{th} source space .</span>
+<span class="sd">    - :math:`\mathbf{C}`: pairwise matrix in the target space.</span>
+<span class="sd">    - :math:`L`: inner divergence for the GW loss</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ts : list of S array-like of shape (ns, N) if `target=True` else (N, ns).</span>
+<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
+<span class="sd">    Cs : list of S array-like, shape(ns, ns)</span>
+<span class="sd">        Metric cost matrices.</span>
+<span class="sd">    lambdas : list of float,</span>
+<span class="sd">        List of the `S` spaces&#39; weights.</span>
+<span class="sd">    p : array-like, shape (N,) or (S,N)</span>
+<span class="sd">        Masses or list of masses in the targeted barycenter.</span>
+<span class="sd">    loss_fun : str, optional. Default is &#39;square_loss&#39;</span>
+<span class="sd">        Name of loss function to use in [&#39;square_loss&#39;, &#39;kl_loss&#39;].</span>
+<span class="sd">    target: bool, optional. Default is True.</span>
+<span class="sd">        Whether the barycenter is positioned as target (True) or source (False).</span>
+<span class="sd">    check_zeros: bool, optional. Default is True.</span>
+<span class="sd">        Whether to check if marginals on the barycenter contains zeros or not.</span>
+<span class="sd">        Can be set to False to gain time if marginals are known to be positive.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C : array-like, shape (`nt`, `nt`)</span>
+<span class="sd">        Updated :math:`\mathbf{C}` matrix.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+
+<span class="sd">    .. [48] Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="o">*</span><span class="n">Cs</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ts</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="ow">not</span> <span class="n">target</span><span class="p">))[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="c1"># compute coefficients for the barycenter coming from marginals</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># shared target masses potentially with zeros</span>
+        <span class="k">if</span> <span class="n">check_zeros</span><span class="p">:</span>
+            <span class="n">inv_p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inv_p</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span>
+
+        <span class="n">prod</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">inv_p</span><span class="p">,</span> <span class="n">inv_p</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">quotient</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="n">check_zeros</span><span class="p">:</span>
+            <span class="n">prod</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">quotient</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prod</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">quotient</span>
+
+    <span class="c1"># compute coefficients for the barycenter coming from Ts and Cs</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s2">&quot;square_loss&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">target</span><span class="p">:</span>
+            <span class="n">list_structures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_structures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">list_structures</span><span class="p">)</span> <span class="o">*</span> <span class="n">prod</span>
+
+    <span class="k">elif</span> <span class="n">loss_fun</span> <span class="o">==</span> <span class="s2">&quot;kl_loss&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">target</span><span class="p">:</span>
+            <span class="n">list_structures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">]),</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">list_structures</span><span class="p">)</span> <span class="o">*</span> <span class="n">prod</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_structures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+                <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">Cs</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="mf">1e-16</span><span class="p">))),</span> <span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">list_structures</span><span class="p">)</span> <span class="o">*</span> <span class="n">prod</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;not supported loss_fun = </span><span class="si">{</span><span class="n">loss_fun</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="update_barycenter_feature">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.update_barycenter_feature">[docs]</a>
+<span class="k">def</span> <span class="nf">update_barycenter_feature</span><span class="p">(</span>
+    <span class="n">Ts</span><span class="p">,</span>
+    <span class="n">Ys</span><span class="p">,</span>
+    <span class="n">lambdas</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">loss_fun</span><span class="o">=</span><span class="s2">&quot;square_loss&quot;</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">check_zeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Updates the feature with respect to the `S` :math:`\mathbf{T}_s`</span>
+<span class="sd">    couplings calculated at each iteration of variants of the FGW</span>
+<span class="sd">    barycenter problem with inner wasserstein loss `loss_fun`</span>
+<span class="sd">    (e.g FGW :ref:`[24]`, srFGW :ref:`[48]`).</span>
+<span class="sd">    If `target=True` the barycenter is considered as the target else as the source.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ts : list of S array-like of shape (ns, N) if `target=True` else (N, ns).</span>
+<span class="sd">        The `S` :math:`\mathbf{T}_s` couplings calculated at each iteration.</span>
+<span class="sd">    Ys : list of S array-like, shape (ns, d)</span>
+<span class="sd">        Feature matrices.</span>
+<span class="sd">    lambdas : list of float</span>
+<span class="sd">        List of the `S` spaces&#39; weights</span>
+<span class="sd">    p : array-like, shape (N,) or (S,N)</span>
+<span class="sd">        Masses or list of masses in the targeted barycenter.</span>
+<span class="sd">    loss_fun : str, optional. Default is &#39;square_loss&#39;</span>
+<span class="sd">        Name of loss function to use in [&#39;square_loss&#39;].</span>
+<span class="sd">    target: bool, optional. Default is True.</span>
+<span class="sd">        Whether the barycenter is positioned as target (True) or source (False).</span>
+<span class="sd">    check_zeros: bool, optional. Default is True.</span>
+<span class="sd">        Whether to check if marginals on the barycenter contains zeros or not.</span>
+<span class="sd">        Can be set to False to gain time if marginals are known to be positive.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X : array-like, shape (N, d)</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [24] Vayer Titouan, Chapel Laetitia, Flamary Rémi, Tavenard Romain and Courty Nicolas</span>
+<span class="sd">        &quot;Optimal Transport for structured data with application on graphs&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2019.</span>
+
+<span class="sd">    .. [48] Cédric Vincent-Cuaz, Rémi Flamary, Marco Corneli, Titouan Vayer, Nicolas Courty.</span>
+<span class="sd">            &quot;Semi-relaxed Gromov-Wasserstein divergence and applications on graphs&quot;</span>
+<span class="sd">            International Conference on Learning Representations (ICLR), 2022.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">Ts</span><span class="p">,</span> <span class="o">*</span><span class="n">Ys</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">loss_fun</span> <span class="o">!=</span> <span class="s2">&quot;square_loss&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;not supported loss_fun = </span><span class="si">{</span><span class="n">loss_fun</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ts</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">target</span><span class="p">:</span>
+        <span class="n">list_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">list_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">Ys</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Ts</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="ow">not</span> <span class="n">target</span><span class="p">))[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># shared target masses potentially with zeros</span>
+        <span class="k">if</span> <span class="n">check_zeros</span><span class="p">:</span>
+            <span class="n">inv_p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inv_p</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">lambdas</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="n">check_zeros</span><span class="p">:</span>
+            <span class="n">inv_p</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p_sum</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inv_p</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">p_sum</span>
+
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">list_features</span><span class="p">)</span> <span class="o">*</span> <span class="n">inv_p</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span></div>
+
+
+
+<span class="c1">############################################################################</span>
+<span class="c1"># Methods related to fused unbalanced GW and unbalanced Co-Optimal Transport.</span>
+<span class="c1">############################################################################</span>
+
+
+<div class="viewcode-block" id="div_to_product">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.div_to_product">[docs]</a>
+<span class="k">def</span> <span class="nf">div_to_product</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pi1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pi2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divergence</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fast computation of the Bregman divergence between an arbitrary measure and a product measure.</span>
+<span class="sd">    Only support for Kullback-Leibler and half-squared L2 divergences.</span>
+
+<span class="sd">    - For half-squared L2 divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \frac{1}{2} || \pi - a \otimes b ||^2</span>
+<span class="sd">        = \frac{1}{2} \Big[ \sum_{i, j} \pi_{ij}^2 + (\sum_i a_i^2) ( \sum_j b_j^2) - 2 \sum_{i, j} a_i \pi_{ij} b_j \Big]</span>
+
+<span class="sd">    - For Kullback-Leibler divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        KL(\pi | a \otimes b)</span>
+<span class="sd">        = \langle \pi, \log \pi \rangle - \langle \pi_1, \log a \rangle</span>
+<span class="sd">        - \langle \pi_2, \log b \rangle - m(\pi) + m(a) m(b)</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\pi` is the (`dim_a`, `dim_b`) transport plan</span>
+<span class="sd">    - :math:`\pi_1` and :math:`\pi_2` are the marginal distributions</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
+<span class="sd">    - :math:`m` denotes the mass of the measure</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pi : array-like (dim_a, dim_b)</span>
+<span class="sd">        Transport plan</span>
+<span class="sd">    a : array-like (dim_a,)</span>
+<span class="sd">        Unnormalized histogram of dimension `dim_a`</span>
+<span class="sd">    b : array-like (dim_b,)</span>
+<span class="sd">        Unnormalized histogram of dimension `dim_b`</span>
+<span class="sd">    pi1 : array-like (dim_a,), optional (default = None)</span>
+<span class="sd">        Marginal distribution with respect to the first dimension of the transport plan</span>
+<span class="sd">        Only used in case of Kullback-Leibler divergence.</span>
+<span class="sd">    pi2 : array-like (dim_a,), optional (default = None)</span>
+<span class="sd">        Marginal distribution with respect to the second dimension of the transport plan</span>
+<span class="sd">        Only used in case of Kullback-Leibler divergence.</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    mass : bool, optional. Default is False.</span>
+<span class="sd">        Only used in case of Kullback-Leibler divergence.</span>
+<span class="sd">        If False, calculate the relative entropy.</span>
+<span class="sd">        If True, calculate the Kullback-Leibler divergence.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Bregman divergence between an arbitrary measure and a product measure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">pi</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">,</span> <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pi1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pi1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pi2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pi2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pi</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)))</span>
+            <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+            <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mass</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="div_between_product">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.div_between_product">[docs]</a>
+<span class="k">def</span> <span class="nf">div_between_product</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fast computation of the Bregman divergence between two product measures.</span>
+<span class="sd">    Only support for Kullback-Leibler and half-squared L2 divergences.</span>
+
+<span class="sd">    For half-squared L2 divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \frac{1}{2} || \mu \otimes \nu, \alpha \otimes \beta ||^2</span>
+<span class="sd">        = \frac{1}{2} \Big[ ||\alpha||^2 ||\beta||^2 + ||\mu||^2 ||\nu||^2 - 2 \langle \alpha, \mu \rangle \langle \beta, \nu \rangle \Big]</span>
+
+<span class="sd">    For Kullback-Leibler divergence:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        KL(\mu \otimes \nu, \alpha \otimes \beta)</span>
+<span class="sd">        = m(\mu) * KL(\nu, \beta) + m(\nu) * KL(\mu, \alpha) + (m(\mu) - m(\alpha)) * (m(\nu) - m(\beta))</span>
+
+<span class="sd">    where:</span>
+
+<span class="sd">    - :math:`\mu` and :math:`\alpha` are two measures having the same shape.</span>
+<span class="sd">    - :math:`\nu` and :math:`\beta` are two measures having the same shape.</span>
+<span class="sd">    - :math:`m` denotes the mass of the measure</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mu : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    nu : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    alpha : array-like</span>
+<span class="sd">        vector or matrix with the same shape as `\mu`</span>
+<span class="sd">    beta : array-like</span>
+<span class="sd">        vector or matrix with the same shape as `\nu`</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Bregman divergence between two product measures.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">m_mu</span><span class="p">,</span> <span class="n">m_nu</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mu</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
+        <span class="n">m_alpha</span><span class="p">,</span> <span class="n">m_beta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span>
+        <span class="n">const</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_mu</span> <span class="o">-</span> <span class="n">m_alpha</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_nu</span> <span class="o">-</span> <span class="n">m_beta</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">m_nu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">m_mu</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">const</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">alpha</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">beta</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">mu</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">beta</span> <span class="o">*</span> <span class="n">nu</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<span class="c1"># Support functions for BCD schemes</span>
+<div class="viewcode-block" id="uot_cost_matrix">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.uot_cost_matrix">[docs]</a>
+<span class="k">def</span> <span class="nf">uot_cost_matrix</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">tuple_p</span><span class="p">,</span> <span class="n">hyperparams</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;The Block Coordinate Descent algorithm for FUGW and UCOOT</span>
+<span class="sd">    requires solving an UOT problem in each iteration.</span>
+<span class="sd">    In particular, we need to specify the following inputs:</span>
+
+<span class="sd">    - Cost matrix</span>
+
+<span class="sd">    - Hyperparameters (marginal-relaxations and regularization)</span>
+
+<span class="sd">    - Reference measures in the marginal-relaxation and regularization terms</span>
+
+<span class="sd">    This method returns the cost matrix.</span>
+<span class="sd">    The method :any:`ot.gromov.uot_parameters_and_measures` returns the rest of the inputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : tuple of arrays</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    pi : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    tuple_p : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation terms</span>
+<span class="sd">        w.r.t the (either sample or feature) coupling</span>
+<span class="sd">    hyperparams : tuple of floats</span>
+<span class="sd">        Hyperparameters of marginal-relaxation and regularization terms</span>
+<span class="sd">        in the fused unbalanced across-domain divergence</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    reg_type : string,</span>
+<span class="sd">        Type of regularization term in the fused unbalanced across-domain divergence</span>
+
+<span class="sd">        - `reg_type = &quot;joint&quot;` corresponds to FUGW</span>
+
+<span class="sd">        - `reg_type = &quot;independent&quot;` corresponds to UCOOT</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cost matrix of the UOT subroutine for UCOOT and FUGW</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="n">hyperparams</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tuple_p</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">A</span><span class="p">,</span> <span class="n">B</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_sqr</span><span class="p">,</span> <span class="n">pi1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Y_sqr</span><span class="p">,</span> <span class="n">pi2</span><span class="p">)</span>
+    <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">A</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pi</span><span class="p">),</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">M</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">rho_x</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">pi1</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">pi2</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="ow">and</span> <span class="n">eps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">uot_cost</span> <span class="o">=</span> <span class="n">uot_cost</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">div_to_product</span><span class="p">(</span>
+                <span class="n">pi</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">uot_cost</span></div>
+
+
+
+<div class="viewcode-block" id="uot_parameters_and_measures">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.uot_parameters_and_measures">[docs]</a>
+<span class="k">def</span> <span class="nf">uot_parameters_and_measures</span><span class="p">(</span>
+    <span class="n">pi</span><span class="p">,</span> <span class="n">tuple_weights</span><span class="p">,</span> <span class="n">hyperparams</span><span class="p">,</span> <span class="n">reg_type</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;The Block Coordinate Descent algorithm for FUGW and UCOOT</span>
+<span class="sd">    requires solving an UOT problem in each iteration.</span>
+<span class="sd">    In particular, we need to specify the following inputs:</span>
+
+<span class="sd">    - Cost matrix</span>
+
+<span class="sd">    - Hyperparameters (marginal-relaxations and regularization)</span>
+
+<span class="sd">    - Reference measures in the marginal-relaxation and regularization terms</span>
+
+<span class="sd">    The method :any:`ot.gromov.uot_cost_matrix` returns the cost matrix.</span>
+<span class="sd">    This method returns the rest of the inputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pi : array-like</span>
+<span class="sd">        vector or matrix</span>
+<span class="sd">    tuple_weights : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation and regularization terms</span>
+<span class="sd">        w.r.t the (either sample or feature) coupling</span>
+<span class="sd">    hyperparams : tuple of floats</span>
+<span class="sd">        Hyperparameters of marginal-relaxation and regularization terms</span>
+<span class="sd">        in the fused unbalanced across-domain divergence</span>
+<span class="sd">    reg_type : string,</span>
+<span class="sd">        Type of regularization term in the fused unbalanced across-domain divergence</span>
+
+<span class="sd">        - `reg_type = &quot;joint&quot;` corresponds to FUGW</span>
+
+<span class="sd">        - `reg_type = &quot;independent&quot;` corresponds to UCOOT</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Tuple of hyperparameters and distributions (weights)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="n">hyperparams</span>
+    <span class="n">wx</span><span class="p">,</span> <span class="n">wy</span><span class="p">,</span> <span class="n">wxy</span> <span class="o">=</span> <span class="n">tuple_weights</span>
+
+    <span class="k">if</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+        <span class="n">pi1</span><span class="p">,</span> <span class="n">pi2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">l2_pi1</span><span class="p">,</span> <span class="n">l2_pi2</span><span class="p">,</span> <span class="n">l2_pi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi2</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">weighted_wx</span> <span class="o">=</span> <span class="n">wx</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi1</span> <span class="o">*</span> <span class="n">wx</span><span class="p">)</span> <span class="o">/</span> <span class="n">l2_pi1</span>
+        <span class="n">weighted_wy</span> <span class="o">=</span> <span class="n">wy</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi2</span> <span class="o">*</span> <span class="n">wy</span><span class="p">)</span> <span class="o">/</span> <span class="n">l2_pi2</span>
+        <span class="n">weighted_wxy</span> <span class="o">=</span> <span class="n">wxy</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="n">wxy</span><span class="p">)</span> <span class="o">/</span> <span class="n">l2_pi</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">wxy</span>
+        <span class="n">weighted_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">weighted_wx</span><span class="p">,</span> <span class="n">weighted_wy</span><span class="p">,</span> <span class="n">weighted_wxy</span><span class="p">)</span>
+
+        <span class="n">new_rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">*</span> <span class="n">l2_pi1</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">l2_pi2</span><span class="p">)</span>
+        <span class="n">new_eps</span> <span class="o">=</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">l2_pi</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">eps</span>
+
+    <span class="k">elif</span> <span class="n">divergence</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">new_rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_x</span> <span class="o">*</span> <span class="n">mass</span><span class="p">,</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">mass</span><span class="p">)</span>
+        <span class="n">new_eps</span> <span class="o">=</span> <span class="n">mass</span> <span class="o">*</span> <span class="n">eps</span> <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="k">else</span> <span class="n">eps</span>
+        <span class="n">weighted_w</span> <span class="o">=</span> <span class="n">tuple_weights</span>
+
+    <span class="k">return</span> <span class="n">weighted_w</span><span class="p">,</span> <span class="n">new_rho</span><span class="p">,</span> <span class="n">new_eps</span></div>
+
+
+
+<div class="viewcode-block" id="fused_unbalanced_across_spaces_cost">
+<a class="viewcode-back" href="../../../gen_modules/ot.gromov.html#ot.gromov.fused_unbalanced_across_spaces_cost">[docs]</a>
+<span class="k">def</span> <span class="nf">fused_unbalanced_across_spaces_cost</span><span class="p">(</span>
+    <span class="n">M_linear</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">,</span>
+    <span class="n">tuple_pxy_samp</span><span class="p">,</span>
+    <span class="n">tuple_pxy_feat</span><span class="p">,</span>
+    <span class="n">pi_samp</span><span class="p">,</span>
+    <span class="n">pi_feat</span><span class="p">,</span>
+    <span class="n">hyperparams</span><span class="p">,</span>
+    <span class="n">divergence</span><span class="p">,</span>
+    <span class="n">reg_type</span><span class="p">,</span>
+    <span class="n">nx</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the fused unbalanced across-space divergence between two spaces</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M_linear : tuple of arrays</span>
+<span class="sd">        Pair of cost matrices corresponding to the Wasserstein terms w.r.t sample and feature couplings</span>
+<span class="sd">    data : tuple of arrays</span>
+<span class="sd">        Tuple of input spaces represented as matrices</span>
+<span class="sd">    tuple_pxy_samp : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation and regularization terms</span>
+<span class="sd">        w.r.t the sample coupling</span>
+<span class="sd">    tuple_pxy_feat : tuple of arrays</span>
+<span class="sd">        Tuple of reference measures in the marginal-relaxation and regularization terms</span>
+<span class="sd">        w.r.t the feature coupling</span>
+<span class="sd">    pi_samp : array-like</span>
+<span class="sd">        Sample coupling</span>
+<span class="sd">    pi_feat : array-like</span>
+<span class="sd">        Feature coupling</span>
+<span class="sd">    hyperparams : tuple of floats</span>
+<span class="sd">        Hyperparameters of marginal-relaxation and regularization terms</span>
+<span class="sd">        in the fused unbalanced across-domain divergence</span>
+<span class="sd">    divergence : string, default = &quot;kl&quot;</span>
+<span class="sd">        Bregman divergence, either &quot;kl&quot; (Kullback-Leibler divergence) or &quot;l2&quot; (half-squared L2 divergence)</span>
+<span class="sd">    reg_type : string,</span>
+<span class="sd">        Type of regularization term in the fused unbalanced across-domain divergence</span>
+
+<span class="sd">        - `reg_type = &quot;joint&quot;` corresponds to FUGW</span>
+
+<span class="sd">        - `reg_type = &quot;independent&quot;` corresponds to UCOOT</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        If let to its default value None, a backend test will be conducted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Fused unbalanced across-space divergence between two spaces</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rho_x</span><span class="p">,</span> <span class="n">rho_y</span><span class="p">,</span> <span class="n">eps_samp</span><span class="p">,</span> <span class="n">eps_feat</span> <span class="o">=</span> <span class="n">hyperparams</span>
+    <span class="n">M_samp</span><span class="p">,</span> <span class="n">M_feat</span> <span class="o">=</span> <span class="n">M_linear</span>
+    <span class="n">px_samp</span><span class="p">,</span> <span class="n">py_samp</span><span class="p">,</span> <span class="n">pxy_samp</span> <span class="o">=</span> <span class="n">tuple_pxy_samp</span>
+    <span class="n">px_feat</span><span class="p">,</span> <span class="n">py_feat</span><span class="p">,</span> <span class="n">pxy_feat</span> <span class="o">=</span> <span class="n">tuple_pxy_feat</span>
+    <span class="n">X_sqr</span><span class="p">,</span> <span class="n">Y_sqr</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi2_samp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">pi1_feat</span><span class="p">,</span> <span class="n">pi2_feat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">A_sqr</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_sqr</span><span class="p">,</span> <span class="n">pi1_feat</span><span class="p">),</span> <span class="n">pi1_samp</span><span class="p">)</span>
+    <span class="n">B_sqr</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Y_sqr</span><span class="p">,</span> <span class="n">pi2_feat</span><span class="p">),</span> <span class="n">pi2_samp</span><span class="p">)</span>
+    <span class="n">AB</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">),</span> <span class="n">Y</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="n">pi_samp</span>
+    <span class="n">linear_cost</span> <span class="o">=</span> <span class="n">A_sqr</span> <span class="o">+</span> <span class="n">B_sqr</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">AB</span><span class="p">)</span>
+
+    <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">linear_cost</span>
+    <span class="k">if</span> <span class="n">M_samp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_samp</span> <span class="o">*</span> <span class="n">M_samp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">M_feat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pi_feat</span> <span class="o">*</span> <span class="n">M_feat</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_x</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">rho_x</span> <span class="o">*</span> <span class="n">div_between_product</span><span class="p">(</span>
+            <span class="n">pi1_samp</span><span class="p">,</span> <span class="n">pi1_feat</span><span class="p">,</span> <span class="n">px_samp</span><span class="p">,</span> <span class="n">px_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rho_y</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">rho_y</span> <span class="o">*</span> <span class="n">div_between_product</span><span class="p">(</span>
+            <span class="n">pi2_samp</span><span class="p">,</span> <span class="n">pi2_feat</span><span class="p">,</span> <span class="n">py_samp</span><span class="p">,</span> <span class="n">py_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;joint&quot;</span> <span class="ow">and</span> <span class="n">eps_samp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">div_cost</span> <span class="o">=</span> <span class="n">div_between_product</span><span class="p">(</span>
+            <span class="n">pi_samp</span><span class="p">,</span> <span class="n">pi_feat</span><span class="p">,</span> <span class="n">pxy_samp</span><span class="p">,</span> <span class="n">pxy_feat</span><span class="p">,</span> <span class="n">divergence</span><span class="p">,</span> <span class="n">nx</span>
+        <span class="p">)</span>
+        <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="n">div_cost</span>
+    <span class="k">elif</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">&quot;independent&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">eps_samp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">div_samp</span> <span class="o">=</span> <span class="n">div_to_product</span><span class="p">(</span>
+                <span class="n">pi_samp</span><span class="p">,</span>
+                <span class="n">pi1_samp</span><span class="p">,</span>
+                <span class="n">pi2_samp</span><span class="p">,</span>
+                <span class="n">px_samp</span><span class="p">,</span>
+                <span class="n">py_samp</span><span class="p">,</span>
+                <span class="n">divergence</span><span class="p">,</span>
+                <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">eps_samp</span> <span class="o">*</span> <span class="n">div_samp</span>
+        <span class="k">if</span> <span class="n">eps_feat</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">div_feat</span> <span class="o">=</span> <span class="n">div_to_product</span><span class="p">(</span>
+                <span class="n">pi_feat</span><span class="p">,</span>
+                <span class="n">pi1_feat</span><span class="p">,</span>
+                <span class="n">pi2_feat</span><span class="p">,</span>
+                <span class="n">px_feat</span><span class="p">,</span>
+                <span class="n">py_feat</span><span class="p">,</span>
+                <span class="n">divergence</span><span class="p">,</span>
+                <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">ucoot_cost</span> <span class="o">=</span> <span class="n">ucoot_cost</span> <span class="o">+</span> <span class="n">eps_feat</span> <span class="o">*</span> <span class="n">div_feat</span>
+
+    <span class="k">return</span> <span class="n">linear_cost</span><span class="p">,</span> <span class="n">ucoot_cost</span></div>
 
 </pre></div>
 

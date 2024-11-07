@@ -1,26 +1,24 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.lp &mdash; POT Python Optimal Transport 0.9.4 documentation</title>
+  <title>ot.lp &mdash; POT Python Optimal Transport 0.9.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
-      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../_static/documentation_options.js?v=c5ca06ca"></script>
-        <script src="../../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=61b282d3"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -38,9 +36,6 @@
             POT Python Optimal Transport
               <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
           </a>
-              <div class="version">
-                0.9.4
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -95,10 +90,6 @@
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">multiprocessing</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
@@ -108,18 +99,35 @@
 
 <span class="c1"># import compiled emd</span>
 <span class="kn">from</span> <span class="nn">.emd_wrap</span> <span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">check_result</span><span class="p">,</span> <span class="n">emd_1d_sorted</span>
-<span class="kn">from</span> <span class="nn">.solver_1d</span> <span class="kn">import</span> <span class="p">(</span><span class="n">emd_1d</span><span class="p">,</span> <span class="n">emd2_1d</span><span class="p">,</span> <span class="n">wasserstein_1d</span><span class="p">,</span>
-                        <span class="n">binary_search_circle</span><span class="p">,</span> <span class="n">wasserstein_circle</span><span class="p">,</span>
-                        <span class="n">semidiscrete_wasserstein2_unif_circle</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.solver_1d</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">emd_1d</span><span class="p">,</span>
+    <span class="n">emd2_1d</span><span class="p">,</span>
+    <span class="n">wasserstein_1d</span><span class="p">,</span>
+    <span class="n">binary_search_circle</span><span class="p">,</span>
+    <span class="n">wasserstein_circle</span><span class="p">,</span>
+    <span class="n">semidiscrete_wasserstein2_unif_circle</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">dist</span><span class="p">,</span> <span class="n">list_to_array</span>
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">parmap</span>
 <span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;emd&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2&#39;</span><span class="p">,</span> <span class="s1">&#39;barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;free_support_barycenter&#39;</span><span class="p">,</span> <span class="s1">&#39;cvx&#39;</span><span class="p">,</span> <span class="s1">&#39; emd_1d_sorted&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;emd_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;emd2_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;wasserstein_1d&#39;</span><span class="p">,</span> <span class="s1">&#39;generalized_free_support_barycenter&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;binary_search_circle&#39;</span><span class="p">,</span> <span class="s1">&#39;wasserstein_circle&#39;</span><span class="p">,</span> <span class="s1">&#39;semidiscrete_wasserstein2_unif_circle&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;dmmot_monge_1dgrid_loss&#39;</span><span class="p">,</span> <span class="s1">&#39;dmmot_monge_1dgrid_optimize&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;emd&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;emd2&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;barycenter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;free_support_barycenter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cvx&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;emd_1d_sorted&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;emd_1d&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;emd2_1d&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;wasserstein_1d&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;generalized_free_support_barycenter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;binary_search_circle&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;wasserstein_circle&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;semidiscrete_wasserstein2_unif_circle&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dmmot_monge_1dgrid_loss&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dmmot_monge_1dgrid_optimize&quot;</span><span class="p">,</span>
+<span class="p">]</span>
 
 
 <div class="viewcode-block" id="check_number_threads">
@@ -137,10 +145,14 @@
 <span class="sd">    numThreads : int</span>
 <span class="sd">        Corrected number of threads</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">numThreads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">numThreads</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">numThreads</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;max&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">numThreads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">numThreads</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">numThreads</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span>
+    <span class="p">):</span>
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">numThreads</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span> <span class="ow">or</span> <span class="n">numThreads</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;numThreads should either be &quot;max&quot; or a strictly positive integer&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;numThreads should either be &quot;max&quot; or a strictly positive integer&#39;</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">numThreads</span></div>
 
 
@@ -300,7 +312,16 @@
 
 <div class="viewcode-block" id="emd">
 <a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd">[docs]</a>
-<span class="k">def</span> <span class="nf">emd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">emd</span><span class="p">(</span>
+    <span class="n">a</span><span class="p">,</span>
+    <span class="n">b</span><span class="p">,</span>
+    <span class="n">M</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the OT matrix</span>
 
 
@@ -416,16 +437,13 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-    <span class="c1"># store original tensors</span>
-    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
-
     <span class="c1"># convert to numpy</span>
     <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
     <span class="c1"># ensure float64</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
 
     <span class="c1"># if empty array given then use uniform distributions</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -433,14 +451,18 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-    <span class="k">assert</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> \
-        <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">),</span> <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
 
     <span class="c1"># ensure that same mass</span>
     <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
-                                       <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">err_msg</span><span class="o">=</span><span class="s2">&quot;a and b vector must have the same sum&quot;</span><span class="p">,</span>
+            <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
@@ -463,15 +485,15 @@
             <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
             <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
             <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
-            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;cost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cost</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
-        <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cost</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;result_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span> <span class="n">log</span>
     <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span></div>
 
@@ -479,9 +501,18 @@
 
 <div class="viewcode-block" id="emd2">
 <a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.emd2">[docs]</a>
-<span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-         <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-         <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">emd2</span><span class="p">(</span>
+    <span class="n">a</span><span class="p">,</span>
+    <span class="n">b</span><span class="p">,</span>
+    <span class="n">M</span><span class="p">,</span>
+    <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the loss</span>
 
 <span class="sd">    .. math::</span>
@@ -605,16 +636,20 @@
 
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
 
-    <span class="k">assert</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> \
-        <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">),</span> <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
 
     <span class="c1"># ensure that same mass</span>
     <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">err_msg</span><span class="o">=</span><span class="s1">&#39;a and b vector must have the same sum&#39;</span><span class="p">,</span>
-                                       <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">err_msg</span><span class="o">=</span><span class="s2">&quot;a and b vector must have the same sum&quot;</span><span class="p">,</span>
+            <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">a</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">asel</span> <span class="o">=</span> <span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
@@ -622,6 +657,7 @@
     <span class="n">numThreads</span> <span class="o">=</span> <span class="n">check_number_threads</span><span class="p">(</span><span class="n">numThreads</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
+
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
             <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
 
@@ -641,20 +677,23 @@
                     <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
                     <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
                     <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
-                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
-                <span class="n">log</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;warning&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
-            <span class="n">log</span><span class="p">[</span><span class="s1">&#39;result_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
-            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
-                                    <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]),</span>
-                                                   <span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]),</span> <span class="n">G</span><span class="p">))</span>
+                <span class="n">log</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
+            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;result_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
+                <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]),</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]),</span> <span class="n">G</span><span class="p">),</span>
+            <span class="p">)</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">cost</span><span class="p">,</span> <span class="n">log</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
+
         <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
             <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
             <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
@@ -671,12 +710,18 @@
                     <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
                     <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
                     <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
-                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
-                                    <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
-                                                   <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span> <span class="n">G</span><span class="p">))</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
+                <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                    <span class="n">G</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
 
             <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">cost</span>
@@ -698,8 +743,18 @@
 
 <div class="viewcode-block" id="free_support_barycenter">
 <a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.free_support_barycenter">[docs]</a>
-<span class="k">def</span> <span class="nf">free_support_barycenter</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                            <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">free_support_barycenter</span><span class="p">(</span>
+    <span class="n">measures_locations</span><span class="p">,</span>
+    <span class="n">measures_weights</span><span class="p">,</span>
+    <span class="n">X_init</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Solves the free support (locations of the barycenters are optimized, not the weights) Wasserstein barycenter problem (i.e. the weighted Frechet mean for the 2-Wasserstein distance), formally:</span>
 
@@ -784,16 +839,19 @@
     <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">displacement_square_norms</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">stopThr</span> <span class="o">+</span> <span class="mf">1.</span>
+    <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">stopThr</span> <span class="o">+</span> <span class="mf">1.0</span>
 
-    <span class="k">while</span> <span class="p">(</span><span class="n">displacement_square_norm</span> <span class="o">&gt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">iter_count</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">):</span>
-
+    <span class="k">while</span> <span class="n">displacement_square_norm</span> <span class="o">&gt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">iter_count</span> <span class="o">&lt;</span> <span class="n">numItermax</span><span class="p">:</span>
         <span class="n">T_sum</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_init</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="p">(</span><span class="n">measure_locations_i</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">weight_i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">measure_locations_i</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">weight_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">measures_locations</span><span class="p">,</span> <span class="n">measures_weights</span><span class="p">,</span> <span class="n">weights</span>
+        <span class="p">):</span>
             <span class="n">M_i</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
             <span class="n">T_i</span> <span class="o">=</span> <span class="n">emd</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">measure_weights_i</span><span class="p">,</span> <span class="n">M_i</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="n">numThreads</span><span class="p">)</span>
-            <span class="n">T_sum</span> <span class="o">=</span> <span class="n">T_sum</span> <span class="o">+</span> <span class="n">weight_i</span> <span class="o">*</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">T_i</span><span class="p">,</span> <span class="n">measure_locations_i</span><span class="p">)</span>
+            <span class="n">T_sum</span> <span class="o">=</span> <span class="n">T_sum</span> <span class="o">+</span> <span class="n">weight_i</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+                <span class="n">T_i</span><span class="p">,</span> <span class="n">measure_locations_i</span>
+            <span class="p">)</span>
 
         <span class="n">displacement_square_norm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">T_sum</span> <span class="o">-</span> <span class="n">X</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
@@ -802,12 +860,16 @@
         <span class="n">X</span> <span class="o">=</span> <span class="n">T_sum</span>
 
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;iteration </span><span class="si">%d</span><span class="s1">, displacement_square_norm=</span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">iter_count</span><span class="p">,</span> <span class="n">displacement_square_norm</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;iteration </span><span class="si">%d</span><span class="s2">, displacement_square_norm=</span><span class="si">%f</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">iter_count</span><span class="p">,</span>
+                <span class="n">displacement_square_norm</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="n">iter_count</span> <span class="o">+=</span> <span class="mi">1</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-        <span class="n">log_dict</span><span class="p">[</span><span class="s1">&#39;displacement_square_norms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">displacement_square_norms</span>
+        <span class="n">log_dict</span><span class="p">[</span><span class="s2">&quot;displacement_square_norms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">displacement_square_norms</span>
         <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">log_dict</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">X</span></div>
@@ -816,8 +878,21 @@
 
 <div class="viewcode-block" id="generalized_free_support_barycenter">
 <a class="viewcode-back" href="../../gen_modules/ot.lp.html#ot.generalized_free_support_barycenter">[docs]</a>
-<span class="k">def</span> <span class="nf">generalized_free_support_barycenter</span><span class="p">(</span><span class="n">X_list</span><span class="p">,</span> <span class="n">a_list</span><span class="p">,</span> <span class="n">P_list</span><span class="p">,</span> <span class="n">n_samples_bary</span><span class="p">,</span> <span class="n">Y_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                        <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">generalized_free_support_barycenter</span><span class="p">(</span>
+    <span class="n">X_list</span><span class="p">,</span>
+    <span class="n">a_list</span><span class="p">,</span>
+    <span class="n">P_list</span><span class="p">,</span>
+    <span class="n">n_samples_bary</span><span class="p">,</span>
+    <span class="n">Y_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">eps</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Solves the free support generalized Wasserstein barycenter problem: finding a barycenter (a discrete measure with</span>
 <span class="sd">    a fixed amount of points of uniform weights) whose respective projections fit the input measures.</span>
@@ -896,12 +971,16 @@
         <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">p</span>
 
     <span class="c1"># variable change matrix to reduce the problem to a Wasserstein Barycenter (WB)</span>
-    <span class="n">A</span> <span class="o">=</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># if eps nonzero: will force the invertibility of A</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">P_i</span><span class="p">,</span> <span class="n">lambda_i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">P_list</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span>
+        <span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>  <span class="c1"># if eps nonzero: will force the invertibility of A</span>
+    <span class="k">for</span> <span class="n">P_i</span><span class="p">,</span> <span class="n">lambda_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">P_list</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
         <span class="n">A</span> <span class="o">=</span> <span class="n">A</span> <span class="o">+</span> <span class="n">lambda_i</span> <span class="o">*</span> <span class="n">P_i</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">P_i</span>
     <span class="n">B</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>
 
-    <span class="n">Z_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">@</span> <span class="n">Pi</span> <span class="o">@</span> <span class="n">B</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Pi</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">X_list</span><span class="p">,</span> <span class="n">P_list</span><span class="p">)]</span>  <span class="c1"># change of variables -&gt; (WB) problem on Z</span>
+    <span class="n">Z_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">x</span> <span class="o">@</span> <span class="n">Pi</span> <span class="o">@</span> <span class="n">B</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Pi</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">X_list</span><span class="p">,</span> <span class="n">P_list</span><span class="p">)</span>
+    <span class="p">]</span>  <span class="c1"># change of variables -&gt; (WB) problem on Z</span>
 
     <span class="k">if</span> <span class="n">Y_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">Y_init</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n_samples_bary</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -909,8 +988,17 @@
     <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_samples_bary</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">n_samples_bary</span>  <span class="c1"># not optimized</span>
 
-    <span class="n">out</span> <span class="o">=</span> <span class="n">free_support_barycenter</span><span class="p">(</span><span class="n">Z_list</span><span class="p">,</span> <span class="n">a_list</span><span class="p">,</span> <span class="n">Y_init</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
-                                  <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="n">numThreads</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">free_support_barycenter</span><span class="p">(</span>
+        <span class="n">Z_list</span><span class="p">,</span>
+        <span class="n">a_list</span><span class="p">,</span>
+        <span class="n">Y_init</span><span class="p">,</span>
+        <span class="n">b</span><span class="p">,</span>
+        <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+        <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+        <span class="n">numThreads</span><span class="o">=</span><span class="n">numThreads</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>  <span class="c1"># unpack</span>
         <span class="n">Y</span><span class="p">,</span> <span class="n">log_dict</span> <span class="o">=</span> <span class="n">out</span>
