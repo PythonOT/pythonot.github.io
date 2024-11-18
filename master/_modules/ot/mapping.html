@@ -115,6 +115,7 @@
     <span class="n">its</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">init_method</span><span class="o">=</span><span class="s2">&quot;barycentric&quot;</span><span class="p">,</span>
+    <span class="n">solver</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes optimal values and gradients at X for a strongly convex potential :math:`\varphi` with Lipschitz gradients</span>
@@ -171,7 +172,10 @@
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if true</span>
 <span class="sd">    init_method : str, optional</span>
-<span class="sd">        &#39;target&#39; initialises G=V, &#39;barycentric&#39; initialises at the image of X by the barycentric projection</span>
+<span class="sd">        &#39;target&#39; initialises G=V, &#39;barycentric&#39; initialises at the image of X by</span>
+<span class="sd">        the barycentric projection</span>
+<span class="sd">    solver : str, optional</span>
+<span class="sd">        The CVXPY solver to use</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -257,7 +261,7 @@
                         <span class="o">-</span> <span class="n">c3</span> <span class="o">*</span> <span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
                     <span class="p">]</span>
         <span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">cvx</span><span class="o">.</span><span class="n">ECOS</span><span class="p">)</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">)</span>
         <span class="n">phi_val</span><span class="p">,</span> <span class="n">G_val</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">G</span><span class="o">.</span><span class="n">value</span>
         <span class="n">it_log_dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;solve_time&quot;</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">solver_stats</span><span class="o">.</span><span class="n">solve_time</span><span class="p">,</span>
@@ -318,6 +322,7 @@
     <span class="n">strongly_convex_constant</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
     <span class="n">gradient_lipschitz_constant</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span>
     <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">solver</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compute the values of the lower and upper bounding potentials at the input points Y, using the potential optimal</span>
@@ -377,6 +382,8 @@
 <span class="sd">        constant for the Lipschitz property of the input gradient G, defaults to 1.4</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if true</span>
+<span class="sd">    solver : str, optional</span>
+<span class="sd">        The CVXPY solver to use</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -455,7 +462,7 @@
                 <span class="o">-</span> <span class="n">c3</span> <span class="o">*</span> <span class="p">(</span><span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">G_l_y</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">])</span>
             <span class="p">]</span>
         <span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">cvx</span><span class="o">.</span><span class="n">ECOS</span><span class="p">)</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">)</span>
         <span class="n">phi_lu</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi_l_y</span><span class="o">.</span><span class="n">value</span>
         <span class="n">G_lu</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_l_y</span><span class="o">.</span><span class="n">value</span>
         <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
@@ -482,7 +489,7 @@
                 <span class="o">-</span> <span class="n">c3</span> <span class="o">*</span> <span class="p">(</span><span class="n">G_u_y</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
             <span class="p">]</span>
         <span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
-        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">cvx</span><span class="o">.</span><span class="n">ECOS</span><span class="p">)</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">)</span>
         <span class="n">phi_lu</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi_u_y</span><span class="o">.</span><span class="n">value</span>
         <span class="n">G_lu</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_u_y</span><span class="o">.</span><span class="n">value</span>
         <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
