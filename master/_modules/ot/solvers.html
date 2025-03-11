@@ -107,11 +107,15 @@
     <span class="n">partial_gromov_wasserstein2</span><span class="p">,</span>
     <span class="n">partial_fused_gromov_wasserstein2</span><span class="p">,</span>
     <span class="n">entropic_partial_gromov_wasserstein2</span><span class="p">,</span>
+    <span class="n">entropic_partial_fused_gromov_wasserstein2</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.gaussian</span><span class="w"> </span><span class="kn">import</span> <span class="n">empirical_bures_wasserstein_distance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.factored</span><span class="w"> </span><span class="kn">import</span> <span class="n">factored_optimal_transport</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.lowrank</span><span class="w"> </span><span class="kn">import</span> <span class="n">lowrank_sinkhorn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">cg</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
 
 <span class="n">lst_method_lazy</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
@@ -744,7 +748,8 @@
 <span class="sd">        ``alpha=0.5`` for Fused Gromov-Wasserstein problem (``M!=None``)</span>
 <span class="sd">    unbalanced : float, optional</span>
 <span class="sd">        Unbalanced penalization weight :math:`\lambda_u`, by default None</span>
-<span class="sd">        (balanced OT), Not implemented yet</span>
+<span class="sd">        (balanced OT). Not implemented yet for &quot;KL&quot; unbalanced penalization</span>
+<span class="sd">        function :math:`U`. Corresponds to the total transport mass for partial OT.</span>
 <span class="sd">    unbalanced_type : str, optional</span>
 <span class="sd">        Type of unbalanced penalization function :math:`U` either &quot;KL&quot;, &quot;semirelaxed&quot;,</span>
 <span class="sd">        &quot;partial&quot;, by default &quot;KL&quot; but note that it is not implemented yet.</span>
@@ -949,8 +954,15 @@
 
     <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">reg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># exact OT</span>
         <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
-            <span class="s2">&quot;semirelaxed&quot;</span>
+            <span class="s2">&quot;semirelaxed&quot;</span><span class="p">,</span>
         <span class="p">]:</span>  <span class="c1"># Exact balanced OT</span>
+            <span class="k">if</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;partial&quot;</span><span class="p">]:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Exact balanced OT is computed as `unbalanced=None` even though &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;unbalanced_type = </span><span class="si">{</span><span class="n">unbalanced_type</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="p">)</span>
+
             <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># Gromov-Wasserstein problem</span>
                 <span class="c1"># default values for solver</span>
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1086,9 +1098,11 @@
                 <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
 
         <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;partial&quot;</span><span class="p">]:</span>  <span class="c1"># Partial OT</span>
-            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Partial Gromov-Wasserstein problem</span>
+            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>  <span class="c1"># Partial Gromov-Wasserstein problem</span>
                 <span class="k">if</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial GW mass given in reg is too large&quot;</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="p">(</span>
+                        <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial GW mass given in `unbalanced` is too large&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
 
                 <span class="c1"># default values for solver</span>
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1117,8 +1131,9 @@
 
             <span class="k">else</span><span class="p">:</span>  <span class="c1"># partial FGW</span>
                 <span class="k">if</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial FGW mass given in reg is too large&quot;</span><span class="p">))</span>
-
+                    <span class="k">raise</span> <span class="p">(</span>
+                        <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial GW mass given in `unbalanced` is too large&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
                 <span class="c1"># default values for solver</span>
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
@@ -1159,8 +1174,15 @@
 
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># regularized OT</span>
         <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
-            <span class="s2">&quot;semirelaxed&quot;</span>
+            <span class="s2">&quot;semirelaxed&quot;</span><span class="p">,</span>
         <span class="p">]:</span>  <span class="c1"># Balanced regularized OT</span>
+            <span class="k">if</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;partial&quot;</span><span class="p">]:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Exact balanced OT is computed as `unbalanced=None` even though &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;unbalanced_type = </span><span class="si">{</span><span class="n">unbalanced_type</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="p">)</span>
+
             <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;entropy&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span>
                 <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span>
             <span class="p">):</span>  <span class="c1"># Entropic Gromov-Wasserstein problem</span>
@@ -1316,9 +1338,11 @@
                 <span class="n">value</span> <span class="o">=</span> <span class="n">value_noreg</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
 
         <span class="k">elif</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;partial&quot;</span><span class="p">]:</span>  <span class="c1"># Partial OT</span>
-            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Partial Gromov-Wasserstein problem</span>
+            <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>  <span class="c1"># Partial Gromov-Wasserstein problem</span>
                 <span class="k">if</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial GW mass given in reg is too large&quot;</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="p">(</span>
+                        <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial GW mass given in `unbalanced` is too large&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
 
                 <span class="c1"># default values for solver</span>
                 <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1326,7 +1350,7 @@
                 <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span>
 
-                <span class="n">value_quad</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_partial_gromov_wasserstein2</span><span class="p">(</span>
+                <span class="n">value_noreg</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_partial_gromov_wasserstein2</span><span class="p">(</span>
                     <span class="n">Ca</span><span class="p">,</span>
                     <span class="n">Cb</span><span class="p">,</span>
                     <span class="n">a</span><span class="p">,</span>
@@ -1342,12 +1366,45 @@
                     <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                 <span class="p">)</span>
 
-                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">value_noreg</span>
                 <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;T&quot;</span><span class="p">]</span>
                 <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
-
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_noreg</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>  <span class="c1"># partial FGW</span>
-                <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Partial entropic FGW not implemented yet&quot;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="p">(</span>
+                        <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Partial GW mass given in `unbalanced` is too large&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># default values for solver</span>
+                <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span>
+                <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span>
+
+                <span class="n">value_noreg</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">entropic_partial_fused_gromov_wasserstein2</span><span class="p">(</span>
+                    <span class="n">M</span><span class="p">,</span>
+                    <span class="n">Ca</span><span class="p">,</span>
+                    <span class="n">Cb</span><span class="p">,</span>
+                    <span class="n">a</span><span class="p">,</span>
+                    <span class="n">b</span><span class="p">,</span>
+                    <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span>
+                    <span class="n">loss_fun</span><span class="o">=</span><span class="n">loss_fun</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+                    <span class="n">m</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span>
+                    <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                    <span class="n">G0</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span>
+                    <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+                    <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;lin_loss&quot;</span><span class="p">]</span>
+                <span class="n">value_quad</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;quad_loss&quot;</span><span class="p">]</span>
+                <span class="n">plan</span> <span class="o">=</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;T&quot;</span><span class="p">]</span>
+                <span class="c1"># potentials = (log[&#39;u&#39;], log[&#39;v&#39;]) TODO</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value_noreg</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">plan</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
 
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># unbalanced AND regularized OT</span>
             <span class="k">raise</span> <span class="p">(</span>
