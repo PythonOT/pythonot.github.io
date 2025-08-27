@@ -128,7 +128,7 @@ Plot data
  .. code-block:: none
 
 
-    <matplotlib.collections.PathCollection object at 0x7f6bd4549930>
+    <matplotlib.collections.PathCollection object at 0x7f2347124eb0>
 
 
 
@@ -144,7 +144,7 @@ The Wasserstein distance on the circle takes into account the periodicity
 and attains its maximum in :math:`\mu_{\mathrm{target}}+1` (the antipodal point) contrary to the
 Euclidean version.
 
-.. GENERATED FROM PYTHON SOURCE LINES 86-144
+.. GENERATED FROM PYTHON SOURCE LINES 86-157
 
 .. code-block:: Python
 
@@ -167,16 +167,22 @@ Euclidean version.
 
     L_w2_circle = np.zeros((n_try, 200))
     L_w2 = np.zeros((n_try, 200))
+    L_lcot = np.zeros((n_try, 200))
 
     for i in range(n_try):
         w2_circle = ot.wasserstein_circle(xs2.T, xts2[i].T, p=2)
         w2 = ot.wasserstein_1d(xs2.T, xts2[i].T, p=2)
+        w_lcot = ot.linear_circular_ot(xs2.T, xts2[i].T)
 
         L_w2_circle[i] = w2_circle
         L_w2[i] = w2
+        L_lcot[i] = w_lcot
 
     m_w2_circle = np.mean(L_w2_circle, axis=0)
     std_w2_circle = np.std(L_w2_circle, axis=0)
+
+    m_w2_lcot = np.mean(L_lcot, axis=0)
+    std_w2_lcot = np.std(L_lcot, axis=0)
 
     m_w2 = np.mean(L_w2, axis=0)
     std_w2 = np.std(L_w2, axis=0)
@@ -192,6 +198,13 @@ Euclidean version.
     pl.plot(mu_targets / (2 * np.pi), m_w2, label="Euclidean Wasserstein")
     pl.fill_between(
         mu_targets / (2 * np.pi), m_w2 - 2 * std_w2, m_w2 + 2 * std_w2, alpha=0.5
+    )
+    pl.plot(mu_targets / (2 * np.pi), m_w2_lcot, label="Linear COT")
+    pl.fill_between(
+        mu_targets / (2 * np.pi),
+        m_w2_lcot - 2 * std_w2_lcot,
+        m_w2_lcot + 2 * std_w2_lcot,
+        alpha=0.5,
     )
     pl.vlines(
         x=[mu1 / (2 * np.pi)],
@@ -215,25 +228,16 @@ Euclidean version.
    :class: sphx-glr-single-img
 
 
-.. rst-class:: sphx-glr-script-out
-
- .. code-block:: none
-
-    /home/circleci/project/ot/lp/solver_1d.py:796: RuntimeWarning: divide by zero encountered in divide
-      (Ctp - Ctm + tm * dCptm - tp * dCmtp) / (dCptm - dCmtp)
-    /home/circleci/project/ot/lp/solver_1d.py:796: RuntimeWarning: invalid value encountered in divide
-      (Ctp - Ctm + tm * dCptm - tp * dCmtp) / (dCptm - dCmtp)
 
 
 
-
-.. GENERATED FROM PYTHON SOURCE LINES 145-148
+.. GENERATED FROM PYTHON SOURCE LINES 158-161
 
 Wasserstein distance between von Mises and uniform for different kappa
 ----------------------------------------------------------------------
 When :math:`\kappa=0`, the von Mises distribution is the uniform distribution on :math:`S^1`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 150-175
+.. GENERATED FROM PYTHON SOURCE LINES 163-196
 
 .. code-block:: Python
 
@@ -249,15 +253,23 @@ When :math:`\kappa=0`, the von Mises distribution is the uniform distribution on
             xts[i, k] = xt / (2 * np.pi)
 
     L_w2 = np.zeros((n_try, 100))
+    L_lcot = np.zeros((n_try, 100))
     for i in range(n_try):
         L_w2[i] = ot.semidiscrete_wasserstein2_unif_circle(xts[i].T)
+        L_lcot[i] = ot.linear_circular_ot(xts[i].T)
 
     m_w2 = np.mean(L_w2, axis=0)
     std_w2 = np.std(L_w2, axis=0)
 
+    m_lcot = np.mean(L_lcot, axis=0)
+    std_lcot = np.std(L_lcot, axis=0)
+
     pl.figure(1)
-    pl.plot(kappas, m_w2)
+    pl.plot(kappas, m_w2, label="Wasserstein")
     pl.fill_between(kappas, m_w2 - std_w2, m_w2 + std_w2, alpha=0.5)
+    pl.plot(kappas, m_lcot, label="LCOT")
+    pl.fill_between(kappas, m_lcot - std_lcot, m_lcot + std_lcot, alpha=0.5)
+    pl.legend()
     pl.title(r"Evolution of $W_2^2(vM(0,\kappa), Unif(S^1))$")
     pl.xlabel(r"$\kappa$")
     pl.show()
@@ -277,7 +289,7 @@ When :math:`\kappa=0`, the von Mises distribution is the uniform distribution on
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.035 seconds)
+   **Total running time of the script:** (0 minutes 3.418 seconds)
 
 
 .. _sphx_glr_download_auto_examples_sliced-wasserstein_plot_compute_wasserstein_circle.py:
