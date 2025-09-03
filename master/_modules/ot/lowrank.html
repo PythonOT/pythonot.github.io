@@ -86,6 +86,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1"># Author: Laurène David &lt;laurene.david@ip-paris.fr&gt;</span>
+<span class="c1">#         Titouan Vayer &lt;titouan.vayer@inria.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
@@ -593,9 +594,9 @@
     <span class="n">lazy_plan</span> <span class="o">=</span> <span class="n">get_lowrank_lazytensor</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">g</span><span class="p">)</span>
 
     <span class="c1"># Compute value_linear (using trace formula)</span>
-    <span class="n">v1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Q</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">M1</span><span class="p">)</span>
-    <span class="n">v2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="p">(</span><span class="n">v1</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">diag_g</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-    <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">v2</span><span class="p">)))</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Q</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">M2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">R</span> <span class="o">*</span> <span class="n">diag_g</span><span class="p">)</span>
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">B</span><span class="p">)</span>
 
     <span class="c1"># Compute value with entropy reg (see &quot;Section 3.2&quot; in the paper)</span>
     <span class="n">reg_Q</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Q</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Q</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>  <span class="c1"># entropy for Q</span>
@@ -612,6 +613,215 @@
         <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">dict_log</span>
 
     <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">g</span></div>
+
+
+
+<div class="viewcode-block" id="kernel_nystroem">
+<a class="viewcode-back" href="../../gen_modules/ot.lowrank.html#ot.kernel_nystroem">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel_nystroem</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">anchors</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute left and right factors corresponding to the Nystroem method on the Gaussian kernel :math:`K(x^s_i, x^t_j) = \exp(-\|x^s_i-x^t_j\|^2/2\sigma^2)`.</span>
+<span class="sd">    The Nystroem approximation is computed by sampling :math:`\min(n, \lceil(c / 2))\rceil)` components in each distribution,</span>
+<span class="sd">    where :math:`n` is the number of samples in the distribution and :math:`c` the total number of anchor points.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    anchors : int, optional</span>
+<span class="sd">        The total number of anchors sampled for the Nystroem approximation (anchors/2 in each distribution), default 50.</span>
+<span class="sd">    sigma : float, optional</span>
+<span class="sd">        The standard deviation parameter for the Gaussian kernel.</span>
+<span class="sd">    random_state : int, optional</span>
+<span class="sd">        The random state for sampling the components in each distribution.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    left_factor : array-like, shape (n_samples_a, dim_r)</span>
+<span class="sd">        Left factor of Nystroem</span>
+<span class="sd">    right_factor : array-like, shape (n_samples_b, dim_r)</span>
+<span class="sd">        Right factor of Nystroem</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+
+    <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">anchors</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;anchors must be an integer &gt;= 2&quot;</span><span class="p">)</span>
+
+    <span class="n">n_components_source</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">anchors</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">n_components_target</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">anchors</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># draw n_components/2 points in each distribution</span>
+    <span class="n">inds_source</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>  <span class="c1"># sample n_components_source uniformly</span>
+    <span class="n">basis_source</span> <span class="o">=</span> <span class="n">X_s</span><span class="p">[</span><span class="n">inds_source</span><span class="p">[:</span><span class="n">n_components_source</span><span class="p">]]</span>
+
+    <span class="n">inds_target</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">basis_target</span> <span class="o">=</span> <span class="n">X_t</span><span class="p">[</span><span class="n">inds_target</span><span class="p">[:</span><span class="n">n_components_target</span><span class="p">]]</span>
+
+    <span class="n">basis</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">basis_source</span><span class="p">,</span> <span class="n">basis_target</span><span class="p">))</span>
+
+    <span class="n">Mzz</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">)</span>  <span class="c1"># compute \|z_i - z_j\|_2^2</span>
+    <span class="n">basis_kernel</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">Mzz</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">normalization</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">basis_kernel</span><span class="p">,</span> <span class="n">hermitian</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">Mxz</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">)</span>
+    <span class="n">Myz</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">)</span>
+
+    <span class="n">left_factor</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">Mxz</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">@</span> <span class="n">normalization</span>
+    <span class="n">right_factor</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">Myz</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">left_factor</span><span class="p">,</span> <span class="n">right_factor</span>  <span class="c1"># left_factor @ right_factor.T approx K</span></div>
+
+
+
+<div class="viewcode-block" id="sinkhorn_low_rank_kernel">
+<a class="viewcode-back" href="../../gen_modules/ot.lowrank.html#ot.sinkhorn_low_rank_kernel">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sinkhorn_low_rank_kernel</span><span class="p">(</span>
+    <span class="n">K1</span><span class="p">,</span>  <span class="c1"># left factor</span>
+    <span class="n">K2</span><span class="p">,</span>  <span class="c1"># right factor</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the Sinkhorn algorithm for a kernel :math:`\mathbf{K}` that can be written as a low rank factorization :math:`\mathbf{K} = \mathbf{K}_1 \mathbf{K}_2^\top`.</span>
+<span class="sd">    Does not implement multiple targets.</span>
+
+<span class="sd">    Precisely :</span>
+
+<span class="sd">    - :math:`\mathbf{K}_1, \mathbf{K}_2` are the (`dim_a`, `dim_r`), (`dim_b`, `dim_r`) kernel matrices</span>
+<span class="sd">    - :math:`\Omega` is the entropic regularization term</span>
+<span class="sd">      :math:`\Omega(\gamma)=\sum_{i,j} \gamma_{i,j}\log(\gamma_{i,j})`</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target</span>
+<span class="sd">      weights (histograms, both sum to 1)</span>
+
+<span class="sd">    The algorithm used for solving the problem is the Sinkhorn-Knopp</span>
+<span class="sd">    matrix scaling algorithm as proposed in :ref:`[2] &lt;references-sinkhorn-knopp&gt;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    K_1 : array-like, shape (n_samples_a, dim_r)</span>
+<span class="sd">        Left factor</span>
+<span class="sd">    K_2 : array-like, shape (n_samples_b, dim_r)</span>
+<span class="sd">        Right factor</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    warmstart: tuple of arrays, shape (n_samples_a, n_samples_b), optional</span>
+<span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
+<span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ---------</span>
+<span class="sd">    u : array-like, shape (n_samples_a, )</span>
+<span class="sd">        Left dual variable</span>
+<span class="sd">    v: array-like, shape (n_samples_b, )</span>
+<span class="sd">        Right dual variable</span>
+<span class="sd">    log : dict (lazy_plan)</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">K1</span><span class="p">,</span> <span class="n">K2</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">K1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">K1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">K1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">K2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">K2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">K2</span><span class="p">)</span>
+
+    <span class="c1"># init data</span>
+    <span class="n">dim_a</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">dim_b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dict_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;err&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="c1"># we assume that no distances are null except those of the diagonal of</span>
+    <span class="c1"># distances</span>
+    <span class="k">if</span> <span class="n">warmstart</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">K1</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_a</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_b</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">K2</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_b</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">warmstart</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">warmstart</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">uprev</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="n">vprev</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">KtransposeU</span> <span class="o">=</span> <span class="n">K2</span> <span class="o">@</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">K1</span><span class="p">)</span> <span class="o">@</span> <span class="n">u</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">b</span> <span class="o">/</span> <span class="n">KtransposeU</span>
+        <span class="n">KV</span> <span class="o">=</span> <span class="n">K1</span> <span class="o">@</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">K2</span><span class="p">)</span> <span class="o">@</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">a</span> <span class="o">/</span> <span class="n">KV</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">KtransposeU</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+            <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+            <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+            <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="p">):</span>
+            <span class="c1"># we have reached the machine precision</span>
+            <span class="c1"># come back to previous solution and quit loop</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Warning: numerical errors at iteration </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ii</span><span class="p">)</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">uprev</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">vprev</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we can speed up the process by checking for the error only all</span>
+            <span class="c1"># the 10th iterations</span>
+            <span class="n">tmp2</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">v</span> <span class="o">*</span> <span class="p">(</span><span class="n">K2</span> <span class="o">@</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">K1</span><span class="p">)</span> <span class="o">@</span> <span class="n">u</span><span class="p">))</span>
+            <span class="p">)</span>  <span class="c1"># same as nx.einsum(&quot;ik, ir, jr, jk-&gt;jk&quot;, u, K1, K2, v) and nx.einsum(&quot;i, ir, jr, j-&gt;j&quot;, u, K1, K2, v) in the scalar case</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tmp2</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>  <span class="c1"># violation of marginal</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;err&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5s}</span><span class="s2">|</span><span class="si">{:12s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;It.&quot;</span><span class="p">,</span> <span class="s2">&quot;Err&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
+                <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
+                <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;niter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;lazy_plan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_lowrank_lazytensor</span><span class="p">(</span>
+            <span class="n">u</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">K1</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">K2</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dict_log</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span></div>
 
 </pre></div>
 

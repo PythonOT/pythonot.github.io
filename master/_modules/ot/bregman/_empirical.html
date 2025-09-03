@@ -89,6 +89,7 @@
 <span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
 <span class="c1">#         Kilian Fatras &lt;kilian.fatras@irisa.fr&gt;</span>
 <span class="c1">#         Quang Huy Tran &lt;quang-huy.tran@univ-ubs.fr&gt;</span>
+<span class="c1">#         Titouan Vayer &lt;titouan.vayer@inria.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
@@ -98,6 +99,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._sinkhorn</span><span class="w"> </span><span class="kn">import</span> <span class="n">sinkhorn</span><span class="p">,</span> <span class="n">sinkhorn2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..lowrank</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">kernel_nystroem</span><span class="p">,</span>
+    <span class="n">sinkhorn_low_rank_kernel</span><span class="p">,</span>
+    <span class="n">compute_lr_sqeuclidean_matrix</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_sinkhorn_lazytensor</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -352,7 +358,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">M</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-            <span class="n">pi</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span>
+            <span class="n">G</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span>
                 <span class="n">a</span><span class="p">,</span>
                 <span class="n">b</span><span class="p">,</span>
                 <span class="n">M</span><span class="p">,</span>
@@ -364,9 +370,9 @@
                 <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="n">pi</span><span class="p">,</span> <span class="n">log</span>
+            <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">pi</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">sinkhorn</span><span class="p">(</span>
                 <span class="n">a</span><span class="p">,</span>
                 <span class="n">b</span><span class="p">,</span>
                 <span class="n">M</span><span class="p">,</span>
@@ -378,7 +384,7 @@
                 <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="n">pi</span></div>
+            <span class="k">return</span> <span class="n">G</span></div>
 
 
 
@@ -846,6 +852,242 @@
 
         <span class="n">sinkhorn_div</span> <span class="o">=</span> <span class="n">sinkhorn_loss_ab</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">sinkhorn_loss_a</span> <span class="o">+</span> <span class="n">sinkhorn_loss_b</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sinkhorn_div</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="empirical_sinkhorn_nystroem">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn_nystroem">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">empirical_sinkhorn_nystroem</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">anchors</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the entropic regularization optimal transport problem with Sinkhorn and Nystroem factorization [76] and returns the</span>
+<span class="sd">    OT matrix from empirical data.</span>
+<span class="sd">    Corresponds to an approximation of entropic OT (for a squared Euclidean cost) that runs in linear time.</span>
+<span class="sd">    The number of anchors controls the level of approximation (the higher, the better the approximation, but the slower the computation becomes).</span>
+<span class="sd">    Warning: with low level of regularization, the OT plan can have non-positive values.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    anchors : int, optional</span>
+<span class="sd">        The total number of anchors sampled for the Nystroem approximation (anchors/2 in each distribution), default 50.</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations of Sinkhorn</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error on the dual variables (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
+<span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors)</span>
+<span class="sd">    random_state : int, optional</span>
+<span class="sd">        The random state for sampling the components in each distribution.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gamma : LazyTensor</span>
+<span class="sd">        OT plan as lazy tensor.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 2</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_b = 4</span>
+<span class="sd">    &gt;&gt;&gt; reg = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; anchors = 3</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.reshape(np.arange(n_samples_a, dtype=np.float64), (n_samples_a, 1))</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.reshape(np.arange(0, n_samples_b, dtype=np.float64), (n_samples_b, 1))</span>
+<span class="sd">    &gt;&gt;&gt; empirical_sinkhorn_nystroem(X_s, X_t, reg, anchors, random_state=42)[:]  # doctest: +ELLIPSIS</span>
+<span class="sd">    array([[0.125, 0.125, 0.125, 0.125],</span>
+<span class="sd">           [0.125, 0.125, 0.125, 0.125]])</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [80] Massively scalable Sinkhorn distances via the Nyström method, Jason Altschuler, Francis Bach, Alessandro Rudi, Jonathan Niles-Weed, NeurIPS 2019.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">left_factor</span><span class="p">,</span> <span class="n">right_factor</span> <span class="o">=</span> <span class="n">kernel_nystroem</span><span class="p">(</span>
+        <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">anchors</span><span class="o">=</span><span class="n">anchors</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="p">(</span><span class="n">reg</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span>
+    <span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">sinkhorn_low_rank_kernel</span><span class="p">(</span>
+        <span class="n">K1</span><span class="o">=</span><span class="n">left_factor</span><span class="p">,</span>
+        <span class="n">K2</span><span class="o">=</span><span class="n">right_factor</span><span class="p">,</span>
+        <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span>
+        <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+        <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+        <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+        <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;left_factor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">left_factor</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;right_factor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">right_factor</span>
+        <span class="k">return</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;lazy_plan&quot;</span><span class="p">],</span> <span class="n">dict_log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;lazy_plan&quot;</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="empirical_sinkhorn_nystroem2">
+<a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.empirical_sinkhorn_nystroem2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">empirical_sinkhorn_nystroem2</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">anchors</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">stopThr</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">warmstart</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves the entropic regularization optimal transport problem with Sinkhorn and Nystroem factorization [76] and returns the</span>
+<span class="sd">    OT loss from empirical data.</span>
+<span class="sd">    Corresponds to an approximation of entropic OT (for a squared Euclidean cost) that runs in linear time.</span>
+<span class="sd">    The number of anchors controls the level of approximation (the higher, the better the approximation, but the slower the computation becomes).</span>
+<span class="sd">    Warning: with low level of regularization, the OT plan can have non-positive values.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : array-like, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization term &gt;0</span>
+<span class="sd">    anchors : int, optional</span>
+<span class="sd">        The total number of anchors sampled for the Nystroem approximation (anchors/2 in each distribution), default 50.</span>
+<span class="sd">    a : array-like, shape (n_samples_a,)</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    numItermax : int, optional</span>
+<span class="sd">        Max number of iterations of Sinkhorn</span>
+<span class="sd">    stopThr : float, optional</span>
+<span class="sd">        Stop threshold on error on the dual variables (&gt;0)</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information along iterations</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+<span class="sd">    warn : bool, optional</span>
+<span class="sd">        if True, raises a warning if the algorithm doesn&#39;t convergence.</span>
+<span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
+<span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors)</span>
+<span class="sd">    random_state : int, optional</span>
+<span class="sd">        The random state for sampling the components in each distribution.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    W : float</span>
+<span class="sd">        Optimal transportation loss for the given parameters</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 2</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_b = 4</span>
+<span class="sd">    &gt;&gt;&gt; reg = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; anchors = 3</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.reshape(np.arange(n_samples_a, dtype=np.float64), (n_samples_a, 1))</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.reshape(np.arange(0, n_samples_b, dtype=np.float64), (n_samples_b, 1))</span>
+<span class="sd">    &gt;&gt;&gt; empirical_sinkhorn_nystroem2(X_s, X_t, reg, anchors, random_state=42)  # doctest: +ELLIPSIS</span>
+<span class="sd">    2.5</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [80] Massively scalable Sinkhorn distances via the Nyström method, Jason Altschuler, Francis Bach, Alessandro Rudi, Jonathan Niles-Weed, NeurIPS 2019.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+    <span class="n">M1</span><span class="p">,</span> <span class="n">M2</span> <span class="o">=</span> <span class="n">compute_lr_sqeuclidean_matrix</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">left_factor</span><span class="p">,</span> <span class="n">right_factor</span> <span class="o">=</span> <span class="n">kernel_nystroem</span><span class="p">(</span>
+        <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">anchors</span><span class="o">=</span><span class="n">anchors</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="p">(</span><span class="n">reg</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dict_log</span> <span class="o">=</span> <span class="n">sinkhorn_low_rank_kernel</span><span class="p">(</span>
+            <span class="n">K1</span><span class="o">=</span><span class="n">left_factor</span><span class="p">,</span>
+            <span class="n">K2</span><span class="o">=</span><span class="n">right_factor</span><span class="p">,</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+            <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+            <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+            <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;left_factor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">left_factor</span>
+        <span class="n">dict_log</span><span class="p">[</span><span class="s2">&quot;right_factor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">right_factor</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">sinkhorn_low_rank_kernel</span><span class="p">(</span>
+            <span class="n">K1</span><span class="o">=</span><span class="n">left_factor</span><span class="p">,</span>
+            <span class="n">K2</span><span class="o">=</span><span class="n">right_factor</span><span class="p">,</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+            <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+            <span class="n">stopThr</span><span class="o">=</span><span class="n">stopThr</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+            <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">left_factor</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">right_factor</span>
+    <span class="c1"># Compute the cost (using trace formula)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">Q</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">M1</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">M2</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">B</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">dict_log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">loss</span></div>
 
 </pre></div>
 
