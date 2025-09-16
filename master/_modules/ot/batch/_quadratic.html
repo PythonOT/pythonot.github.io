@@ -1,0 +1,776 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.batch._quadratic &mdash; POT Python Optimal Transport 0.9.6dev0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6e3d2238"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.batch._quadratic</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.batch._quadratic</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Batch operations for quadratic optimal transport.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Paul Krzakala &lt;paul.krzakala@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">OTResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ot.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ot.batch._linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">loss_linear_batch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ot.batch._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">bmv</span><span class="p">,</span> <span class="n">bop</span><span class="p">,</span> <span class="n">bregman_log_projection_batch</span>
+
+
+<div class="viewcode-block" id="tensor_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.tensor_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tensor_batch</span><span class="p">(</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the Gromov-Wasserstein cost tensor for a batch of problems.</span>
+
+<span class="sd">    The Gromov-Wasserstein distance can be expressed as:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \text{GW}(\mathbf{T}, \mathbf{C}_1, \mathbf{C}_2) = \sum_{ijkl} T_{ik} T_{jl} \ell(C_{1,ij}, C_{2,kl}) = \langle \mathcal{L} \times \mathbf{T}, \mathbf{T} \rangle</span>
+
+<span class="sd">    where :math:`\mathcal{L}` is a 4D tensor with elements :math:`\mathcal{L}[i,j,k,l] = \ell(C_{1,ij}, C_{2,kl})`.</span>
+
+<span class="sd">    For loss functions of the form :math:`\ell(a,b) = f_1(a) + f_2(b) - \langle h_1(a), h_2(b) \rangle`,</span>
+<span class="sd">    the tensor product :math:`\mathcal{L} \times \mathbf{T}` can be computed efficiently without explicitly computing :math:`\mathcal{L}` [12].</span>
+
+<span class="sd">    This function precomputes all matrices that implicitly define `\mathcal{L}` for various loss functions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array-like, shape (B, n)</span>
+<span class="sd">        Source distributions for each problem in the batch.</span>
+<span class="sd">    b : array-like, shape (B, m)</span>
+<span class="sd">        Target distributions for each problem in the batch.</span>
+<span class="sd">    C1 : array-like, shape (B, n, n) or (B, n, n, d)</span>
+<span class="sd">        Source cost matrices for each problem. Can be a 3D array for scalar costs or a 4D array for vector-valued costs (edge features).</span>
+<span class="sd">    C2 : array-like, shape (B, m, m) or (B, n, n, d)</span>
+<span class="sd">        Target cost matrices for each problem. Can be a 3D array for scalar costs or a 4D array for vector-valued costs (edge features).</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Whether the cost matrices are symmetric. Default is True.</span>
+<span class="sd">    nx : backend object, optional</span>
+<span class="sd">        Numerical backend to use for computations. If None, the default backend is used.</span>
+<span class="sd">    loss : str, optional</span>
+<span class="sd">        Loss function to use. Supported values: &#39;sqeuclidean&#39;, &#39;kl&#39;.</span>
+<span class="sd">        Default is &#39;sqeuclidean&#39;.</span>
+<span class="sd">    logits : bool, optional</span>
+<span class="sd">        For KL divergence, whether inputs are logits (unnormalized log probabilities).</span>
+<span class="sd">        If True, inputs are treated as logits. Default is None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Dictionary containing:</span>
+<span class="sd">        - constC : array-like, shape (B, n, m)</span>
+<span class="sd">            Constant term in the tensor product.</span>
+<span class="sd">        - hC1 : array-like, shape (B, n, n, d) or (B, n, n)</span>
+<span class="sd">        - hC2 : array-like, shape (B, m, m, d) or (B, m, m)</span>
+<span class="sd">        - fC1 : array-like, shape (B, n, n)</span>
+<span class="sd">        - fC2 : array-like, shape (B, m, m)</span>
+
+
+<span class="sd">    Supported loss functions:</span>
+<span class="sd">    ------------------------------</span>
+
+<span class="sd">    **Squared Euclidean loss**:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \ell(a, b) = \|a - b\|_2^2 = \sum_i (a_i - b_i)^2</span>
+
+<span class="sd">    **KL divergence**:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \ell(a, b) = \sum_i a_i \log\left(\frac{a_i}{b_i}\right)</span>
+
+<span class="sd">    If ``logits=True``, the entries of C1 are treated as logits (unnormalized log probabilities)</span>
+<span class="sd">    and the loss becomes:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \ell(x, y) = \sum_i y_i (\log(y_i) - x_i)</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.batch import tensor_batch</span>
+<span class="sd">    &gt;&gt;&gt; # Create batch of cost matrices</span>
+<span class="sd">    &gt;&gt;&gt; C1 = np.random.rand(3, 5, 5)  # 3 problems, 5x5 source matrices</span>
+<span class="sd">    &gt;&gt;&gt; C2 = np.random.rand(3, 4, 4)  # 3 problems, 4x4 target matrices</span>
+<span class="sd">    &gt;&gt;&gt; a = np.ones((3, 5)) / 5  # Uniform source distributions</span>
+<span class="sd">    &gt;&gt;&gt; b = np.ones((3, 4)) / 4  # Uniform target distributions</span>
+<span class="sd">    &gt;&gt;&gt; L = tensor_batch(a, b, C1, C2, loss=&#39;sqeuclidean&#39;)</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">loss</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">f1</span><span class="p">(</span><span class="n">C1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">C1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">C1</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">C1</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">f2</span><span class="p">(</span><span class="n">C2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">C2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">C2</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">C2</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">h1</span><span class="p">(</span><span class="n">C1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">C1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">C1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">C1</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">h2</span><span class="p">(</span><span class="n">C2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">C2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">C2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">C2</span>
+
+    <span class="k">elif</span> <span class="n">loss</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">logits</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="kc">True</span><span class="p">,</span>
+            <span class="kc">False</span><span class="p">,</span>
+        <span class="p">],</span> <span class="s2">&quot;logits must be either True or False for KL loss&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">f1</span><span class="p">(</span><span class="n">C1</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">f2</span><span class="p">(</span><span class="n">C2</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">C2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;C2 must be a bxnxnxd tensor&quot;</span>
+            <span class="n">fC2</span> <span class="o">=</span> <span class="n">C2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">C2</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>  <span class="c1"># Avoid log(0)</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fC2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">h1</span><span class="p">(</span><span class="n">C1</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">C1</span> <span class="k">if</span> <span class="n">logits</span> <span class="k">else</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">C1</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">h2</span><span class="p">(</span><span class="n">C2</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">C2</span>
+
+    <span class="k">return</span> <span class="n">compute_tensor_batch</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="loss_quadratic_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.loss_quadratic_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">loss_quadratic_batch</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">recompute_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the gromov-wasserstein cost given a cost tensor and transport plan. Batched version.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : dict</span>
+<span class="sd">        Cost tensor as returned by `tensor_batch`.</span>
+<span class="sd">    T : array-like, shape (B, n, m)</span>
+<span class="sd">        Transport plan.</span>
+<span class="sd">    recompute_const : bool, optional</span>
+<span class="sd">        Whether to recompute the constant term. Default is False. This should be set to True if T does not satisfy the marginal constraints.</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Whether to use symmetric version. Default is True.</span>
+<span class="sd">    nx : module, optional</span>
+<span class="sd">        Backend to use. Default is None.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.batch import tensor_batch, loss_quadratic_batch</span>
+<span class="sd">    &gt;&gt;&gt; # Create batch of cost matrices</span>
+<span class="sd">    &gt;&gt;&gt; C1 = np.random.rand(3, 5, 5)  # 3 problems, 5x5 source matrices</span>
+<span class="sd">    &gt;&gt;&gt; C2 = np.random.rand(3, 4, 4)  # 3 problems, 4x4 target matrices</span>
+<span class="sd">    &gt;&gt;&gt; a = np.ones((3, 5)) / 5  # Uniform source distributions</span>
+<span class="sd">    &gt;&gt;&gt; b = np.ones((3, 4)) / 4  # Uniform target distributions</span>
+<span class="sd">    &gt;&gt;&gt; L = tensor_batch(a, b, C1, C2, loss=&#39;sqeuclidean&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; # Use the uniform transport plan for testing</span>
+<span class="sd">    &gt;&gt;&gt; T = np.ones((3, 5, 4)) / (5 * 4)</span>
+<span class="sd">    &gt;&gt;&gt; loss = loss_quadratic_batch(L, T, recompute_const=True)</span>
+<span class="sd">    &gt;&gt;&gt; loss.shape</span>
+<span class="sd">    (3,)</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.tensor_batch : From computing the cost tensor L.</span>
+<span class="sd">    ot.batch.solve_gromov_batch : For finding the optimal transport plan T.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">LT</span> <span class="o">=</span> <span class="n">tensor_product_batch</span><span class="p">(</span>
+        <span class="n">L</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">recompute_const</span><span class="o">=</span><span class="n">recompute_const</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">LT</span> <span class="o">*</span> <span class="n">T</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="loss_quadratic_samples_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.loss_quadratic_samples_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">loss_quadratic_samples_batch</span><span class="p">(</span>
+    <span class="n">a</span><span class="p">,</span>
+    <span class="n">b</span><span class="p">,</span>
+    <span class="n">C1</span><span class="p">,</span>
+    <span class="n">C2</span><span class="p">,</span>
+    <span class="n">T</span><span class="p">,</span>
+    <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">logits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">recompute_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the gromov-wasserstein for samples C1, C2 and transport plan. Batched version.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array-like, shape (B, n)</span>
+<span class="sd">        Source distributions.</span>
+<span class="sd">    b : array-like, shape (B, m)</span>
+<span class="sd">        Target distributions.</span>
+<span class="sd">    C1 : array-like, shape (B, n, n) or (B, n, n, d)</span>
+<span class="sd">        Source cost matrices.</span>
+<span class="sd">    C2 : array-like, shape (B, m, m) or (B, n, n, d)</span>
+<span class="sd">        Target cost matrices.</span>
+<span class="sd">    T : array-like, shape (B, n, m)</span>
+<span class="sd">        Transport plan.</span>
+<span class="sd">    loss : str, optional</span>
+<span class="sd">        Loss function to use. Supported values: &#39;sqeuclidean&#39;, &#39;kl&#39;.</span>
+<span class="sd">        Default is &#39;sqeuclidean&#39;.</span>
+<span class="sd">    recompute_const : bool, optional</span>
+<span class="sd">        Whether to recompute the constant term. Default is False. This should be set to True if T does not satisfy the marginal constraints.</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Whether to use symmetric version. Default is True.</span>
+<span class="sd">    nx : module, optional</span>
+<span class="sd">        Backend to use. Default is None.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.batch import loss_quadratic_samples_batch</span>
+<span class="sd">    &gt;&gt;&gt; # Create batch of cost matrices</span>
+<span class="sd">    &gt;&gt;&gt; C1 = np.random.rand(3, 5, 5)  # 3 problems, 5x5 source matrices</span>
+<span class="sd">    &gt;&gt;&gt; C2 = np.random.rand(3, 4, 4)  # 3 problems, 4x4 target matrices</span>
+<span class="sd">    &gt;&gt;&gt; a = np.ones((3, 5)) / 5  # Uniform source distributions</span>
+<span class="sd">    &gt;&gt;&gt; b = np.ones((3, 4)) / 4  # Uniform target distributions</span>
+<span class="sd">    &gt;&gt;&gt; # Use the uniform transport plan for testing</span>
+<span class="sd">    &gt;&gt;&gt; T = np.ones((3, 5, 4)) / (5 * 4)</span>
+<span class="sd">    &gt;&gt;&gt; loss = loss_quadratic_samples_batch(a, b, C1, C2, T, recompute_const=True)</span>
+<span class="sd">    &gt;&gt;&gt; loss.shape</span>
+<span class="sd">    (3,)</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.tensor_batch : From computing the cost tensor L.</span>
+<span class="sd">    ot.batch.solve_gromov_batch : For finding the optimal transport plan T.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">tensor_batch</span><span class="p">(</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown loss function: </span><span class="si">{</span><span class="n">loss</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss_quadratic_batch</span><span class="p">(</span>
+        <span class="n">L</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">recompute_const</span><span class="o">=</span><span class="n">recompute_const</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="solve_gromov_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.solve_gromov_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">solve_gromov_batch</span><span class="p">(</span>
+    <span class="n">C1</span><span class="p">,</span>
+    <span class="n">C2</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">symmetric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">T_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">max_iter_inner</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">tol_inner</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">grad</span><span class="o">=</span><span class="s2">&quot;envelope&quot;</span><span class="p">,</span>
+    <span class="n">logits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Solves a batch of Gromov-Wasserstein optimal transport problems using proximal gradient [12, 81].</span>
+<span class="sd">    For each problem in the batch, solves:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{aligned}</span>
+<span class="sd">            \min_{\mathbf{T} \geq 0} \quad &amp; \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l} \\</span>
+<span class="sd">            \text{s.t.} \quad &amp; \mathbf{T} \mathbf{1} = \mathbf{a} \\</span>
+<span class="sd">            &amp; \mathbf{T}^T \mathbf{1} = \mathbf{b} \\</span>
+<span class="sd">            &amp; \mathbf{T} \geq 0</span>
+<span class="sd">        \end{aligned}</span>
+
+<span class="sd">    If :math:`\mathbf{M}` and :math:`\alpha` are given, solves the more general fused Gromov-Wasserstein problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{aligned}</span>
+<span class="sd">            \min_{\mathbf{T} \geq 0} \quad &amp; (1-\alpha) \sum_{i,j} M_{i,j} \mathbf{T}_{i,j} + \alpha \sum_{i,j,k,l} L(\mathbf{C_1}_{i,k}, \mathbf{C_2}_{j,l}) \mathbf{T}_{i,j} \mathbf{T}_{k,l} \\</span>
+<span class="sd">            \text{s.t.} \quad &amp; \mathbf{T} \mathbf{1} = \mathbf{a} \\</span>
+<span class="sd">            &amp; \mathbf{T}^T \mathbf{1} = \mathbf{b} \\</span>
+<span class="sd">            &amp; \mathbf{T} \geq 0</span>
+<span class="sd">        \end{aligned}</span>
+
+<span class="sd">    Writing the objective as :math:`(1-\alpha) \langle \mathbf{M}, \mathbf{T} \rangle + \alpha \langle \mathcal{L} \otimes \mathbf{T}, \mathbf{T} \rangle`,</span>
+<span class="sd">    the solver uses proximal gradient descent where each iteration is:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{aligned}</span>
+<span class="sd">            \mathbf{T}_{k+1} = \mathop{\arg \min}_{\mathbf{T} \geq 0} \quad &amp; \langle \mathbf{M}_k, \mathbf{T} \rangle + \epsilon \, \text{KL}(\mathbf{T} \| \mathbf{T}_k) \\</span>
+<span class="sd">            \text{where} \quad &amp; \mathbf{M}_k = (1 - \alpha) \mathbf{M} + 2 \alpha \mathcal{L} \otimes \mathbf{T}_k</span>
+<span class="sd">        \end{aligned}</span>
+
+<span class="sd">    This can be rewritten as:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{aligned}</span>
+<span class="sd">            \mathbf{T}_{k+1} = \mathop{\arg \min}_{\mathbf{T} \geq 0} \quad &amp; \langle \mathbf{M}_k - \epsilon \log(\mathbf{T}_k), \mathbf{T} \rangle - \epsilon H(\mathbf{T})</span>
+<span class="sd">        \end{aligned}</span>
+
+<span class="sd">    where :math:`H(\mathbf{T})` is the entropy of :math:`\mathbf{T}`. Thus each iteration can be solved using the Bregman projection solver implemented in `bregman_log_projection_batch`. </span>
+<span class="sd">    </span>
+<span class="sd">    Note that the inner optimization problem does not need to be solved exactly. In practice it sufficient to set `max_iter_inner` to a low value (e.g. 20) and/or `tol_inner` to a high value (e.g. 1e-2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C1 : array-like, shape (B, n, n, d) or (B, n, n)</span>
+<span class="sd">        Samples affinity matrices from source distribution</span>
+<span class="sd">    C2 : array-like, shape (B, n, n, d) or (B, n, n)</span>
+<span class="sd">        Samples affinity matrices from target distribution</span>
+<span class="sd">    a : array-like, shape (B, n), optional</span>
+<span class="sd">        Marginal distribution of the source samples. If None, uniform distribution is used.</span>
+<span class="sd">    b : array-like, shape (B, m), optional</span>
+<span class="sd">        Marginal distribution of the target samples. If None, uniform distribution is used.</span>
+<span class="sd">    loss : str, optional</span>
+<span class="sd">        Type of loss function, can be &#39;sqeuclidean&#39; or &#39;kl&#39; or a QuadraticMetric instance.</span>
+<span class="sd">    symmetric : bool, optional</span>
+<span class="sd">        Either C1 and C2 are to be assumed symmetric or not.</span>
+<span class="sd">        If let to its default None value, a symmetry test will be conducted.</span>
+<span class="sd">        Else if set to True (resp. False), C1 and C2 will be assumed symmetric (resp. asymmetric).</span>
+<span class="sd">    M : array-like, shape (dim_a, dim_b), optional</span>
+<span class="sd">        Linear cost matrix for Fused Gromov-Wasserstein (default is None).</span>
+<span class="sd">    alpha : float, optional</span>
+<span class="sd">        Weight the quadratic term (alpha*Gromov) and the linear term</span>
+<span class="sd">        ((1-alpha)*Wass) in the Fused Gromov-Wasserstein problem. Not used for</span>
+<span class="sd">        Gromov problem (when M is not provided). By default ``alpha=None``</span>
+<span class="sd">        corresponds to ``alpha=1`` for Gromov problem (``M==None``) and</span>
+<span class="sd">        ``alpha=0.5`` for Fused Gromov-Wasserstein problem (``M!=None``)</span>
+<span class="sd">    epsilon : float, optional</span>
+<span class="sd">        Regularization parameter for proximal gradient descent. Default is 1e-2.</span>
+<span class="sd">    T_init : array-like, shape (B, n, m), optional</span>
+<span class="sd">        Initial transport plan. If None, it is initialized to uniform distribution.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Maximum number of iterations for the proximal gradient descent. Default is 50.</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Tolerance for convergence of the proximal gradient descent. Default is 1e-5.</span>
+<span class="sd">    max_iter_inner : int, optional</span>
+<span class="sd">        Maximum number of iterations for the inner Bregman projection. Default is 50.</span>
+<span class="sd">    tol_inner : float, optional</span>
+<span class="sd">        Tolerance for convergence of the inner Bregman projection. Default is 1e-5.</span>
+<span class="sd">    grad : str, optional</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39;, &#39;envelope&#39; or &#39;detach&#39;. &#39;autodiff&#39; provides gradients wrt all</span>
+<span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
+<span class="sd">        &#39;envelope&#39; provides gradients only for (`value, value_linear`)`.  `detach`` is the fastest option but</span>
+<span class="sd">        provides no gradients. Default is &#39;detach&#39;.</span>
+<span class="sd">    assume_inner_convergence : bool, optional</span>
+<span class="sd">        If True, assumes that the inner Bregman projection always converged i.e. the transport plan satisfies the marginal constraints.</span>
+<span class="sd">        This enables faster computations of the tensor product but might results in inaccurate results (e.g. negative values of the loss).</span>
+<span class="sd">        Default is True.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    res : OTResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.plan : OT plan :math:`\mathbf{T}`</span>
+<span class="sd">        - res.potentials : OT dual potentials</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+<span class="sd">        - res.value_quad : Quadratic OT loss with the optimal OT plan</span>
+
+<span class="sd">        See :any:`OTResult` for more information.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.tensor_batch : From computing the cost tensor L.</span>
+<span class="sd">    ot.solve_gromov : Non-batched solver for Gromov-Wasserstein. Note that the non-batched solver uses a different algorithm (conditional gradient) and might not give the same results.</span>
+<span class="sd">    </span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+<span class="sd">    .. [81] Xu, H., Luo, D., &amp; Carin, L. (2019). &quot;Scalable Gromov-Wasserstein learning for graph partitioning and matching.&quot;</span>
+<span class="sd">        Advances in neural information processing systems (NeurIPS). 2019.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># -------------- Setup -------------- #</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">T_init</span><span class="p">)</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">C1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">C2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C2</span><span class="p">)</span> <span class="o">/</span> <span class="n">m</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">symmetric</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">transpose</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">nx</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
+            <span class="n">C2</span><span class="p">,</span> <span class="n">transpose</span><span class="p">(</span><span class="n">C2</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span>
+        <span class="p">)</span>
+
+    <span class="c1"># -------------- Get cost_tensor (quadratic part) -------------- #</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">tensor_batch</span><span class="p">(</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown loss function: </span><span class="si">{</span><span class="n">loss</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># -------------- Get cost_matrix (linear part) -------------- #</span>
+
+    <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C1</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Gromov problem</span>
+    <span class="k">elif</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;If M is provided, alpha must also be provided for Fused Gromov-Wasserstein problem&quot;</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;If alpha is provided, M must also be provided for Fused Gromov-Wasserstein problem&quot;</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">M</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">B</span> <span class="ow">or</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n</span> <span class="ow">or</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Shape of M </span><span class="si">{</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match the batch size </span><span class="si">{</span><span class="n">B</span><span class="si">}</span><span class="s2"> and dimensions </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">alpha</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Alpha must be in [0, 1] for Fused Gromov-Wasserstein problem&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># -------------- Solver -------------- #</span>
+
+    <span class="k">if</span> <span class="n">T_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">const</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">T_init</span> <span class="o">=</span> <span class="n">bop</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span> <span class="o">/</span> <span class="n">const</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># B x n x m</span>
+
+    <span class="n">grad_inner</span> <span class="o">=</span> <span class="s2">&quot;autodiff&quot;</span> <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;autodiff&quot;</span> <span class="k">else</span> <span class="s2">&quot;detach&quot;</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="n">T_init</span>
+    <span class="n">log_T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span>  <span class="c1"># Avoid log(0)</span>
+    <span class="k">for</span> <span class="nb">iter</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+        <span class="n">T_prev</span> <span class="o">=</span> <span class="n">T</span>
+        <span class="n">Mk</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">M</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">tensor_product_batch</span><span class="p">(</span>
+            <span class="n">L</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">recompute_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span>
+        <span class="p">)</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="o">-</span><span class="n">Mk</span> <span class="o">/</span> <span class="n">reg</span> <span class="o">+</span> <span class="n">log_T</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">bregman_log_projection_batch</span><span class="p">(</span>
+            <span class="n">K</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter_inner</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol_inner</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">grad_inner</span>
+        <span class="p">)</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;T&quot;</span><span class="p">]</span>
+        <span class="n">log_T</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;log_T&quot;</span><span class="p">]</span>
+        <span class="n">max_err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">T_prev</span> <span class="o">-</span> <span class="n">T</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">max_err</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;detach&quot;</span><span class="p">:</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">detach_cost_tensor</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;envelope&quot;</span><span class="p">:</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="n">loss_linear_batch</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">value_quadratic</span> <span class="o">=</span> <span class="n">loss_quadratic_batch</span><span class="p">(</span>
+        <span class="n">L</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">recompute_const</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span>
+    <span class="p">)</span>  <span class="c1"># Always recompute const for accurate value</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">value_quadratic</span>
+    <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;n_iter&quot;</span><span class="p">:</span> <span class="nb">iter</span><span class="p">}</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">OTResult</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span>
+        <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">),</span>  <span class="c1"># Weight the linear value for consistency with ot.solve_gromov</span>
+        <span class="n">value_quad</span><span class="o">=</span><span class="n">value_quadratic</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">,</span>  <span class="c1"># idem</span>
+        <span class="n">plan</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+        <span class="n">potentials</span><span class="o">=</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;potentials&quot;</span><span class="p">],</span>
+        <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<span class="c1">### --------------------- Utility functions for quadratic OT --------------------- ###</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_tensor_batch</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gromov-Wasserstein writes as:</span>
+<span class="sd">        GW(T,C1,C2) = sum_ijkl T_ik T_jl l(C1_ij, C2_kl) = &lt; LxT, T &gt;</span>
+<span class="sd">    Where L is a cost tensor L[i,j,k,l] = l(C1_ij, C2_kl).</span>
+
+<span class="sd">    For loss function of form l(a,b) = f1(a) + f2(b) - &lt; h1(a), h2(b) &gt;</span>
+<span class="sd">    The tensor product LxT can be computed fast using tensor_product [12].</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">fC1</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
+    <span class="n">fC2</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="n">fC1</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">fC1</span> <span class="o">+</span> <span class="n">transpose</span><span class="p">(</span><span class="n">fC1</span><span class="p">))</span>
+        <span class="n">fC2</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">fC2</span> <span class="o">+</span> <span class="n">transpose</span><span class="p">(</span><span class="n">fC2</span><span class="p">))</span>
+    <span class="n">hC1</span> <span class="o">=</span> <span class="n">h1</span><span class="p">(</span><span class="n">C1</span><span class="p">)</span>
+    <span class="n">hC2</span> <span class="o">=</span> <span class="n">h2</span><span class="p">(</span><span class="n">C2</span><span class="p">)</span>
+
+    <span class="n">constC</span> <span class="o">=</span> <span class="n">compute_const_from_marginals</span><span class="p">(</span><span class="n">fC1</span><span class="p">,</span> <span class="n">fC2</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="n">L</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;constC&quot;</span><span class="p">:</span> <span class="n">constC</span><span class="p">,</span> <span class="s2">&quot;hC1&quot;</span><span class="p">:</span> <span class="n">hC1</span><span class="p">,</span> <span class="s2">&quot;hC2&quot;</span><span class="p">:</span> <span class="n">hC2</span><span class="p">,</span> <span class="s2">&quot;fC1&quot;</span><span class="p">:</span> <span class="n">fC1</span><span class="p">,</span> <span class="s2">&quot;fC2&quot;</span><span class="p">:</span> <span class="n">fC2</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">L</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">tensor_product_batch</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">recompute_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the tensor product LxT for the cost tensor L and transport plan T.</span>
+<span class="sd">    The formula is:</span>
+<span class="sd">        LxT = const - hC1 T hC2^T</span>
+<span class="sd">        const = &lt; fC1 a 1^T + 1 (fC2 b)^T</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [12] Gabriel Peyré, Marco Cuturi, and Justin Solomon,</span>
+<span class="sd">        &quot;Gromov-Wasserstein averaging of kernel and distance matrices.&quot;</span>
+<span class="sd">        International Conference on Machine Learning (ICML). 2016.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">recompute_const</span><span class="p">:</span>
+        <span class="n">const</span> <span class="o">=</span> <span class="n">compute_const_from_marginals</span><span class="p">(</span>
+            <span class="n">L</span><span class="p">[</span><span class="s2">&quot;fC1&quot;</span><span class="p">],</span> <span class="n">L</span><span class="p">[</span><span class="s2">&quot;fC2&quot;</span><span class="p">],</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">const</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="s2">&quot;constC&quot;</span><span class="p">]</span>
+
+    <span class="n">hC1</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="s2">&quot;hC1&quot;</span><span class="p">]</span>
+    <span class="n">hC2</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="s2">&quot;hC2&quot;</span><span class="p">]</span>
+
+    <span class="n">dot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bijd,bjk-&gt;bikd&quot;</span><span class="p">,</span> <span class="n">hC1</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+    <span class="n">dot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bikd,bjkd-&gt;bijd&quot;</span><span class="p">,</span> <span class="n">dot</span><span class="p">,</span> <span class="n">hC2</span><span class="p">)</span>
+    <span class="n">dot</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="n">dot_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bijd,bjk-&gt;bikd&quot;</span><span class="p">,</span> <span class="n">transpose</span><span class="p">(</span><span class="n">hC1</span><span class="p">),</span> <span class="n">T</span><span class="p">)</span>
+        <span class="n">dot_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bikd,bjkd-&gt;bijd&quot;</span><span class="p">,</span> <span class="n">dot_t</span><span class="p">,</span> <span class="n">transpose</span><span class="p">(</span><span class="n">hC2</span><span class="p">))</span>
+        <span class="n">dot_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dot_t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="p">(</span><span class="n">dot</span> <span class="o">+</span> <span class="n">dot_t</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># Average the two symmetric terms</span>
+
+    <span class="k">return</span> <span class="n">const</span> <span class="o">-</span> <span class="n">dot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">transpose</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="k">if</span> <span class="n">C</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_const_from_marginals</span><span class="p">(</span><span class="n">fC1</span><span class="p">,</span> <span class="n">fC2</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the constant term f1(C1) a 1^T + 1 b^T f2(C2)^T</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">fC1</span><span class="p">,</span> <span class="n">fC2</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">fC1a</span> <span class="o">=</span> <span class="n">bmv</span><span class="p">(</span><span class="n">fC1</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">fC2b</span> <span class="o">=</span> <span class="n">bmv</span><span class="p">(</span><span class="n">fC2</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">constC</span> <span class="o">=</span> <span class="n">fC1a</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">fC2b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">constC</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">detach_cost_tensor</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detach the cost tensor L to avoid gradients.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="s2">&quot;constC&quot;</span><span class="p">],</span> <span class="n">L</span><span class="p">[</span><span class="s2">&quot;hC1&quot;</span><span class="p">],</span> <span class="n">L</span><span class="p">[</span><span class="s2">&quot;hC2&quot;</span><span class="p">])</span>
+    <span class="n">L_detached</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">L</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">L_detached</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">L_detached</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6dev0
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
