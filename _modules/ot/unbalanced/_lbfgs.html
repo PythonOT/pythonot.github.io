@@ -5,8 +5,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.unbalanced._lbfgs &mdash; POT Python Optimal Transport 0.9.5 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+  <title>ot.unbalanced._lbfgs &mdash; POT Python Optimal Transport 0.9.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
@@ -16,7 +16,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=61b282d3"></script>
+      <script src="../../../_static/documentation_options.js?v=564a08b9"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -46,9 +46,10 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
@@ -91,16 +92,15 @@
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">Bounds</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">Bounds</span>
 
-<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">get_parameter_pair</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">get_parameter_pair</span><span class="p">,</span> <span class="n">fun_to_numpy</span>
 
 
-<span class="k">def</span> <span class="nf">_get_loss_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_loss_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg_div</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="n">regm_div</span><span class="o">=</span><span class="s2">&quot;kl&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return loss function for the L-BFGS-B solver</span>
 
 <span class="sd">    .. note:: This function will be fed into scipy.optimize, so all input arrays must be Numpy arrays.</span>
@@ -128,9 +128,9 @@
 <span class="sd">        Divergence used for regularization.</span>
 <span class="sd">        Can take three values: &#39;entropy&#39; (negative entropy), or</span>
 <span class="sd">        &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (half-squared) or a tuple</span>
-<span class="sd">        of two calable functions returning the reg term and its derivative.</span>
+<span class="sd">        of two callable functions returning the reg term and its derivative.</span>
 <span class="sd">        Note that the callable functions should be able to handle Numpy arrays</span>
-<span class="sd">        and not tesors from the backend</span>
+<span class="sd">        and not tensors from the backend</span>
 <span class="sd">    regm_div: string, optional</span>
 <span class="sd">        Divergence to quantify the difference between the marginals.</span>
 <span class="sd">        Can take three values: &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (half-squared) or &#39;tv&#39; (Total Variation)</span>
@@ -143,22 +143,22 @@
     <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">nx_numpy</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">reg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">G</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
 
-    <span class="k">def</span> <span class="nf">grad_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">G</span> <span class="o">-</span> <span class="n">c</span>
 
-    <span class="k">def</span> <span class="nf">reg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">nx_numpy</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">grad_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span> <span class="o">/</span> <span class="n">c</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">reg_entropy</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reg_entropy</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">grad_entropy</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad_entropy</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">reg_div</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
@@ -174,32 +174,32 @@
         <span class="n">reg_fun</span> <span class="o">=</span> <span class="n">reg_l2</span>
         <span class="n">grad_reg_fun</span> <span class="o">=</span> <span class="n">grad_l2</span>
 
-    <span class="k">def</span> <span class="nf">marg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">marg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
             <span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">grad_marg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad_marg_l2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">((</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">marg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">marg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx_numpy</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
             <span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx_numpy</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">grad_marg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad_marg_kl</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
         <span class="p">)</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">marg_tv</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">marg_tv</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">grad_marg_tv</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad_marg_tv</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
         <span class="p">)</span>
@@ -214,7 +214,7 @@
         <span class="n">regm_fun</span> <span class="o">=</span> <span class="n">marg_l2</span>
         <span class="n">grad_regm_fun</span> <span class="o">=</span> <span class="n">grad_marg_l2</span>
 
-    <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_func</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
 
         <span class="c1"># compute loss</span>
@@ -233,7 +233,7 @@
 
 <div class="viewcode-block" id="lbfgsb_unbalanced">
 <a class="viewcode-back" href="../../../gen_modules/ot.unbalanced.html#ot.unbalanced.lbfgsb_unbalanced">[docs]</a>
-<span class="k">def</span> <span class="nf">lbfgsb_unbalanced</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lbfgsb_unbalanced</span><span class="p">(</span>
     <span class="n">a</span><span class="p">,</span>
     <span class="n">b</span><span class="p">,</span>
     <span class="n">M</span><span class="p">,</span>
@@ -290,26 +290,27 @@
 <span class="sd">        loss matrix</span>
 <span class="sd">    reg: float</span>
 <span class="sd">        regularization term &gt;=0</span>
-<span class="sd">    c : array-like (dim_a, dim_b), optional (default = None)</span>
-<span class="sd">        Reference measure for the regularization.</span>
-<span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
 <span class="sd">    reg_m: float or indexable object of length 1 or 2</span>
 <span class="sd">        Marginal relaxation term: nonnegative (including 0) but cannot be infinity.</span>
 <span class="sd">        If :math:`\mathrm{reg_{m}}` is a scalar or an indexable object of length 1,</span>
 <span class="sd">        then the same :math:`\mathrm{reg_{m}}` is applied to both marginal relaxations.</span>
 <span class="sd">        If :math:`\mathrm{reg_{m}}` is an array, it must be a Numpy array.</span>
-<span class="sd">    reg_div: string, optional</span>
+<span class="sd">    c : array-like (dim_a, dim_b), optional (default = None)</span>
+<span class="sd">        Reference measure for the regularization.</span>
+<span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
+<span class="sd">    reg_div: string or pair of callable functions, optional (default = &#39;kl&#39;)</span>
 <span class="sd">        Divergence used for regularization.</span>
 <span class="sd">        Can take three values: &#39;entropy&#39; (negative entropy), or</span>
 <span class="sd">        &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (half-squared) or a tuple</span>
-<span class="sd">        of two calable functions returning the reg term and its derivative.</span>
+<span class="sd">        of two callable functions returning the reg term and its derivative.</span>
 <span class="sd">        Note that the callable functions should be able to handle Numpy arrays</span>
-<span class="sd">        and not tesors from the backend</span>
-<span class="sd">    regm_div: string, optional</span>
+<span class="sd">        and not tensors from the backend, otherwise functions will be converted to Numpy</span>
+<span class="sd">        leading to a computational overhead.</span>
+<span class="sd">    regm_div: string, optional (default = &#39;kl&#39;)</span>
 <span class="sd">        Divergence to quantify the difference between the marginals.</span>
 <span class="sd">        Can take three values: &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (half-squared) or &#39;tv&#39; (Total Variation)</span>
-<span class="sd">    G0: array-like (dim_a, dim_b)</span>
-<span class="sd">        Initialization of the transport matrix</span>
+<span class="sd">    G0: array-like (dim_a, dim_b), optional (default = None)</span>
+<span class="sd">        Initialization of the transport matrix. None corresponds to uniform product.</span>
 <span class="sd">    numItermax : int, optional</span>
 <span class="sd">        Max number of iterations</span>
 <span class="sd">    stopThr : float, optional</span>
@@ -351,26 +352,14 @@
 <span class="sd">    ot.unbalanced.sinkhorn_unbalanced2 : Entropic regularized OT loss</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># wrap the callable function to handle numpy arrays</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_div</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-        <span class="n">f0</span><span class="p">,</span> <span class="n">df0</span> <span class="o">=</span> <span class="n">reg_div</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">f0</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
-            <span class="n">df0</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;The callable functions should be able to handle numpy arrays, wrapper ar added to handle this which comes with overhead&quot;</span>
-            <span class="p">)</span>
+    <span class="c1"># test settings</span>
+    <span class="n">regm_div</span> <span class="o">=</span> <span class="n">regm_div</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">regm_div</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="s2">&quot;l2&quot;</span><span class="p">,</span> <span class="s2">&quot;tv&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Unknown regm_div = </span><span class="si">{}</span><span class="s2">. Must be either &#39;kl&#39;, &#39;l2&#39; or &#39;tv&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">regm_div</span><span class="p">)</span>
+        <span class="p">)</span>
 
-            <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">f0</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)))</span>
-
-            <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">df0</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M0</span><span class="p">)))</span>
-
-            <span class="n">reg_div</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
-
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_div</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">reg_div</span> <span class="o">=</span> <span class="n">reg_div</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">reg_div</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;entropy&quot;</span><span class="p">,</span> <span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="s2">&quot;l2&quot;</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -379,16 +368,11 @@
                 <span class="p">)</span>
             <span class="p">)</span>
 
-    <span class="n">regm_div</span> <span class="o">=</span> <span class="n">regm_div</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">regm_div</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="s2">&quot;l2&quot;</span><span class="p">,</span> <span class="s2">&quot;tv&quot;</span><span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Unknown regm_div = </span><span class="si">{}</span><span class="s2">. Must be either &#39;kl&#39;, &#39;l2&#39; or &#39;tv&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">regm_div</span><span class="p">)</span>
-        <span class="p">)</span>
-
+    <span class="c1"># convert all inputs to numpy arrays</span>
     <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_m</span><span class="p">)</span>
 
     <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">G0</span><span class="p">)</span>
     <span class="n">M0</span> <span class="o">=</span> <span class="n">M</span>
 
     <span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
@@ -399,9 +383,21 @@
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dim_b</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="o">/</span> <span class="n">dim_b</span>
 
     <span class="c1"># convert to numpy</span>
-    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>  <span class="c1"># remaining parameters which can be arrays</span>
+        <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+
     <span class="n">G0</span> <span class="o">=</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="k">if</span> <span class="n">G0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">G0</span><span class="p">)</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="c1"># potentially convert the callable function to handle numpy arrays</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_div</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">f0</span><span class="p">,</span> <span class="n">df0</span> <span class="o">=</span> <span class="n">reg_div</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">fun_to_numpy</span><span class="p">(</span><span class="n">f0</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">fun_to_numpy</span><span class="p">(</span><span class="n">df0</span><span class="p">,</span> <span class="n">G0</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">reg_div</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
 
     <span class="n">_func</span> <span class="o">=</span> <span class="n">_get_loss_unbalanced</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">reg_div</span><span class="p">,</span> <span class="n">regm_div</span><span class="p">)</span>
 
@@ -428,7 +424,7 @@
 
 <div class="viewcode-block" id="lbfgsb_unbalanced2">
 <a class="viewcode-back" href="../../../gen_modules/ot.unbalanced.html#ot.unbalanced.lbfgsb_unbalanced2">[docs]</a>
-<span class="k">def</span> <span class="nf">lbfgsb_unbalanced2</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lbfgsb_unbalanced2</span><span class="p">(</span>
     <span class="n">a</span><span class="p">,</span>
     <span class="n">b</span><span class="p">,</span>
     <span class="n">M</span><span class="p">,</span>
@@ -486,26 +482,27 @@
 <span class="sd">        loss matrix</span>
 <span class="sd">    reg: float</span>
 <span class="sd">        regularization term &gt;=0</span>
-<span class="sd">    c : array-like (dim_a, dim_b), optional (default = None)</span>
-<span class="sd">        Reference measure for the regularization.</span>
-<span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
 <span class="sd">    reg_m: float or indexable object of length 1 or 2</span>
 <span class="sd">        Marginal relaxation term: nonnegative (including 0) but cannot be infinity.</span>
 <span class="sd">        If :math:`\mathrm{reg_{m}}` is a scalar or an indexable object of length 1,</span>
 <span class="sd">        then the same :math:`\mathrm{reg_{m}}` is applied to both marginal relaxations.</span>
 <span class="sd">        If :math:`\mathrm{reg_{m}}` is an array, it must be a Numpy array.</span>
-<span class="sd">    reg_div: string, optional</span>
+<span class="sd">    c : array-like (dim_a, dim_b), optional (default = None)</span>
+<span class="sd">        Reference measure for the regularization.</span>
+<span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
+<span class="sd">    reg_div: string or pair of callable functions, optional (default = &#39;kl&#39;)</span>
 <span class="sd">        Divergence used for regularization.</span>
 <span class="sd">        Can take three values: &#39;entropy&#39; (negative entropy), or</span>
 <span class="sd">        &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (half-squared) or a tuple</span>
-<span class="sd">        of two calable functions returning the reg term and its derivative.</span>
+<span class="sd">        of two callable functions returning the reg term and its derivative.</span>
 <span class="sd">        Note that the callable functions should be able to handle Numpy arrays</span>
-<span class="sd">        and not tesors from the backend</span>
-<span class="sd">    regm_div: string, optional</span>
+<span class="sd">        and not tensors from the backend, otherwise functions will be converted to Numpy</span>
+<span class="sd">        leading to a computational overhead.</span>
+<span class="sd">    regm_div: string, optional (default = &#39;kl&#39;)</span>
 <span class="sd">        Divergence to quantify the difference between the marginals.</span>
 <span class="sd">        Can take three values: &#39;kl&#39; (Kullback-Leibler) or &#39;l2&#39; (half-squared) or &#39;tv&#39; (Total Variation)</span>
-<span class="sd">    G0: array-like (dim_a, dim_b)</span>
-<span class="sd">        Initialization of the transport matrix</span>
+<span class="sd">    G0: array-like (dim_a, dim_b), optional (default = None)</span>
+<span class="sd">        Initialization of the transport matrix. None corresponds to uniform product.</span>
 <span class="sd">    returnCost: string, optional (default = &quot;linear&quot;)</span>
 <span class="sd">        If `returnCost` = &quot;linear&quot;, then return the linear part of the unbalanced OT loss.</span>
 <span class="sd">        If `returnCost` = &quot;total&quot;, then return the total unbalanced OT loss.</span>
@@ -586,7 +583,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
@@ -604,7 +601,7 @@ aria-label="versions">
   <!--  add shift_up to the class for force viewing ,
   data-toggle="rst-current-version" -->
     <span class="rst-current-version"  style="margin-bottom:1mm;">
-      <span class="fa fa-book"> Python Optimal Transport</span>
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6
       <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
      <!--  versions
       <span class="fa fa-caret-down"></span>-->

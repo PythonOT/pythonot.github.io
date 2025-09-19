@@ -5,8 +5,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.bregman._convolutional &mdash; POT Python Optimal Transport 0.9.5 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+  <title>ot.bregman._convolutional &mdash; POT Python Optimal Transport 0.9.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
@@ -16,7 +16,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=61b282d3"></script>
+      <script src="../../../_static/documentation_options.js?v=564a08b9"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -46,9 +46,10 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick start guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
@@ -90,15 +91,60 @@
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
-<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">list_to_array</span>
-<span class="kn">from</span> <span class="nn">..backend</span> <span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span>
+
+<span class="n">_warning_msg</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;Convolutional Sinkhorn did not converge. &quot;</span>
+    <span class="s2">&quot;Try a larger number of iterations `numItermax` &quot;</span>
+    <span class="s2">&quot;or a larger entropy `reg`.&quot;</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_convol_img_fn</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">type_as</span><span class="p">,</span> <span class="n">log_domain</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the convolution operator for 2D images.</span>
+
+<span class="sd">    The function constructed is equivalent to blurring on horizontal then vertical directions.&quot;&quot;&quot;</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+    <span class="n">Y1</span><span class="p">,</span> <span class="n">X1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">t1</span><span class="p">)</span>
+    <span class="n">M1</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">X1</span> <span class="o">-</span> <span class="n">Y1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span>
+
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+    <span class="n">Y2</span><span class="p">,</span> <span class="n">X2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t2</span><span class="p">,</span> <span class="n">t2</span><span class="p">)</span>
+    <span class="n">M2</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">X2</span> <span class="o">-</span> <span class="n">Y2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span>
+
+    <span class="c1"># If normal domain is selected, we can use M1 and M2 to compute the convolution</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">log_domain</span><span class="p">:</span>
+        <span class="n">K1</span><span class="p">,</span> <span class="n">K2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">M1</span><span class="p">),</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">M2</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">convol_imgs</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
+            <span class="n">kx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ij,kjl-&gt;kil&quot;</span><span class="p">,</span> <span class="n">K1</span><span class="p">,</span> <span class="n">imgs</span><span class="p">)</span>
+            <span class="n">kxy</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ij,klj-&gt;kli&quot;</span><span class="p">,</span> <span class="n">K2</span><span class="p">,</span> <span class="n">kx</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">kxy</span>
+
+    <span class="c1"># Else, we can use M1 and M2 to compute the convolution in log-domain</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">convol_imgs</span><span class="p">(</span><span class="n">log_imgs</span><span class="p">):</span>
+            <span class="n">log_imgs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_imgs</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">log_imgs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_imgs</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+            <span class="k">return</span> <span class="n">log_imgs</span>
+
+    <span class="k">return</span> <span class="n">convol_imgs</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_print_report</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print the report of the iteration.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5s}</span><span class="s2">|</span><span class="si">{:12s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;It.&quot;</span><span class="p">,</span> <span class="s2">&quot;Err&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="convolutional_barycenter2d">
 <a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.convolutional_barycenter2d">[docs]</a>
-<span class="k">def</span> <span class="nf">convolutional_barycenter2d</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convolutional_barycenter2d</span><span class="p">(</span>
     <span class="n">A</span><span class="p">,</span>
     <span class="n">reg</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -202,7 +248,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convolutional_barycenter2d</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convolutional_barycenter2d</span><span class="p">(</span>
     <span class="n">A</span><span class="p">,</span>
     <span class="n">reg</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -218,37 +264,26 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">A</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">n_hists</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n_hists</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_hists</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">n_hists</span>
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;err&quot;</span><span class="p">:</span> <span class="p">[]}</span>
 
-    <span class="n">bar</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">bar</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
     <span class="n">bar</span> <span class="o">/=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bar</span><span class="p">)</span>
     <span class="n">U</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
     <span class="n">V</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
     <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="c1"># build the convolution operator</span>
-    <span class="c1"># this is equivalent to blurring on horizontal then vertical directions</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">K1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
-
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">K2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">convol_imgs</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
-        <span class="n">kx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ij,kjl-&gt;kil&quot;</span><span class="p">,</span> <span class="n">K1</span><span class="p">,</span> <span class="n">imgs</span><span class="p">)</span>
-        <span class="n">kxy</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ij,klj-&gt;kli&quot;</span><span class="p">,</span> <span class="n">K2</span><span class="p">,</span> <span class="n">kx</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">kxy</span>
+    <span class="n">convol_imgs</span> <span class="o">=</span> <span class="n">_get_convol_img_fn</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
 
     <span class="n">KU</span> <span class="o">=</span> <span class="n">convol_imgs</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
@@ -262,30 +297,24 @@
             <span class="c1"># log and verbose print</span>
             <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s2">&quot;err&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
-
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5s}</span><span class="s2">|</span><span class="si">{:12s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;It.&quot;</span><span class="p">,</span> <span class="s2">&quot;Err&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+                <span class="n">_print_report</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
                 <span class="k">break</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;Convolutional Sinkhorn did not converge. &quot;</span>
-                <span class="s2">&quot;Try a larger number of iterations `numItermax` &quot;</span>
-                <span class="s2">&quot;or a larger entropy `reg`.&quot;</span>
-            <span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">_warning_msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;niter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;U&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">U</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;V&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">V</span>
         <span class="k">return</span> <span class="n">bar</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">bar</span>
 
 
-<span class="k">def</span> <span class="nf">_convolutional_barycenter2d_log</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convolutional_barycenter2d_log</span><span class="p">(</span>
     <span class="n">A</span><span class="p">,</span>
     <span class="n">reg</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -303,6 +332,8 @@
     <span class="n">A</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
 
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="c1"># This error is raised because we are using mutable assignment in the line</span>
+    <span class="c1">#  `log_KU[k] = ...` which is not allowed in Jax and TF.</span>
     <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;Log-domain functions are not yet implemented&quot;</span>
@@ -321,19 +352,7 @@
 
     <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="c1"># build the convolution operator</span>
-    <span class="c1"># this is equivalent to blurring on horizontal then vertical directions</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">M1</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span>
-
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">M2</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span>
-
-    <span class="k">def</span> <span class="nf">convol_img</span><span class="p">(</span><span class="n">log_img</span><span class="p">):</span>
-        <span class="n">log_img</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_img</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">log_img</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_img</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
-        <span class="k">return</span> <span class="n">log_img</span>
+    <span class="n">convol_img</span> <span class="o">=</span> <span class="n">_get_convol_img_fn</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">,</span> <span class="n">log_domain</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">logA</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">stabThr</span><span class="p">)</span>
     <span class="n">log_KU</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">F</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="o">*</span><span class="n">logA</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
@@ -350,22 +369,15 @@
             <span class="c1"># log and verbose print</span>
             <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s2">&quot;err&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
-
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5s}</span><span class="s2">|</span><span class="si">{:12s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;It.&quot;</span><span class="p">,</span> <span class="s2">&quot;Err&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+                <span class="n">_print_report</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span><span class="p">:</span>
                 <span class="k">break</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">log_bar</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">log_KU</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;Convolutional Sinkhorn did not converge. &quot;</span>
-                <span class="s2">&quot;Try a larger number of iterations `numItermax` &quot;</span>
-                <span class="s2">&quot;or a larger entropy `reg`.&quot;</span>
-            <span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">_warning_msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;niter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_bar</span><span class="p">),</span> <span class="n">log</span>
@@ -375,7 +387,7 @@
 
 <div class="viewcode-block" id="convolutional_barycenter2d_debiased">
 <a class="viewcode-back" href="../../../gen_modules/ot.bregman.html#ot.bregman.convolutional_barycenter2d_debiased">[docs]</a>
-<span class="k">def</span> <span class="nf">convolutional_barycenter2d_debiased</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convolutional_barycenter2d_debiased</span><span class="p">(</span>
     <span class="n">A</span><span class="p">,</span>
     <span class="n">reg</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -475,7 +487,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convolutional_barycenter2d_debiased</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convolutional_barycenter2d_debiased</span><span class="p">(</span>
     <span class="n">A</span><span class="p">,</span>
     <span class="n">reg</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -505,23 +517,11 @@
     <span class="n">bar</span> <span class="o">/=</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span>
     <span class="n">U</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
     <span class="n">V</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
     <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="c1"># build the convolution operator</span>
-    <span class="c1"># this is equivalent to blurring on horizontal then vertical directions</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">K1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
-
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">K2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">convol_imgs</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
-        <span class="n">kx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ij,kjl-&gt;kil&quot;</span><span class="p">,</span> <span class="n">K1</span><span class="p">,</span> <span class="n">imgs</span><span class="p">)</span>
-        <span class="n">kxy</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ij,klj-&gt;kli&quot;</span><span class="p">,</span> <span class="n">K2</span><span class="p">,</span> <span class="n">kx</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">kxy</span>
+    <span class="n">convol_imgs</span> <span class="o">=</span> <span class="n">_get_convol_img_fn</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
 
     <span class="n">KU</span> <span class="o">=</span> <span class="n">convol_imgs</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
@@ -539,11 +539,8 @@
             <span class="c1"># log and verbose print</span>
             <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s2">&quot;err&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
-
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5s}</span><span class="s2">|</span><span class="si">{:12s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;It.&quot;</span><span class="p">,</span> <span class="s2">&quot;Err&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+                <span class="n">_print_report</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
 
             <span class="c1"># debiased Sinkhorn does not converge monotonically</span>
             <span class="c1"># guarantee a few iterations are done before stopping</span>
@@ -551,20 +548,17 @@
                 <span class="k">break</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;Sinkhorn did not converge. You might want to &quot;</span>
-                <span class="s2">&quot;increase the number of iterations `numItermax` &quot;</span>
-                <span class="s2">&quot;or the regularization parameter `reg`.&quot;</span>
-            <span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">_warning_msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;niter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;U&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">U</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;V&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">V</span>
         <span class="k">return</span> <span class="n">bar</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">bar</span>
 
 
-<span class="k">def</span> <span class="nf">_convolutional_barycenter2d_debiased_log</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convolutional_barycenter2d_debiased_log</span><span class="p">(</span>
     <span class="n">A</span><span class="p">,</span>
     <span class="n">reg</span><span class="p">,</span>
     <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -580,6 +574,8 @@
     <span class="n">A</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
     <span class="n">n_hists</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="c1"># This error is raised because we are using mutable assignment in the line</span>
+    <span class="c1">#  `log_KU[k] = ...` which is not allowed in Jax and TF.</span>
     <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;Log-domain functions are not yet implemented&quot;</span>
@@ -595,19 +591,7 @@
 
     <span class="n">err</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="c1"># build the convolution operator</span>
-    <span class="c1"># this is equivalent to blurring on horizontal then vertical directions</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">M1</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span>
-
-    <span class="n">t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="n">M2</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">reg</span>
-
-    <span class="k">def</span> <span class="nf">convol_img</span><span class="p">(</span><span class="n">log_img</span><span class="p">):</span>
-        <span class="n">log_img</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_img</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">log_img</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">M2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_img</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
-        <span class="k">return</span> <span class="n">log_img</span>
+    <span class="n">convol_img</span> <span class="o">=</span> <span class="n">_get_convol_img_fn</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">,</span> <span class="n">log_domain</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">logA</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">stabThr</span><span class="p">)</span>
     <span class="n">log_bar</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
@@ -628,22 +612,15 @@
             <span class="c1"># log and verbose print</span>
             <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
                 <span class="n">log</span><span class="p">[</span><span class="s2">&quot;err&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
-
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5s}</span><span class="s2">|</span><span class="si">{:12s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;It.&quot;</span><span class="p">,</span> <span class="s2">&quot;Err&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">19</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">|</span><span class="si">{:8e}</span><span class="s2">|&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+                <span class="n">_print_report</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">stopThr</span> <span class="ow">and</span> <span class="n">ii</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">:</span>
                 <span class="k">break</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">log_bar</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">log_KU</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;Convolutional Sinkhorn did not converge. &quot;</span>
-                <span class="s2">&quot;Try a larger number of iterations `numItermax` &quot;</span>
-                <span class="s2">&quot;or a larger entropy `reg`.&quot;</span>
-            <span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">_warning_msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;niter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
         <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_bar</span><span class="p">),</span> <span class="n">log</span>
@@ -658,7 +635,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2016-2023, POT Contributors.</p>
+    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
@@ -676,7 +653,7 @@ aria-label="versions">
   <!--  add shift_up to the class for force viewing ,
   data-toggle="rst-current-version" -->
     <span class="rst-current-version"  style="margin-bottom:1mm;">
-      <span class="fa fa-book"> Python Optimal Transport</span>
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6
       <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
      <!--  versions
       <span class="fa fa-caret-down"></span>-->

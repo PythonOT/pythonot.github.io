@@ -1,0 +1,612 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.batch._linear &mdash; POT Python Optimal Transport 0.9.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=564a08b9"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.batch._linear</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.batch._linear</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Batch operations for linear optimal transport.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Paul Krzakala &lt;paul.krzakala@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">OTResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">bregman_log_projection_batch</span><span class="p">,</span>
+    <span class="n">bregman_projection_batch</span><span class="p">,</span>
+    <span class="n">entropy_batch</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dist_lp_batch</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the cost matrix for a batch of samples using the Lp norm.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        M_{bij} = ( \sum_{d} (x_{bid} - y_{bjd})^p )^{q/p} = ||x_{bi} - y_{bj}||_p^q</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (B, ns, d)</span>
+<span class="sd">        Samples from source distribution</span>
+<span class="sd">    Y : array-like, shape (B, nt, d)</span>
+<span class="sd">        Samples from target distribution</span>
+<span class="sd">    p : float, optional</span>
+<span class="sd">        The order of the norm to use. Default is 2 (Euclidean distance).</span>
+<span class="sd">    q : float, optional</span>
+<span class="sd">        If None, use the Lp norm. If specified, it computes the Lp norm raised to the power of q.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        Backend to use for computations. If None, it will be inferred from the inputs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    M : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Cost matrix where M[bij] is the cost between sample i in batch b and sample j in batch b.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">**</span> <span class="n">p</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">q</span> <span class="o">!=</span> <span class="n">p</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">M</span> <span class="o">**</span> <span class="p">(</span><span class="n">q</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dist_euclidean_batch</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the squared Euclidean cost matrix for a batch of samples.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        M_{bij} = \sum_{d} (x_{bid} - y_{bjd})^2 = ||x_{bi} - y_{bj}||_2^2</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (B, ns, d)</span>
+<span class="sd">        Samples from source distribution</span>
+<span class="sd">    Y : array-like, shape (B, nt, d)</span>
+<span class="sd">        Samples from target distribution</span>
+<span class="sd">    squared : bool, optional</span>
+<span class="sd">        If True, returns the squared Euclidean distance. Default is True.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        Backend to use for computations. If None, it will be inferred from the inputs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    M : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Cost matrix where M[bij] is the cost between sample i in batch b and sample j in batch b.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">XX</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">YY</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Y</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">YY</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">YY</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">XX</span> <span class="o">+</span> <span class="n">YY</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bid,bjd-&gt;bij&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">squared</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dist_kl_batch</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">logits_X</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the KL divergence cost matrix for a batch of samples.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        M_{bij} = \sum_{d} y_{bjd} * log(y_{bjd}/X_{bid}) = KL(y_{bj} || x_{bi})</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (B, ns, d)</span>
+<span class="sd">        Samples from source distribution</span>
+<span class="sd">    Y : array-like, shape (B, nt, d)</span>
+<span class="sd">        Samples from target distribution</span>
+<span class="sd">    logits_X : bool, optional</span>
+<span class="sd">        If True, X is assumed to be in log space (logits). Default is False.</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        Backend to use for computations. If None, it will be inferred from the inputs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    M : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Cost matrix where M[bij] is the cost between sample i in batch b and sample j in batch b.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">entr_y</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Y</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Y</span> <span class="o">+</span> <span class="n">eps</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># B x m</span>
+    <span class="k">if</span> <span class="n">logits_X</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">entr_y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">X</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">entr_y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">Y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">X</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span>
+
+
+<div class="viewcode-block" id="loss_linear_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.loss_linear_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">loss_linear_batch</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the linear optimal transport loss given a batch cost matrices and transport plans.</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        L(T, M)_b =  \langle T_b, M_b \rangle_F</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Cost matrix</span>
+<span class="sd">    T : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Transport plan</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss : array-like, shape (B,)</span>
+<span class="sd">        Loss value for each batch element</span>
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.dist_batch : batched cost matrix computation for computing M.</span>
+<span class="sd">    ot.batch.solve_batch : solver for computing the optimal T.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">M</span> <span class="o">*</span> <span class="n">T</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="loss_linear_samples_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.loss_linear_samples_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">loss_linear_samples_batch</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;l2&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the linear optimal transport loss given samples and transport plan. This is the equivalent of</span>
+<span class="sd">    calling `dist_batch` and then `loss_linear_batch`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (B, ns, d)</span>
+<span class="sd">        Samples from source distribution</span>
+<span class="sd">    Y : array-like, shape (B, nt, d)</span>
+<span class="sd">        Samples from target distribution</span>
+<span class="sd">    T : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Transport plan</span>
+<span class="sd">    metric : str, optional</span>
+<span class="sd">            &#39;sqeuclidean&#39;, &#39;euclidean&#39;, &#39;minkowski&#39; or &#39;kl&#39;</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss : array-like, shape (B,)</span>
+<span class="sd">        Loss value for each batch element</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.dist_batch : batched cost matrix computation for computing M.</span>
+<span class="sd">    ot.batch.solve_batch : solver for computing the optimal T.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">dist_batch</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss_linear_batch</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="dist_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.dist_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dist_batch</span><span class="p">(</span>
+    <span class="n">X1</span><span class="p">,</span>
+    <span class="n">X2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Batched version of ot.dist, use it to compute many distance matrices in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    X1 : array-like, shape (b,n1,d)</span>
+<span class="sd">        `b` matrices with `n1` samples of size `d`</span>
+<span class="sd">    X2 : array-like, shape (b,n2,d), optional</span>
+<span class="sd">        `b` matrices with `n2` samples of size `d` (if None then :math:`\mathbf{X_2} = \mathbf{X_1}`)</span>
+<span class="sd">    metric : str, optional</span>
+<span class="sd">        &#39;sqeuclidean&#39;, &#39;euclidean&#39;, &#39;minkowski&#39; or &#39;kl&#39;</span>
+<span class="sd">    p : float, optional</span>
+<span class="sd">        p-norm for the Minkowski metrics. Default value is 2.</span>
+<span class="sd">    nx : Backend, optional</span>
+<span class="sd">        Backend to perform computations on. If omitted, the backend defaults to that of `x1`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    M : array-like, shape (`b`, `n1`, `n2`)</span>
+<span class="sd">        distance matrix computed with given metric</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.batch import dist_batch</span>
+<span class="sd">    &gt;&gt;&gt; X1 = np.random.randn(5, 10, 3)</span>
+<span class="sd">    &gt;&gt;&gt; X2 = np.random.randn(5, 15, 3)</span>
+<span class="sd">    &gt;&gt;&gt; M = dist_batch(X1, X2, metric=&quot;euclidean&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; M.shape</span>
+<span class="sd">    (5, 10, 15)</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.dist : equivalent non-batched function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">X2</span> <span class="o">=</span> <span class="n">X2</span> <span class="k">if</span> <span class="n">X2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">X1</span>
+    <span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist_euclidean_batch</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist_euclidean_batch</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;minkowski&quot;</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist_lp_batch</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">dist_kl_batch</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">logits_X</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown metric: </span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span></div>
+
+
+
+<div class="viewcode-block" id="solve_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.solve_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">solve_batch</span><span class="p">(</span>
+    <span class="n">M</span><span class="p">,</span>
+    <span class="n">reg</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;log_sinkhorn&quot;</span><span class="p">,</span>
+    <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;entropy&quot;</span><span class="p">,</span>
+    <span class="n">grad</span><span class="o">=</span><span class="s2">&quot;envelope&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Batched version of ot.solve, use it to solve many entropic OT problems in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Cost matrix</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization parameter for entropic regularization</span>
+<span class="sd">    a : array-like, shape (B, ns)</span>
+<span class="sd">        Source distribution (optional). If None, uniform distribution is used.</span>
+<span class="sd">    b : array-like, shape (B, nt)</span>
+<span class="sd">        Target distribution (optional). If None, uniform distribution is used.</span>
+<span class="sd">    max_iter : int</span>
+<span class="sd">        Maximum number of iterations</span>
+<span class="sd">    tol : float</span>
+<span class="sd">        Tolerance for convergence</span>
+<span class="sd">    solver: str</span>
+<span class="sd">        Solver to use, either &#39;log_sinkhorn&#39; or &#39;sinkhorn&#39;. Default is &quot;log_sinkhorn&quot; which is more stable.</span>
+<span class="sd">    reg_type : str, optional</span>
+<span class="sd">        Type of regularization :math:`R`  either &quot;KL&quot;, or &quot;entropy&quot;. Default is &quot;entropy&quot;.</span>
+<span class="sd">    grad : str, optional</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39;, &#39;envelope&#39; or &#39;last_step&#39; used only for</span>
+<span class="sd">        Sinkhorn solver. By default &#39;autodiff&#39; provides gradients wrt all</span>
+<span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
+<span class="sd">        &#39;envelope&#39; provides gradients only for `value` and and other outputs are</span>
+<span class="sd">        detached. This is useful for memory saving when only the value is needed. &#39;last_step&#39; provides</span>
+<span class="sd">        gradients only for the last iteration of the Sinkhorn solver, but provides gradient for both the OT plan and the objective values.</span>
+<span class="sd">        &#39;detach&#39; does not compute the gradients for the Sinkhorn solver.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    res : OTResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.plan : OT plan :math:`\mathbf{T}`</span>
+<span class="sd">        - res.potentials : OT dual potentials</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+
+<span class="sd">        See :any:`OTResult` for more information.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.batch import solve_batch, dist_batch</span>
+<span class="sd">    &gt;&gt;&gt; X = np.random.randn(5, 10, 3)  # 5 batches of 10 samples in 3D</span>
+<span class="sd">    &gt;&gt;&gt; Y = np.random.randn(5, 15, 3)  # 5 batches of 15 samples in 3D</span>
+<span class="sd">    &gt;&gt;&gt; M = dist_batch(X, Y, metric=&quot;euclidean&quot;)  # Compute cost matrices</span>
+<span class="sd">    &gt;&gt;&gt; reg = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; result = solve_batch(M, reg)</span>
+<span class="sd">    &gt;&gt;&gt; result.plan.shape  # Optimal transport plans for each batch</span>
+<span class="sd">    (5, 10, 15)</span>
+<span class="sd">    &gt;&gt;&gt; result.value.shape  # Optimal transport values for each batch</span>
+<span class="sd">    (5,)</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.dist_batch : batched cost matrix computation for computing M.</span>
+<span class="sd">    ot.solve : non-batched version of the OT solver.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span> <span class="o">/</span> <span class="n">m</span>
+
+    <span class="k">if</span> <span class="n">solver</span> <span class="o">==</span> <span class="s2">&quot;log_sinkhorn&quot;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="o">-</span><span class="n">M</span> <span class="o">/</span> <span class="n">reg</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">bregman_log_projection_batch</span><span class="p">(</span>
+            <span class="n">K</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">grad</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">solver</span> <span class="o">==</span> <span class="s2">&quot;sinkhorn&quot;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">M</span> <span class="o">/</span> <span class="n">reg</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">bregman_projection_batch</span><span class="p">(</span>
+            <span class="n">K</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">grad</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown solver: </span><span class="si">{</span><span class="n">solver</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;T&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;detach&quot;</span><span class="p">:</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;envelope&quot;</span><span class="p">:</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="n">loss_linear_batch</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;entropy&quot;</span><span class="p">:</span>
+        <span class="n">entr</span> <span class="o">=</span> <span class="o">-</span><span class="n">entropy_batch</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">entr</span>
+    <span class="k">elif</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;kl&quot;</span><span class="p">:</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bi,bj-&gt;bij&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="n">kl</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="n">ref</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value_linear</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">kl</span>
+    <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;n_iter&quot;</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;n_iters&quot;</span><span class="p">]}</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">OTResult</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span>
+        <span class="n">potentials</span><span class="o">=</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;potentials&quot;</span><span class="p">],</span>
+        <span class="n">plan</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="n">log</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="solve_sample_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.solve_sample_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">solve_sample_batch</span><span class="p">(</span>
+    <span class="n">X_a</span><span class="p">,</span>
+    <span class="n">X_b</span><span class="p">,</span>
+    <span class="n">reg</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;log_sinkhorn&quot;</span><span class="p">,</span>
+    <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;entropy&quot;</span><span class="p">,</span>
+    <span class="n">grad</span><span class="o">=</span><span class="s2">&quot;envelope&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Batched version of ot.solve, use it to solve many entropic OT problems in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    M : array-like, shape (B, ns, nt)</span>
+<span class="sd">        Cost matrix</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Regularization parameter for entropic regularization</span>
+<span class="sd">    metric : str, optional</span>
+<span class="sd">        &#39;sqeuclidean&#39;, &#39;euclidean&#39;, &#39;minkowski&#39; or &#39;kl&#39;</span>
+<span class="sd">    p : float, optional</span>
+<span class="sd">        p-norm for the Minkowski metrics. Default value is 2.</span>
+<span class="sd">    a : array-like, shape (B, ns)</span>
+<span class="sd">        Source distribution (optional). If None, uniform distribution is used.</span>
+<span class="sd">    b : array-like, shape (B, nt)</span>
+<span class="sd">        Target distribution (optional). If None, uniform distribution is used.</span>
+<span class="sd">    max_iter : int</span>
+<span class="sd">        Maximum number of iterations</span>
+<span class="sd">    tol : float</span>
+<span class="sd">        Tolerance for convergence</span>
+<span class="sd">    solver: str</span>
+<span class="sd">        Solver to use, either &#39;log_sinkhorn&#39; or &#39;sinkhorn&#39;. Default is &quot;log_sinkhorn&quot; which is more stable.</span>
+<span class="sd">    reg_type : str, optional</span>
+<span class="sd">        Type of regularization :math:`R`  either &quot;KL&quot;, or &quot;entropy&quot;. Default is &quot;entropy&quot;.</span>
+<span class="sd">    grad : str, optional</span>
+<span class="sd">        Type of gradient computation, either or &#39;autodiff&#39;, &#39;envelope&#39; or &#39;last_step&#39; used only for</span>
+<span class="sd">        Sinkhorn solver. By default &#39;autodiff&#39; provides gradients wrt all</span>
+<span class="sd">        outputs (`plan, value, value_linear`) but with important memory cost.</span>
+<span class="sd">        &#39;envelope&#39; provides gradients only for `value` and and other outputs are</span>
+<span class="sd">        detached. This is useful for memory saving when only the value is needed. &#39;last_step&#39; provides</span>
+<span class="sd">        gradients only for the last iteration of the Sinkhorn solver, but provides gradient for both the OT plan and the objective values.</span>
+<span class="sd">        &#39;detach&#39; does not compute the gradients for the Sinkhorn solver.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    res : OTResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.plan : OT plan :math:`\mathbf{T}`</span>
+<span class="sd">        - res.potentials : OT dual potentials</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+
+<span class="sd">        See :any:`OTResult` for more information.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.batch.solve_batch : solver for computing the optimal T from arbitrary cost matrix M.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">M</span> <span class="o">=</span> <span class="n">dist_batch</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">solve_batch</span><span class="p">(</span>
+        <span class="n">M</span><span class="p">,</span>
+        <span class="n">reg</span><span class="p">,</span>
+        <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span>
+        <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+        <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+        <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+        <span class="n">grad</span><span class="o">=</span><span class="n">grad</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
