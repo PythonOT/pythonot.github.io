@@ -2818,6 +2818,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">rng_cuda_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
 
         <span class="kn">from</span><span class="w"> </span><span class="nn">torch.autograd</span><span class="w"> </span><span class="kn">import</span> <span class="n">Function</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.autograd.function</span><span class="w"> </span><span class="kn">import</span> <span class="n">once_differentiable</span>
 
         <span class="c1"># define a function that takes inputs val and grads</span>
         <span class="c1"># ad returns a val tensor with proper gradients</span>
@@ -2832,7 +2833,31 @@
                 <span class="c1"># the gradients are grad</span>
                 <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">grad_output</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">grads</span><span class="p">)</span>
 
+        <span class="c1"># define a differentiable SPD matrix sqrt</span>
+        <span class="c1"># with closed-form VJP</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">MatrixSqrtFunction</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+            <span class="nd">@staticmethod</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+                <span class="n">a_sym</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a_sym</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">s</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">y</span>
+
+            <span class="nd">@staticmethod</span>
+            <span class="nd">@once_differentiable</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+                <span class="n">s</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+                <span class="n">g_sym</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">g</span> <span class="o">+</span> <span class="n">g</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">ghat</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">@</span> <span class="n">g_sym</span> <span class="o">@</span> <span class="n">V</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">xhat</span> <span class="o">=</span> <span class="n">ghat</span> <span class="o">/</span> <span class="n">d</span>
+                <span class="n">xhat</span> <span class="o">=</span> <span class="n">xhat</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">V</span> <span class="o">@</span> <span class="n">xhat</span> <span class="o">@</span> <span class="n">V</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">ValFunction</span> <span class="o">=</span> <span class="n">ValFunction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MatrixSqrtFunction</span> <span class="o">=</span> <span class="n">MatrixSqrtFunction</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
@@ -3481,12 +3506,7 @@
 <div class="viewcode-block" id="TorchBackend.sqrtm">
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.sqrtm">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sqrtm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-        <span class="n">L</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
-        <span class="c1"># Q[...] = V[...] @ diag(L[...])</span>
-        <span class="n">Q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...jk,...k-&gt;...jk&quot;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
-        <span class="c1"># R[...] = Q[...] @ V[...].T</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...jk,...kl-&gt;...jl&quot;</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">MatrixSqrtFunction</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="TorchBackend.eigh">
