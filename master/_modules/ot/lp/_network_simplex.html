@@ -96,7 +96,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">check_number_threads</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.emd_wrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">check_result</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.emd_wrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">emd_c_sparse</span><span class="p">,</span> <span class="n">check_result</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">center_ot_dual</span><span class="p">(</span><span class="n">alpha0</span><span class="p">,</span> <span class="n">beta0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -300,8 +300,13 @@
 <span class="sd">        Source histogram (uniform weight if empty list)</span>
 <span class="sd">    b : (nt,) array-like, float</span>
 <span class="sd">        Target histogram (uniform weight if empty list)</span>
-<span class="sd">    M : (ns,nt) array-like, float</span>
-<span class="sd">        Loss matrix (c-order array in numpy with type float64)</span>
+<span class="sd">    M : (ns,nt) array-like or sparse matrix, float</span>
+<span class="sd">        Loss matrix. Can be:</span>
+
+<span class="sd">        - Dense array (c-order array in numpy with type float64)</span>
+<span class="sd">        - Sparse matrix in backend&#39;s format (scipy.sparse.coo_matrix for NumPy backend,</span>
+<span class="sd">          torch.sparse_coo_tensor for PyTorch backend, etc.)</span>
+
 <span class="sd">    numItermax : int, optional (default=100000)</span>
 <span class="sd">        The maximum number of iterations before stopping the optimization</span>
 <span class="sd">        algorithm if it has not converged.</span>
@@ -318,15 +323,27 @@
 <span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
 <span class="sd">        check.</span>
 
+<span class="sd">    .. note:: The solver automatically detects sparse format using the backend&#39;s</span>
+<span class="sd">        :py:meth:`issparse` method. For sparse inputs:</span>
+
+<span class="sd">        - Uses a memory-efficient sparse EMD algorithm</span>
+<span class="sd">        - Returns the transport plan as a sparse matrix in the backend&#39;s format</span>
+<span class="sd">        - Supports scipy.sparse (NumPy), torch.sparse (PyTorch), etc.</span>
+<span class="sd">        - JAX and TensorFlow backends don&#39;t support sparse matrices</span>
+
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    gamma: array-like, shape (ns, nt)</span>
-<span class="sd">        Optimal transportation matrix for the given</span>
-<span class="sd">        parameters</span>
+<span class="sd">    gamma: array-like or sparse matrix, shape (ns, nt)</span>
+<span class="sd">        Optimal transportation matrix for the given parameters.</span>
+
+<span class="sd">        - For dense inputs: returns a dense array</span>
+<span class="sd">        - For sparse inputs: returns a sparse matrix in the backend&#39;s format</span>
+<span class="sd">          (e.g., scipy.sparse.coo_matrix for NumPy, torch.sparse_coo_tensor for PyTorch)</span>
+
 <span class="sd">    log: dict, optional</span>
-<span class="sd">        If input log is true, a dictionary containing the</span>
-<span class="sd">        cost and dual variables and exit status</span>
+<span class="sd">        If input log is True, a dictionary containing the cost, dual variables,</span>
+<span class="sd">        and exit status.</span>
 
 
 <span class="sd">    Examples</span>
@@ -357,38 +374,64 @@
 <span class="sd">    ot.optim.cg : General regularized OT</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="c1"># Convert lists to arrays, using M to detect backend when a,b are empty</span>
     <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="c1"># Check if M is sparse using backend&#39;s issparse method</span>
+    <span class="n">is_sparse</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="c1"># Check if backend supports sparse matrices</span>
+        <span class="n">backend_name</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="n">backend_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;JaxBackend&quot;</span><span class="p">,</span> <span class="s2">&quot;TensorflowBackend&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Sparse optimal transport is not supported for </span><span class="si">{</span><span class="n">backend_name</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;JAX does not have native sparse matrix support, and TensorFlow&#39;s &quot;</span>
+                <span class="s2">&quot;sparse implementation is incomplete. Please convert your sparse &quot;</span>
+                <span class="s2">&quot;matrix to dense format using M.toarray() or equivalent before calling emd().&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Extract COO data using backend method - returns numpy arrays</span>
+        <span class="n">edge_sources</span><span class="p">,</span> <span class="n">edge_targets</span><span class="p">,</span> <span class="n">edge_costs</span><span class="p">,</span> <span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sparse_coo_data</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+
+        <span class="c1"># Ensure correct dtypes for C++ solver</span>
+        <span class="k">if</span> <span class="n">edge_sources</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">:</span>
+            <span class="n">edge_sources</span> <span class="o">=</span> <span class="n">edge_sources</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">edge_targets</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">:</span>
+            <span class="n">edge_targets</span> <span class="o">=</span> <span class="n">edge_targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="n">edge_costs</span> <span class="o">=</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">b</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">type_as</span> <span class="o">=</span> <span class="n">M</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
 
-    <span class="c1"># if empty array given then use uniform distributions</span>
+    <span class="c1"># Set n1, n2 if not already set (dense case)</span>
+    <span class="k">if</span> <span class="n">n1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
+
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n1</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n1</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n2</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n2</span>
 
-    <span class="c1"># convert to numpy</span>
-    <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
 
-    <span class="c1"># ensure float64</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
-
-    <span class="c1"># if empty array given then use uniform distributions</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">assert</span> <span class="p">(</span>
-        <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n1</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n2</span>
     <span class="p">),</span> <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
 
     <span class="c1"># ensure that same mass</span>
@@ -406,32 +449,77 @@
 
     <span class="n">numThreads</span> <span class="o">=</span> <span class="n">check_number_threads</span><span class="p">(</span><span class="n">numThreads</span><span class="p">)</span>
 
-    <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
+    <span class="c1"># ============================================================================</span>
+    <span class="c1"># CALL SOLVER (sparse or dense)</span>
+    <span class="c1"># ============================================================================</span>
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="c1"># Sparse solver - never build full matrix</span>
+        <span class="n">flow_sources</span><span class="p">,</span> <span class="n">flow_targets</span><span class="p">,</span> <span class="n">flow_values</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c_sparse</span><span class="p">(</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">edge_sources</span><span class="p">,</span> <span class="n">edge_targets</span><span class="p">,</span> <span class="n">edge_costs</span><span class="p">,</span> <span class="n">numItermax</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Dense solver</span>
+        <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
 
+    <span class="c1"># ============================================================================</span>
+    <span class="c1"># POST-PROCESS DUAL VARIABLES AND CREATE TRANSPORT PLAN</span>
+    <span class="c1"># ============================================================================</span>
+
+    <span class="c1"># Center dual potentials</span>
     <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
+    <span class="c1"># Handle null weights</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
-        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
     <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
-            <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
-            <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
-            <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
-            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+
+    <span class="c1"># Create transport plan in backend format</span>
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="c1"># Convert flow to sparse matrix using backend&#39;s coo_matrix method</span>
+        <span class="n">flow_values_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">flow_values</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="n">flow_sources_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">flow_sources</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span>
         <span class="p">)</span>
+        <span class="n">flow_targets_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">flow_targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span>
+        <span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">(</span>
+            <span class="n">flow_values_backend</span><span class="p">,</span>
+            <span class="n">flow_sources_backend</span><span class="p">,</span>
+            <span class="n">flow_targets_backend</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">),</span>
+            <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Warn about integer casting for dense case</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
+                <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+                <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+                <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="c1"># Return results</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cost</span>
-        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
-        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;result_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
-        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span> <span class="n">log</span>
-    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span></div>
+        <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;cost&quot;</span><span class="p">:</span> <span class="n">cost</span><span class="p">,</span>
+            <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+            <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="n">result_code_string</span><span class="p">,</span>
+            <span class="s2">&quot;result_code&quot;</span><span class="p">:</span> <span class="n">result_code</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log_dict</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">G</span></div>
 
 
 
@@ -487,15 +575,20 @@
 <span class="sd">        Source histogram (uniform weight if empty list)</span>
 <span class="sd">    b : (nt,) array-like, float64</span>
 <span class="sd">        Target histogram (uniform weight if empty list)</span>
-<span class="sd">    M : (ns,nt) array-like, float64</span>
-<span class="sd">        Loss matrix (for numpy c-order array with type float64)</span>
+<span class="sd">    M : (ns,nt) array-like or sparse matrix, float64</span>
+<span class="sd">        Loss matrix. Can be:</span>
+
+<span class="sd">        - Dense array (c-order array in numpy with type float64)</span>
+<span class="sd">        - Sparse matrix in backend&#39;s format (scipy.sparse.coo_matrix for NumPy backend,</span>
+<span class="sd">          torch.sparse_coo_tensor for PyTorch backend, etc.)</span>
+
 <span class="sd">    processes : int, optional (default=1)</span>
 <span class="sd">        Nb of processes used for multiple emd computation (deprecated)</span>
 <span class="sd">    numItermax : int, optional (default=100000)</span>
 <span class="sd">        The maximum number of iterations before stopping the optimization</span>
 <span class="sd">        algorithm if it has not converged.</span>
 <span class="sd">    log: boolean, optional (default=False)</span>
-<span class="sd">        If True, returns a dictionary containing dual</span>
+<span class="sd">        If True, returns a dictionary containing the cost and dual</span>
 <span class="sd">        variables. Otherwise returns only the optimal transportation cost.</span>
 <span class="sd">    return_matrix: boolean, optional (default=False)</span>
 <span class="sd">        If True, returns the optimal transportation matrix in the log.</span>
@@ -509,14 +602,23 @@
 <span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
 <span class="sd">        check.</span>
 
+<span class="sd">    .. note:: The solver automatically detects sparse format using the backend&#39;s</span>
+<span class="sd">        :py:meth:`issparse` method. For sparse inputs:</span>
+
+<span class="sd">        - Uses a memory-efficient sparse EMD algorithm</span>
+<span class="sd">        - Edges not included are treated as having infinite cost (forbidden)</span>
+<span class="sd">        - Supports scipy.sparse (NumPy), torch.sparse (PyTorch), etc.</span>
+<span class="sd">        - JAX and TensorFlow backends don&#39;t support sparse matrices</span>
+
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    W: float, array-like</span>
 <span class="sd">        Optimal transportation loss for the given parameters</span>
 <span class="sd">    log: dict</span>
-<span class="sd">        If input log is true, a dictionary containing dual</span>
-<span class="sd">        variables and exit status</span>
+<span class="sd">        If input log is true, a dictionary containing the cost, dual</span>
+<span class="sd">        variables (u, v), exit status, and optionally the optimal</span>
+<span class="sd">        transportation matrix (G) if return_matrix is True</span>
 
 
 <span class="sd">    Examples</span>
@@ -548,34 +650,72 @@
 <span class="sd">    ot.optim.cg : General regularized OT</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
     <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
-    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+
+    <span class="c1"># Check if M is sparse using backend&#39;s issparse method</span>
+    <span class="n">is_sparse</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+
+    <span class="c1"># Save original sparse tensor for gradient tracking (before conversion to numpy)</span>
+    <span class="n">M_original_sparse</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="c1"># Check if backend supports sparse matrices</span>
+        <span class="n">backend_name</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="n">backend_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;JaxBackend&quot;</span><span class="p">,</span> <span class="s2">&quot;TensorflowBackend&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+        <span class="c1"># Save original M for gradient tracking (before numpy conversion)</span>
+        <span class="n">M_original_sparse</span> <span class="o">=</span> <span class="n">M</span>
+
+        <span class="n">edge_sources</span><span class="p">,</span> <span class="n">edge_targets</span><span class="p">,</span> <span class="n">edge_costs</span><span class="p">,</span> <span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sparse_coo_data</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">edge_sources</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">:</span>
+            <span class="n">edge_sources</span> <span class="o">=</span> <span class="n">edge_sources</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">edge_targets</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">:</span>
+            <span class="n">edge_targets</span> <span class="o">=</span> <span class="n">edge_targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="n">edge_costs</span> <span class="o">=</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">b</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">type_as</span> <span class="o">=</span> <span class="n">M</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
+
+    <span class="c1"># Set n1, n2 if not already set (dense case)</span>
+    <span class="k">if</span> <span class="n">n1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="c1"># if empty array given then use uniform distributions</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n1</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n1</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n2</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n2</span>
 
-    <span class="c1"># store original tensors</span>
-    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span>
+    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
+    <span class="n">M0</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">is_sparse</span> <span class="k">else</span> <span class="n">M</span>
 
-    <span class="c1"># convert to numpy</span>
-    <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="c1"># Use the original sparse tensor (preserves gradients for PyTorch)</span>
+        <span class="n">edge_costs_original</span> <span class="o">=</span> <span class="n">M_original_sparse</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">edge_costs_original</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
 
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
 
     <span class="k">assert</span> <span class="p">(</span>
-        <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n1</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n2</span>
     <span class="p">),</span> <span class="s2">&quot;Dimension mismatch, check dimensions of M with a and b&quot;</span>
 
     <span class="c1"># ensure that same mass</span>
@@ -592,54 +732,88 @@
 
     <span class="n">numThreads</span> <span class="o">=</span> <span class="n">check_number_threads</span><span class="p">(</span><span class="n">numThreads</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
+    <span class="c1"># ============================================================================</span>
+    <span class="c1"># DEFINE SOLVER FUNCTION</span>
+    <span class="c1"># ============================================================================</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+        <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
-
+        <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+            <span class="c1"># Solve sparse EMD</span>
+            <span class="n">flow_sources</span><span class="p">,</span> <span class="n">flow_targets</span><span class="p">,</span> <span class="n">flow_values</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">emd_c_sparse</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">edge_sources</span><span class="p">,</span> <span class="n">edge_targets</span><span class="p">,</span> <span class="n">edge_costs</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Solve dense EMD</span>
             <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
-                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="c1"># Center dual potentials</span>
+        <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
+        <span class="c1"># Handle null weights</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
                 <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
 
-            <span class="n">result_code_string</span> <span class="o">=</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
-            <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
-                    <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
-                    <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
-                    <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
-                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="c1"># Prepare cost with gradients</span>
+        <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
+            <span class="c1"># Build gradient mapping for sparse case</span>
+            <span class="n">edge_to_idx</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="p">(</span><span class="n">edge_sources</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">edge_targets</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edge_sources</span><span class="p">))</span>
+            <span class="p">}</span>
+
+            <span class="n">grad_edge_costs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edge_costs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flow_sources</span><span class="p">)):</span>
+                <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">,</span> <span class="n">flow</span> <span class="o">=</span> <span class="n">flow_sources</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">flow_targets</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">flow_values</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+                <span class="n">edge_idx</span> <span class="o">=</span> <span class="n">edge_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">edge_idx</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">grad_edge_costs</span><span class="p">[</span><span class="n">edge_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow</span>
+
+            <span class="c1"># Convert gradient to sparse format matching edge_costs_original</span>
+            <span class="n">grad_edge_costs_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">grad_edge_costs</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">edge_costs_original</span><span class="p">):</span>
+                <span class="c1"># Reconstruct sparse gradient tensor with same structure as original</span>
+                <span class="n">grad_M_sparse</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">(</span>
+                    <span class="n">grad_edge_costs_backend</span><span class="p">,</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">edge_sources</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">edge_targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">),</span>
+                    <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">,</span>
                 <span class="p">)</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
-                <span class="n">log</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span>
-            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
-            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code_string</span>
-            <span class="n">log</span><span class="p">[</span><span class="s2">&quot;result_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_code</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">grad_M_sparse</span> <span class="o">=</span> <span class="n">grad_edge_costs_backend</span>
+
             <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
                 <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
-                <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span>
-                <span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]),</span> <span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]),</span> <span class="n">G</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">edge_costs_original</span><span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                    <span class="n">grad_M_sparse</span><span class="p">,</span>
+                <span class="p">),</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">cost</span><span class="p">,</span> <span class="n">log</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-            <span class="n">bsel</span> <span class="o">=</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
-            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
+            <span class="c1"># Build transport plan in backend sparse format</span>
+            <span class="n">flow_values_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">flow_values</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+            <span class="n">flow_sources_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+                <span class="n">flow_sources</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span>
+            <span class="p">)</span>
+            <span class="n">flow_targets_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+                <span class="n">flow_targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span>
+            <span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
-                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">asel</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">bsel</span><span class="p">):</span>
-                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">estimate_dual_null_weights</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
-
+            <span class="n">G_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">(</span>
+                <span class="n">flow_values_backend</span><span class="p">,</span>
+                <span class="n">flow_sources_backend</span><span class="p">,</span>
+                <span class="n">flow_targets_backend</span><span class="p">,</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">),</span>
+                <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Dense case: warn about integer casting</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                     <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
@@ -648,18 +822,33 @@
                     <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
                     <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                 <span class="p">)</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+            <span class="n">G_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
             <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
                 <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
                 <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">M0</span><span class="p">),</span>
                 <span class="p">(</span>
                     <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
                     <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
-                    <span class="n">G</span><span class="p">,</span>
+                    <span class="n">G_backend</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">)</span>
 
-            <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+        <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+
+        <span class="c1"># Return results</span>
+        <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
+            <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;cost&quot;</span><span class="p">:</span> <span class="n">cost</span><span class="p">,</span>
+                <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+                <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">),</span>
+                <span class="s2">&quot;result_code&quot;</span><span class="p">:</span> <span class="n">result_code</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
+                <span class="n">log_dict</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_backend</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">cost</span><span class="p">,</span> <span class="n">log_dict</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">cost</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>

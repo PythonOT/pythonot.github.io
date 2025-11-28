@@ -261,7 +261,16 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_check_args_backend</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-    <span class="n">is_instance</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">backend_impl</span><span class="o">.</span><span class="n">__type__</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+    <span class="c1"># Get backend instance to use issparse method</span>
+    <span class="n">backend</span> <span class="o">=</span> <span class="n">_get_backend_instance</span><span class="p">(</span><span class="n">backend_impl</span><span class="p">)</span>
+
+    <span class="c1"># Check if each arg is either:</span>
+    <span class="c1"># 1. An instance of backend.__type__ (e.g., np.ndarray for NumPy)</span>
+    <span class="c1"># 2. A sparse matrix recognized by backend.issparse() (e.g., scipy.sparse for NumPy)</span>
+    <span class="n">is_instance</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">backend_impl</span><span class="o">.</span><span class="n">__type__</span><span class="p">)</span> <span class="ow">or</span> <span class="n">backend</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span>
+    <span class="p">)</span>
+
     <span class="c1"># check that all arguments matched or not the type</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_instance</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">is_instance</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
@@ -1110,6 +1119,34 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
+<div class="viewcode-block" id="Backend.sparse_coo_data">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.sparse_coo_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sparse_coo_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extracts COO format data (row, col, data, shape) from a sparse matrix.</span>
+
+<span class="sd">        Returns row indices, column indices, data values, and shape as numpy arrays/tuple.</span>
+<span class="sd">        This is used to interface with C++ solvers that require explicit edge lists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        a : sparse matrix</span>
+<span class="sd">            Sparse matrix in backend&#39;s COO format</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        row : numpy.ndarray</span>
+<span class="sd">            Row indices (1D array)</span>
+<span class="sd">        col : numpy.ndarray</span>
+<span class="sd">            Column indices (1D array)</span>
+<span class="sd">        data : numpy.ndarray</span>
+<span class="sd">            Data values (1D array)</span>
+<span class="sd">        shape : tuple</span>
+<span class="sd">            Shape of the matrix (n_rows, n_cols)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="Backend.where">
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.Backend.where">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
@@ -1878,6 +1915,18 @@
             <span class="k">return</span> <span class="n">a</span></div>
 
 
+<div class="viewcode-block" id="NumpyBackend.sparse_coo_data">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.sparse_coo_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sparse_coo_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="c1"># Convert to COO format if needed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">coo_matrix</span><span class="p">):</span>
+            <span class="n">a_coo</span> <span class="o">=</span> <span class="n">coo_matrix</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">a_coo</span> <span class="o">=</span> <span class="n">a</span>
+
+        <span class="k">return</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">row</span><span class="p">,</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">shape</span></div>
+
+
 <div class="viewcode-block" id="NumpyBackend.where">
 <a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.NumpyBackend.where">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2553,6 +2602,18 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">todense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="c1"># Currently, JAX does not support sparse matrices</span>
         <span class="k">return</span> <span class="n">a</span></div>
+
+
+<div class="viewcode-block" id="JaxBackend.sparse_coo_data">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.JaxBackend.sparse_coo_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sparse_coo_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="c1"># JAX doesn&#39;t support sparse matrices, so this shouldn&#39;t be called</span>
+        <span class="c1"># But if it is, convert the dense array to sparse using scipy</span>
+        <span class="n">a_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">coo_matrix</span>
+
+        <span class="n">a_coo</span> <span class="o">=</span> <span class="n">coo_matrix</span><span class="p">(</span><span class="n">a_np</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">row</span><span class="p">,</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">a_coo</span><span class="o">.</span><span class="n">shape</span></div>
 
 
 <div class="viewcode-block" id="JaxBackend.where">
@@ -3383,6 +3444,23 @@
             <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">a</span></div>
+
+
+<div class="viewcode-block" id="TorchBackend.sparse_coo_data">
+<a class="viewcode-back" href="../../gen_modules/ot.backend.html#ot.backend.TorchBackend.sparse_coo_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sparse_coo_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="c1"># For torch sparse tensors, coalesce first to ensure unique indices</span>
+        <span class="n">a_coalesced</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">coalesce</span><span class="p">()</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">a_coalesced</span><span class="o">.</span><span class="n">_indices</span><span class="p">()</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">a_coalesced</span><span class="o">.</span><span class="n">_values</span><span class="p">()</span>
+
+        <span class="c1"># Convert to numpy</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">a_coalesced</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">shape</span></div>
 
 
 <div class="viewcode-block" id="TorchBackend.where">

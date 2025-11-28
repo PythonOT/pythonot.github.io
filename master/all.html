@@ -549,7 +549,13 @@ floating point input.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>a</strong> (<em>(</em><em>ns</em><em>,</em><em>) </em><em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Source histogram (uniform weight if empty list)</p></li>
 <li><p><strong>b</strong> (<em>(</em><em>nt</em><em>,</em><em>) </em><em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Target histogram (uniform weight if empty list)</p></li>
-<li><p><strong>M</strong> (<em>(</em><em>ns</em><em>,</em><em>nt</em><em>) </em><em>array-like</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Loss matrix (c-order array in numpy with type float64)</p></li>
+<li><p><strong>M</strong> (<em>(</em><em>ns</em><em>,</em><em>nt</em><em>) </em><em>array-like</em><em> or </em><em>sparse matrix</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – <p>Loss matrix. Can be:</p>
+<ul>
+<li><p>Dense array (c-order array in numpy with type float64)</p></li>
+<li><p>Sparse matrix in backend’s format (scipy.sparse.coo_matrix for NumPy backend,
+torch.sparse_coo_tensor for PyTorch backend, etc.)</p></li>
+</ul>
+</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default=100000</em><em>)</em>) – The maximum number of iterations before stopping the optimization
 algorithm if it has not converged.</p></li>
 <li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – If True, returns a dictionary containing the cost and dual variables.
@@ -560,14 +566,27 @@ Otherwise returns only the optimal transportation matrix.</p></li>
 “max” selects the highest number possible.</p></li>
 <li><p><strong>check_marginals</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default=True</em><em>)</em>) – If True, checks that the marginals mass are equal. If False, skips the
 check.</p></li>
+<li><p><strong>note:</strong> (<em>..</em>) – <p>The solver automatically detects sparse format using the backend’s: <code class="xref py py-meth docutils literal notranslate"><span class="pre">issparse()</span></code> method. For sparse inputs:</p>
+<ul>
+<li><p>Uses a memory-efficient sparse EMD algorithm</p></li>
+<li><p>Returns the transport plan as a sparse matrix in the backend’s format</p></li>
+<li><p>Supports scipy.sparse (NumPy), torch.sparse (PyTorch), etc.</p></li>
+<li><p>JAX and TensorFlow backends don’t support sparse matrices</p></li>
+</ul>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>gamma</strong> (<em>array-like, shape (ns, nt)</em>) – Optimal transportation matrix for the given
-parameters</p></li>
-<li><p><strong>log</strong> (<em>dict, optional</em>) – If input log is true, a dictionary containing the
-cost and dual variables and exit status</p></li>
+<li><p><strong>gamma</strong> (<em>array-like or sparse matrix, shape (ns, nt)</em>) – Optimal transportation matrix for the given parameters.</p>
+<ul>
+<li><p>For dense inputs: returns a dense array</p></li>
+<li><p>For sparse inputs: returns a sparse matrix in the backend’s format
+(e.g., scipy.sparse.coo_matrix for NumPy, torch.sparse_coo_tensor for PyTorch)</p></li>
+</ul>
+</li>
+<li><p><strong>log</strong> (<em>dict, optional</em>) – If input log is True, a dictionary containing the cost, dual variables,
+and exit status.</p></li>
 </ul>
 </p>
 </dd>
@@ -641,11 +660,17 @@ floating point input.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>a</strong> (<em>(</em><em>ns</em><em>,</em><em>) </em><em>array-like</em><em>, </em><em>float64</em>) – Source histogram (uniform weight if empty list)</p></li>
 <li><p><strong>b</strong> (<em>(</em><em>nt</em><em>,</em><em>) </em><em>array-like</em><em>, </em><em>float64</em>) – Target histogram (uniform weight if empty list)</p></li>
-<li><p><strong>M</strong> (<em>(</em><em>ns</em><em>,</em><em>nt</em><em>) </em><em>array-like</em><em>, </em><em>float64</em>) – Loss matrix (for numpy c-order array with type float64)</p></li>
+<li><p><strong>M</strong> (<em>(</em><em>ns</em><em>,</em><em>nt</em><em>) </em><em>array-like</em><em> or </em><em>sparse matrix</em><em>, </em><em>float64</em>) – <p>Loss matrix. Can be:</p>
+<ul>
+<li><p>Dense array (c-order array in numpy with type float64)</p></li>
+<li><p>Sparse matrix in backend’s format (scipy.sparse.coo_matrix for NumPy backend,
+torch.sparse_coo_tensor for PyTorch backend, etc.)</p></li>
+</ul>
+</p></li>
 <li><p><strong>processes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default=1</em><em>)</em>) – Nb of processes used for multiple emd computation (deprecated)</p></li>
 <li><p><strong>numItermax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default=100000</em><em>)</em>) – The maximum number of iterations before stopping the optimization
 algorithm if it has not converged.</p></li>
-<li><p><strong>log</strong> (<em>boolean</em><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – If True, returns a dictionary containing dual
+<li><p><strong>log</strong> (<em>boolean</em><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – If True, returns a dictionary containing the cost and dual
 variables. Otherwise returns only the optimal transportation cost.</p></li>
 <li><p><strong>return_matrix</strong> (<em>boolean</em><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – If True, returns the optimal transportation matrix in the log.</p></li>
 <li><p><strong>center_dual</strong> (<em>boolean</em><em>, </em><em>optional</em><em> (</em><em>default=True</em><em>)</em>) – If True, centers the dual potential using function
@@ -654,13 +679,22 @@ variables. Otherwise returns only the optimal transportation cost.</p></li>
 “max” selects the highest number possible.</p></li>
 <li><p><strong>check_marginals</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default=True</em><em>)</em>) – If True, checks that the marginals mass are equal. If False, skips the
 check.</p></li>
+<li><p><strong>note:</strong> (<em>..</em>) – <p>The solver automatically detects sparse format using the backend’s: <code class="xref py py-meth docutils literal notranslate"><span class="pre">issparse()</span></code> method. For sparse inputs:</p>
+<ul>
+<li><p>Uses a memory-efficient sparse EMD algorithm</p></li>
+<li><p>Edges not included are treated as having infinite cost (forbidden)</p></li>
+<li><p>Supports scipy.sparse (NumPy), torch.sparse (PyTorch), etc.</p></li>
+<li><p>JAX and TensorFlow backends don’t support sparse matrices</p></li>
+</ul>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>W</strong> (<em>float, array-like</em>) – Optimal transportation loss for the given parameters</p></li>
-<li><p><strong>log</strong> (<em>dict</em>) – If input log is true, a dictionary containing dual
-variables and exit status</p></li>
+<li><p><strong>log</strong> (<em>dict</em>) – If input log is true, a dictionary containing the cost, dual
+variables (u, v), exit status, and optionally the optimal
+transportation matrix (G) if return_matrix is True</p></li>
 </ul>
 </p>
 </dd>
