@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ot.lp._network_simplex &mdash; POT Python Optimal Transport 0.9.7.dev0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -96,7 +96,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">check_number_threads</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.emd_wrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">emd_c_sparse</span><span class="p">,</span> <span class="n">check_result</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.emd_wrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">emd_c</span><span class="p">,</span> <span class="n">emd_c_sparse</span><span class="p">,</span> <span class="n">emd_c_lazy</span><span class="p">,</span> <span class="n">check_result</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">center_ot_dual</span><span class="p">(</span><span class="n">alpha0</span><span class="p">,</span> <span class="n">beta0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -405,20 +405,20 @@
         <span class="k">if</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">edge_costs</span> <span class="o">=</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">b</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">b</span>
 
     <span class="c1"># Set n1, n2 if not already set (dense case)</span>
     <span class="k">if</span> <span class="n">n1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n1</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n1</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n2</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n2</span>
 
     <span class="k">if</span> <span class="n">is_sparse</span><span class="p">:</span>
@@ -559,7 +559,7 @@
 
 <span class="sd">    .. note:: This function will cast the computed transport plan and</span>
 <span class="sd">        transportation loss to the data type of the provided input with the</span>
-<span class="sd">        following priority: :math:`\mathbf{a}`, then :math:`\mathbf{b}`,</span>
+<span class="sd">        following priority : :math:`\mathbf{a}`, then :math:`\mathbf{b}`,</span>
 <span class="sd">        then :math:`\mathbf{M}` if marginals are not provided.</span>
 <span class="sd">        Casting to an integer tensor might result in a loss of precision.</span>
 <span class="sd">        If this behaviour is unwanted, please make sure to provide a</span>
@@ -679,21 +679,21 @@
         <span class="k">if</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">edge_costs</span> <span class="o">=</span> <span class="n">edge_costs</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">type_as</span> <span class="o">=</span> <span class="n">b</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">b</span>
 
     <span class="c1"># Set n1, n2 if not already set (dense case)</span>
     <span class="k">if</span> <span class="n">n1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="c1"># if empty array given then use uniform distributions</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n1</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n1</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n2</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n2</span>
 
     <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
@@ -864,6 +864,186 @@
 
     <span class="k">return</span> <span class="n">res</span></div>
 
+
+
+<div class="viewcode-block" id="emd2_lazy">
+<a class="viewcode-back" href="../../../gen_modules/ot.lp.html#ot.emd2_lazy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">emd2_lazy</span><span class="p">(</span>
+    <span class="n">X_a</span><span class="p">,</span>
+    <span class="n">X_b</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem with lazy cost computation and returns the loss</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_\gamma \quad \langle \gamma, \mathbf{M}(\mathbf{X}_a, \mathbf{X}_b) \rangle_F</span>
+
+<span class="sd">        s.t. \ \gamma \mathbf{1} = \mathbf{a}</span>
+
+<span class="sd">             \gamma^T \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \gamma \geq 0</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\mathbf{M}(\mathbf{X}_a, \mathbf{X}_b)` is computed on-the-fly from coordinates</span>
+<span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are the sample weights</span>
+
+<span class="sd">    .. note:: This function computes distances on-the-fly during the network simplex algorithm,</span>
+<span class="sd">        avoiding the O(ns*nt) memory cost of pre-computing the full cost matrix. Memory usage</span>
+<span class="sd">        is O(ns+nt) instead.</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends. But the algorithm uses the C++ CPU backend</span>
+<span class="sd">        which can lead to copy overhead on GPU arrays.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_a : (ns, dim) array-like, float64</span>
+<span class="sd">        Source sample coordinates</span>
+<span class="sd">    X_b : (nt, dim) array-like, float64</span>
+<span class="sd">        Target sample coordinates</span>
+<span class="sd">    a : (ns,) array-like, float64, optional</span>
+<span class="sd">        Source histogram (uniform weight if None)</span>
+<span class="sd">    b : (nt,) array-like, float64, optional</span>
+<span class="sd">        Target histogram (uniform weight if None)</span>
+<span class="sd">    metric : str, optional (default=&#39;sqeuclidean&#39;)</span>
+<span class="sd">        Distance metric for cost computation. Options:</span>
+
+<span class="sd">        - &#39;sqeuclidean&#39;: Squared Euclidean distance</span>
+<span class="sd">        - &#39;euclidean&#39;: Euclidean distance</span>
+<span class="sd">        - &#39;cityblock&#39;: Manhattan/L1 distance</span>
+
+<span class="sd">    numItermax : int, optional (default=100000)</span>
+<span class="sd">        Maximum number of iterations before stopping if not converged</span>
+<span class="sd">    log: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns a dictionary containing the cost, dual variables,</span>
+<span class="sd">        and optionally the transport plan (sparse format)</span>
+<span class="sd">    return_matrix: boolean, optional (default=False)</span>
+<span class="sd">        If True, returns the optimal transportation matrix in the log (sparse format)</span>
+<span class="sd">    center_dual: boolean, optional (default=True)</span>
+<span class="sd">        If True, centers the dual potential using :py:func:`ot.lp.center_ot_dual`</span>
+<span class="sd">    check_marginals: bool, optional (default=True)</span>
+<span class="sd">        If True, checks that the marginals mass are equal</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    W: float</span>
+<span class="sd">        Optimal transportation loss</span>
+<span class="sd">    log: dict</span>
+<span class="sd">        If input log is True, a dictionary containing:</span>
+
+<span class="sd">        - cost: the optimal transportation cost</span>
+<span class="sd">        - u, v: dual variables</span>
+<span class="sd">        - warning: solver status message</span>
+<span class="sd">        - result_code: solver return code</span>
+<span class="sd">        - G: (optional) sparse transport plan if return_matrix=True</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.emd2 : EMD with pre-computed cost matrix</span>
+<span class="sd">    ot.lp.emd_c_lazy : Low-level C++ lazy solver</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">)</span>
+
+    <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">X_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">X_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;X_a and X_b must have the same number of dimensions, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="n">X_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">X_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">a</span>
+    <span class="k">elif</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">b</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">type_as</span> <span class="o">=</span> <span class="n">X_a</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n1</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n1</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n2</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n2</span>
+
+    <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
+
+    <span class="c1"># Convert to numpy for C++ backend</span>
+    <span class="n">X_a_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X_a</span><span class="p">)</span>
+    <span class="n">X_b_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X_b</span><span class="p">)</span>
+    <span class="n">a_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">b_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="n">X_a_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_a_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+    <span class="n">X_b_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_b_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+    <span class="n">a_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">b_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">a_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n1</span> <span class="ow">and</span> <span class="n">b_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n2</span>
+    <span class="p">),</span> <span class="s2">&quot;Dimension mismatch, check dimensions of X_a/X_b with a and b&quot;</span>
+
+    <span class="k">if</span> <span class="n">check_marginals</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">a_np</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+            <span class="n">b_np</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+            <span class="n">err_msg</span><span class="o">=</span><span class="s2">&quot;a and b vector must have the same sum&quot;</span><span class="p">,</span>
+            <span class="n">decimal</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">b_np</span> <span class="o">=</span> <span class="n">b_np</span> <span class="o">*</span> <span class="n">a_np</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">b_np</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c_lazy</span><span class="p">(</span>
+        <span class="n">a_np</span><span class="p">,</span> <span class="n">b_np</span><span class="p">,</span> <span class="n">X_a_np</span><span class="p">,</span> <span class="n">X_b_np</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">numItermax</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">center_ot_dual</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a_np</span><span class="p">,</span> <span class="n">b_np</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">type_as</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Input histogram consists of integer. The transport plan will be &quot;</span>
+            <span class="s2">&quot;casted accordingly, possibly resulting in a loss of precision. &quot;</span>
+            <span class="s2">&quot;If this behaviour is unwanted, please make sure your input &quot;</span>
+            <span class="s2">&quot;histogram consists of floating point elements.&quot;</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">G_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="n">cost_backend</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">set_gradients</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">b0</span><span class="p">),</span>
+        <span class="p">(</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span> <span class="ow">or</span> <span class="n">return_matrix</span><span class="p">:</span>
+        <span class="n">log_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;cost&quot;</span><span class="p">:</span> <span class="n">cost_backend</span><span class="p">,</span>
+            <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+            <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">),</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="n">check_result</span><span class="p">(</span><span class="n">result_code</span><span class="p">),</span>
+            <span class="s2">&quot;result_code&quot;</span><span class="p">:</span> <span class="n">result_code</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">return_matrix</span><span class="p">:</span>
+            <span class="n">log_dict</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_backend</span>
+        <span class="k">return</span> <span class="n">cost_backend</span><span class="p">,</span> <span class="n">log_dict</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cost_backend</span></div>
+
 </pre></div>
 
            </div>
@@ -873,7 +1053,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
