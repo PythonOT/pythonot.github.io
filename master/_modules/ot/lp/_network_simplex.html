@@ -257,6 +257,7 @@
     <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the OT matrix</span>
 
@@ -322,6 +323,11 @@
 <span class="sd">    check_marginals: bool, optional (default=True)</span>
 <span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
 <span class="sd">        check.</span>
+<span class="sd">    potentials_init: tuple of two arrays (alpha, beta), optional (default=None)</span>
+<span class="sd">        Warmstart dual potentials to accelerate convergence. Should be a tuple</span>
+<span class="sd">        (alpha, beta) where alpha is shape (ns,) and beta is shape (nt,).</span>
+<span class="sd">        These potentials are used to guide initial pivots in the network simplex.</span>
+<span class="sd">        Typically obtained from a previous EMD solve or Sinkhorn approximation.</span>
 
 <span class="sd">    .. note:: The solver automatically detects sparse format using the backend&#39;s</span>
 <span class="sd">        :py:meth:`issparse` method. For sparse inputs:</span>
@@ -458,8 +464,18 @@
             <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">edge_sources</span><span class="p">,</span> <span class="n">edge_targets</span><span class="p">,</span> <span class="n">edge_costs</span><span class="p">,</span> <span class="n">numItermax</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Prepare warmstart if provided</span>
+        <span class="n">alpha_init</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">beta_init</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">potentials_init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">alpha_init</span><span class="p">,</span> <span class="n">beta_init</span> <span class="o">=</span> <span class="n">potentials_init</span>
+            <span class="n">alpha_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">alpha_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">beta_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">beta_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
         <span class="c1"># Dense solver</span>
-        <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
+        <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">,</span> <span class="n">alpha_init</span><span class="p">,</span> <span class="n">beta_init</span>
+        <span class="p">)</span>
 
     <span class="c1"># ============================================================================</span>
     <span class="c1"># POST-PROCESS DUAL VARIABLES AND CREATE TRANSPORT PLAN</span>
@@ -536,6 +552,7 @@
     <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem and returns the loss</span>
 
@@ -601,6 +618,11 @@
 <span class="sd">    check_marginals: bool, optional (default=True)</span>
 <span class="sd">        If True, checks that the marginals mass are equal. If False, skips the</span>
 <span class="sd">        check.</span>
+<span class="sd">    potentials_init: tuple of two arrays (alpha, beta), optional (default=None)</span>
+<span class="sd">        Warmstart dual potentials to accelerate convergence. Should be a tuple</span>
+<span class="sd">        (alpha, beta) where alpha is shape (ns,) and beta is shape (nt,).</span>
+<span class="sd">        These potentials are used to guide initial pivots in the network simplex.</span>
+<span class="sd">        Typically obtained from a previous EMD solve or Sinkhorn approximation.</span>
 
 <span class="sd">    .. note:: The solver automatically detects sparse format using the backend&#39;s</span>
 <span class="sd">        :py:meth:`issparse` method. For sparse inputs:</span>
@@ -744,8 +766,18 @@
                 <span class="n">emd_c_sparse</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">edge_sources</span><span class="p">,</span> <span class="n">edge_targets</span><span class="p">,</span> <span class="n">edge_costs</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Prepare warmstart if provided</span>
+            <span class="n">alpha_init</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">beta_init</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">potentials_init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">alpha_init</span><span class="p">,</span> <span class="n">beta_init</span> <span class="o">=</span> <span class="n">potentials_init</span>
+                <span class="n">alpha_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">alpha_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">beta_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">beta_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
             <span class="c1"># Solve dense EMD</span>
-            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">)</span>
+            <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c</span><span class="p">(</span>
+                <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">numThreads</span><span class="p">,</span> <span class="n">alpha_init</span><span class="p">,</span> <span class="n">beta_init</span>
+            <span class="p">)</span>
 
         <span class="c1"># Center dual potentials</span>
         <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
