@@ -911,6 +911,7 @@
     <span class="n">return_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">center_dual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">check_marginals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">potentials_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves the Earth Movers distance problem with lazy cost computation and returns the loss</span>
 
@@ -964,6 +965,9 @@
 <span class="sd">        If True, centers the dual potential using :py:func:`ot.lp.center_ot_dual`</span>
 <span class="sd">    check_marginals: bool, optional (default=True)</span>
 <span class="sd">        If True, checks that the marginals mass are equal</span>
+<span class="sd">    potentials_init : tuple of (ns,) and (nt,) arrays, optional</span>
+<span class="sd">        Initial dual potentials (u, v) to warmstart the solver. If provided,</span>
+<span class="sd">        the solver starts from these potentials instead of a cold start.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1033,8 +1037,18 @@
         <span class="p">)</span>
     <span class="n">b_np</span> <span class="o">=</span> <span class="n">b_np</span> <span class="o">*</span> <span class="n">a_np</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">b_np</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
+    <span class="c1"># Handle warmstart potentials</span>
+    <span class="n">alpha_init_np</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">beta_init_np</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">potentials_init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">alpha_init</span><span class="p">,</span> <span class="n">beta_init</span> <span class="o">=</span> <span class="n">potentials_init</span>
+        <span class="n">alpha_init_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">alpha_init</span><span class="p">)</span>
+        <span class="n">beta_init_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">beta_init</span><span class="p">)</span>
+        <span class="n">alpha_init_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">alpha_init_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+        <span class="n">beta_init_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">beta_init_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+
     <span class="n">G</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">result_code</span> <span class="o">=</span> <span class="n">emd_c_lazy</span><span class="p">(</span>
-        <span class="n">a_np</span><span class="p">,</span> <span class="n">b_np</span><span class="p">,</span> <span class="n">X_a_np</span><span class="p">,</span> <span class="n">X_b_np</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">numItermax</span>
+        <span class="n">a_np</span><span class="p">,</span> <span class="n">b_np</span><span class="p">,</span> <span class="n">X_a_np</span><span class="p">,</span> <span class="n">X_b_np</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">numItermax</span><span class="p">,</span> <span class="n">alpha_init_np</span><span class="p">,</span> <span class="n">beta_init_np</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">center_dual</span><span class="p">:</span>
