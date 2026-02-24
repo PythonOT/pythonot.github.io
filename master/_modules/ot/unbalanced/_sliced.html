@@ -1,0 +1,582 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.unbalanced._sliced &mdash; POT Python Optimal Transport 0.9.7.dev0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=acf7178e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.unbalanced._sliced</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.unbalanced._sliced</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Sliced Unbalanced OT solvers</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Clément Bonet &lt;clement.bonet.mapp@polytechnique.edu&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_parameter_pair</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..sliced</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_random_projections</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._solver_1d</span><span class="w"> </span><span class="kn">import</span> <span class="n">rescale_potentials</span><span class="p">,</span> <span class="n">uot_1d</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..lp.solver_1d</span><span class="w"> </span><span class="kn">import</span> <span class="n">emd_1d_dual_backprop</span><span class="p">,</span> <span class="n">wasserstein_1d</span>
+
+
+<div class="viewcode-block" id="sliced_unbalanced_ot">
+<a class="viewcode-back" href="../../../gen_modules/ot.unbalanced.html#ot.sliced_unbalanced_ot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sliced_unbalanced_ot</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">reg_m</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_projections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">projections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the Sliced Unbalanced Optimal Transport (SUOT) between two empirical distributions.</span>
+<span class="sd">    The 1D UOT problem is computed with KL regularization and solved with a Frank-Wolfe algorithm, see :ref:`[82] &lt;references-suot&gt;`.</span>
+
+<span class="sd">    The Sliced Unbalanced Optimal Transport (SUOT) is defined as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathrm{SUOT}_p^p(\mu, \nu) = \int_{S^{d-1}} \mathrm{UOT}_p^p(P^\theta_\#\mu, P^\theta_\#\nu)\ \mathrm{d}\lambda(\theta)</span>
+
+<span class="sd">    with :math:`P^\theta(x)=\langle x,\theta\rangle` and :math:`\lambda` the uniform distribution on the unit sphere.</span>
+
+<span class="sd">    .. warning:: This function only works in pytorch or jax as it uses autodifferentiation to compute the 1D UOT problems. It is not maintained in jax.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : ndarray, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : ndarray, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg_m: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation term.</span>
+<span class="sd">        If `reg_m` is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same `reg_m` is applied to both marginal relaxations.</span>
+<span class="sd">        The balanced OT can be recovered using `reg_m=float(&quot;inf&quot;)`.</span>
+<span class="sd">        For semi-relaxed case, use either `reg_m=(float(&quot;inf&quot;), scalar)` or `reg_m=(scalar, float(&quot;inf&quot;))`.</span>
+<span class="sd">        If `reg_m` is an array, it must have the same backend as input arrays `(X_s, X_t)`.</span>
+<span class="sd">    a : ndarray, shape (n_samples_a,), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : ndarray, shape (n_samples_b,), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    n_projections : int, optional</span>
+<span class="sd">        Number of projections used for the Monte-Carlo approximation</span>
+<span class="sd">    p: float, optional, by default =2</span>
+<span class="sd">        Power p used for computing the sliced Wasserstein</span>
+<span class="sd">    projections: shape (dim, n_projections), optional</span>
+<span class="sd">        Projection matrix (n_projections and seed are not used in this case)</span>
+<span class="sd">    seed: int or RandomState or None, optional</span>
+<span class="sd">        Seed used for random number generator</span>
+<span class="sd">    numItermax: int, optional</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        if True, returns the projections used and their associated UOTs and reweighted marginals.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss: float/array-like, shape (...)</span>
+<span class="sd">        SUOT</span>
+<span class="sd">    log: dict, optional</span>
+<span class="sd">        If `log` is True, then returns a dictionary containing the projection directions used, the projected UOTs, and reweighted marginals on each slices.</span>
+
+
+<span class="sd">    .. _references-suot:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [82] Bonet, C., Nadjahi, K., Séjourné, T., Fatras, K., &amp; Courty, N. (2025).</span>
+<span class="sd">       Slicing Unbalanced Optimal Transport. Transactions on Machine Learning Research.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.unbalanced.uot_1d: 1D OT problem</span>
+<span class="sd">    ot.unbalanced.unbalanced_sliced_ot: Unbalanced SOT problem</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;torch&quot;</span><span class="p">,</span> <span class="s2">&quot;jax&quot;</span><span class="p">],</span> <span class="s2">&quot;Function only valid in torch and jax&quot;</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;X_s and X_t must have the same number of dimensions </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">projections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_random_projections</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">X_s_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>  <span class="c1"># shape (n, n_projs)</span>
+    <span class="n">X_t_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="c1"># Compute UOT on each slice</span>
+    <span class="n">a_reweighted</span><span class="p">,</span> <span class="n">b_reweighted</span><span class="p">,</span> <span class="n">projected_uot</span> <span class="o">=</span> <span class="n">uot_1d</span><span class="p">(</span>
+        <span class="n">X_s_projections</span><span class="p">,</span>
+        <span class="n">X_t_projections</span><span class="p">,</span>
+        <span class="n">reg_m</span><span class="p">,</span>
+        <span class="n">a</span><span class="p">,</span>
+        <span class="n">b</span><span class="p">,</span>
+        <span class="n">p</span><span class="p">,</span>
+        <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">numItermax</span><span class="o">=</span><span class="n">numItermax</span><span class="p">,</span>
+        <span class="n">returnCost</span><span class="o">=</span><span class="s2">&quot;total&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">projected_uot</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dico</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;projections&quot;</span><span class="p">:</span> <span class="n">projections</span><span class="p">,</span>
+            <span class="s2">&quot;projected_uots&quot;</span><span class="p">:</span> <span class="n">projected_uot</span><span class="p">,</span>
+            <span class="s2">&quot;a_reweighted&quot;</span><span class="p">:</span> <span class="n">a_reweighted</span><span class="p">,</span>
+            <span class="s2">&quot;b_reweighted&quot;</span><span class="p">:</span> <span class="n">b_reweighted</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">dico</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_reweighted_marginals_usot</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">X_s_sorter</span><span class="p">,</span> <span class="n">X_t_sorter</span><span class="p">,</span> <span class="n">nx</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    One step of the FW algorithm for the Unbalanced Sliced OT problem, see Algorithm 1 and 3 in :ref:`[82] &lt;references-uot&gt;`.</span>
+<span class="sd">    This function computes the reweighted marginals given the current potentials and the translation term.</span>
+<span class="sd">    It returns the current potentials, and the reweighted marginals (normalized by the mass, so that they sum to 1).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f: array-like shape (n, ...)</span>
+<span class="sd">        Current potential on the source samples</span>
+<span class="sd">    g: array-like shape (m, ...)</span>
+<span class="sd">        Current potential on the target samples</span>
+<span class="sd">    a: array-like shape (n, ...)</span>
+<span class="sd">        Current weights on the source samples</span>
+<span class="sd">    b: array-like shape (m, ...)</span>
+<span class="sd">        Current weights on the target samples</span>
+<span class="sd">    reg_m1: float</span>
+<span class="sd">        Marginal relaxation term for the source distribution</span>
+<span class="sd">    reg_m2: float</span>
+<span class="sd">        Marginal relaxation term for the target distribution</span>
+<span class="sd">    X_s_sorter: array-like shape (n_projs, n)</span>
+<span class="sd">        Sorter for the projected source samples</span>
+<span class="sd">    X_t_sorter: array-like shape (n_projs, m)</span>
+<span class="sd">        Sorter for the projected target samples</span>
+<span class="sd">    nx: module</span>
+<span class="sd">        backend module</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    f: array-like shape (n, ...)</span>
+<span class="sd">        Current potential on the source samples</span>
+<span class="sd">    g: array-like shape (m, ...)</span>
+<span class="sd">        Current potential on the target samples</span>
+<span class="sd">    a_reweighted: array-like shape (n, ...)</span>
+<span class="sd">        Reweighted weights on the source samples (normalized by the mass)</span>
+<span class="sd">    b_reweighted: array-like shape (m, ...)</span>
+<span class="sd">        Reweighted weights on the target samples (normalized by the mass)</span>
+<span class="sd">    full_mass: array-like shape (...)</span>
+<span class="sd">        Mass of the reweighted measures</span>
+
+
+<span class="sd">    .. _references-uot:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [82] Bonet, C., Nadjahi, K., Séjourné, T., Fatras, K., &amp; Courty, N. (2025).</span>
+<span class="sd">    Slicing Unbalanced Optimal Transport. Transactions on Machine Learning Research.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># translate potentials</span>
+    <span class="n">transl</span> <span class="o">=</span> <span class="n">rescale_potentials</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">f</span> <span class="o">+</span> <span class="n">transl</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="o">-</span> <span class="n">transl</span>
+
+    <span class="c1"># update measures</span>
+    <span class="k">if</span> <span class="n">reg_m1</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">a_reweighted</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">f</span> <span class="o">/</span> <span class="n">reg_m1</span><span class="p">))[</span><span class="o">...</span><span class="p">,</span> <span class="n">X_s_sorter</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a_reweighted</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">X_s_sorter</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">reg_m2</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">b_reweighted</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">g</span> <span class="o">/</span> <span class="n">reg_m2</span><span class="p">))[</span><span class="o">...</span><span class="p">,</span> <span class="n">X_t_sorter</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">b_reweighted</span> <span class="o">=</span> <span class="n">b</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">X_t_sorter</span><span class="p">]</span>
+
+    <span class="n">full_mass</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_reweighted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># normalize the weights for compatibility with wasserstein_1d</span>
+    <span class="n">a_reweighted</span> <span class="o">=</span> <span class="n">a_reweighted</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_reweighted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">b_reweighted</span> <span class="o">=</span> <span class="n">b_reweighted</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">b_reweighted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a_reweighted</span><span class="p">,</span> <span class="n">b_reweighted</span><span class="p">,</span> <span class="n">full_mass</span>
+
+
+<div class="viewcode-block" id="unbalanced_sliced_ot">
+<a class="viewcode-back" href="../../../gen_modules/ot.unbalanced.html#ot.unbalanced_sliced_ot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unbalanced_sliced_ot</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">reg_m</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_projections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">projections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">numItermax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the Unbalanced Sliced Optimal Transpot (USOT) with KL regularization between two empirical distributions.</span>
+<span class="sd">    The Unbalanced SOT problem reads as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathrm{USOT}_p^p(\mu, \nu) = \inf_{\pi_1,\pi_2} \mathrm{SW}_p^p(\pi_1, \pi_2) + \mathrm{reg_{m}}_1 \mathrm{KL}(\pi_1||\mu) + \mathrm{reg_{m}}_2 \mathrm{KL}(\pi_2||\nu).</span>
+
+<span class="sd">    The USOT problem is solved with a Frank-Wolfe algorithm as proposed in :ref:`[82] &lt;references-usot&gt;`.</span>
+
+<span class="sd">    .. warning:: This function only works in pytorch or jax as it uses autodifferentiation to compute the 1D potentials. It is not maintained in jax.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : ndarray, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : ndarray, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    reg_m: float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation term.</span>
+<span class="sd">        If `reg_m` is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same `reg_m` is applied to both marginal relaxations.</span>
+<span class="sd">        The balanced OT can be recovered using `reg_m=float(&quot;inf&quot;)`.</span>
+<span class="sd">        For semi-relaxed case, use either `reg_m=(float(&quot;inf&quot;), scalar)` or `reg_m=(scalar, float(&quot;inf&quot;))`.</span>
+<span class="sd">        If `reg_m` is an array, it must have the same backend as input arrays `(X_s, X_t)`.</span>
+<span class="sd">    a : ndarray, shape (n_samples_a,), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : ndarray, shape (n_samples_b,), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    n_projections : int, optional</span>
+<span class="sd">        Number of projections used for the Monte-Carlo approximation</span>
+<span class="sd">    p: float, optional, by default =2</span>
+<span class="sd">        Power p used for computing the sliced Wasserstein</span>
+<span class="sd">    projections: shape (dim, n_projections), optional</span>
+<span class="sd">        Projection matrix (n_projections and seed are not used in this case)</span>
+<span class="sd">    seed: int or RandomState or None, optional</span>
+<span class="sd">        Seed used for random number generator</span>
+<span class="sd">    numItermax: int, optional</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        if True, returns the sot loss, the projections used, their associated EMD and the full mass of the reweighted marginals.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a_reweighted: array-like shape (n, ...)</span>
+<span class="sd">        First marginal reweighted</span>
+<span class="sd">    b_reweighted: array-like shape (m, ...)</span>
+<span class="sd">        Second marginal reweighted</span>
+<span class="sd">    loss: float/array-like, shape (...)</span>
+<span class="sd">        USOT</span>
+<span class="sd">    log: dict, optional</span>
+<span class="sd">        If `log` is True, then returns a dictionary containing the projection directions used, the 1D OT losses, the SOT loss and the full mass of reweighted marginals.</span>
+
+
+<span class="sd">    .. _references-usot:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [82] Bonet, C., Nadjahi, K., Séjourné, T., Fatras, K., &amp; Courty, N. (2025).</span>
+<span class="sd">       Slicing Unbalanced Optimal Transport. Transactions on Machine Learning Research.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ot.unbalanced.uot_1d: 1D OT problem</span>
+<span class="sd">    ot.unbalanced.sliced_unbalanced_ot: SUOT problem</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">nx</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;torch&quot;</span><span class="p">,</span> <span class="s2">&quot;jax&quot;</span><span class="p">],</span> <span class="s2">&quot;Function only valid in torch and jax&quot;</span>
+
+    <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_m</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;X_s and X_t must have the same number of dimensions </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">projections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_random_projections</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Compute projections of the samples, and sort them for later use in the FW algorithm</span>
+    <span class="n">X_s_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># shape (n_projs, n)</span>
+    <span class="n">X_t_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">X_s_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">X_s_projections</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">X_s_rev_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">X_s_sorter</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">X_s_sorted</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">X_s_projections</span><span class="p">,</span> <span class="n">X_s_sorter</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">X_t_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">X_t_projections</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">X_t_rev_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">X_t_sorter</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">X_t_sorted</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">X_t_projections</span><span class="p">,</span> <span class="n">X_t_sorter</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Initialize potentials - WARNING: They correspond to non-sorted samples</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numItermax</span><span class="p">):</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a_reweighted</span><span class="p">,</span> <span class="n">b_reweighted</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_reweighted_marginals_usot</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">X_s_sorter</span><span class="p">,</span> <span class="n">X_t_sorter</span><span class="p">,</span> <span class="n">nx</span>
+        <span class="p">)</span>
+
+        <span class="n">fd</span><span class="p">,</span> <span class="n">gd</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">emd_1d_dual_backprop</span><span class="p">(</span>
+            <span class="n">X_s_sorted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">X_t_sorted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">u_weights</span><span class="o">=</span><span class="n">a_reweighted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">v_weights</span><span class="o">=</span><span class="n">b_reweighted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+            <span class="n">require_sort</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">fd</span><span class="p">,</span> <span class="n">gd</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">gd</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># default step for FW</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">f</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">X_s_rev_sorter</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">gd</span><span class="p">,</span> <span class="n">X_t_rev_sorter</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">g</span><span class="p">)</span>
+
+    <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a_reweighted</span><span class="p">,</span> <span class="n">b_reweighted</span><span class="p">,</span> <span class="n">full_mass</span> <span class="o">=</span> <span class="n">get_reweighted_marginals_usot</span><span class="p">(</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span><span class="p">,</span> <span class="n">X_s_sorter</span><span class="p">,</span> <span class="n">X_t_sorter</span><span class="p">,</span> <span class="n">nx</span>
+    <span class="p">)</span>
+
+    <span class="n">ot_loss</span> <span class="o">=</span> <span class="n">wasserstein_1d</span><span class="p">(</span>
+        <span class="n">X_s_sorted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">X_t_sorted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">u_weights</span><span class="o">=</span><span class="n">a_reweighted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">v_weights</span><span class="o">=</span><span class="n">b_reweighted</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+        <span class="n">require_sort</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">sot_loss</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ot_loss</span> <span class="o">*</span> <span class="n">full_mass</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reg_m1</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">a_reweighted</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">f</span> <span class="o">/</span> <span class="n">reg_m1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a_reweighted</span> <span class="o">=</span> <span class="n">a</span>
+
+    <span class="k">if</span> <span class="n">reg_m2</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">b_reweighted</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">g</span> <span class="o">/</span> <span class="n">reg_m2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">b_reweighted</span> <span class="o">=</span> <span class="n">b</span>
+
+    <span class="k">if</span> <span class="n">reg_m1</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">reg_m2</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">uot_loss</span> <span class="o">=</span> <span class="n">sot_loss</span>
+    <span class="k">elif</span> <span class="n">reg_m1</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">uot_loss</span> <span class="o">=</span> <span class="n">sot_loss</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">b_reweighted</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">reg_m2</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">uot_loss</span> <span class="o">=</span> <span class="n">sot_loss</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">a_reweighted</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">uot_loss</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">sot_loss</span>
+            <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">a_reweighted</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">b_reweighted</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">dico</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;projections&quot;</span><span class="p">:</span> <span class="n">projections</span><span class="p">,</span>
+            <span class="s2">&quot;sot_loss&quot;</span><span class="p">:</span> <span class="n">sot_loss</span><span class="p">,</span>
+            <span class="s2">&quot;1d_losses&quot;</span><span class="p">:</span> <span class="n">ot_loss</span><span class="p">,</span>
+            <span class="s2">&quot;full_mass&quot;</span><span class="p">:</span> <span class="n">full_mass</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">a_reweighted</span><span class="p">,</span> <span class="n">b_reweighted</span><span class="p">,</span> <span class="n">uot_loss</span><span class="p">,</span> <span class="n">dico</span>
+
+    <span class="k">return</span> <span class="n">a_reweighted</span><span class="p">,</span> <span class="n">b_reweighted</span><span class="p">,</span> <span class="n">uot_loss</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7.dev0
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

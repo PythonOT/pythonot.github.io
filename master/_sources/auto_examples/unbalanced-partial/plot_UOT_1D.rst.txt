@@ -25,12 +25,13 @@
 This example illustrates the computation of Unbalanced Optimal transport
 using a Kullback-Leibler relaxation.
 
-.. GENERATED FROM PYTHON SOURCE LINES 10-23
+.. GENERATED FROM PYTHON SOURCE LINES 10-25
 
 .. code-block:: Python
 
 
     # Author: Hicham Janati <hicham.janati@inria.fr>
+    #         Clément Bonet <clement.bonet.mapp@polytechnique.edu>
     #
     # License: MIT License
 
@@ -41,6 +42,7 @@ using a Kullback-Leibler relaxation.
     import ot
     import ot.plot
     from ot.datasets import make_1D_gauss as gauss
+    import torch
 
 
 
@@ -49,12 +51,12 @@ using a Kullback-Leibler relaxation.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 24-26
+.. GENERATED FROM PYTHON SOURCE LINES 26-28
 
 Generate data
 -------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 29-47
+.. GENERATED FROM PYTHON SOURCE LINES 31-48
 
 .. code-block:: Python
 
@@ -73,7 +75,6 @@ Generate data
 
     # loss matrix
     M = ot.dist(x.reshape((n, 1)), x.reshape((n, 1)))
-    M /= M.max()
 
 
 
@@ -83,12 +84,12 @@ Generate data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 48-50
+.. GENERATED FROM PYTHON SOURCE LINES 49-51
 
 Plot distributions and loss matrix
 ----------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 52-64
+.. GENERATED FROM PYTHON SOURCE LINES 53-65
 
 .. code-block:: Python
 
@@ -134,49 +135,23 @@ Plot distributions and loss matrix
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 65-67
+.. GENERATED FROM PYTHON SOURCE LINES 66-68
 
-Solve Unbalanced Sinkhorn
--------------------------
+Solve Unbalanced OT with MM Unbalanced
+-----------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 67-80
+.. GENERATED FROM PYTHON SOURCE LINES 70-92
 
 .. code-block:: Python
 
 
-    # Sinkhorn
-
-    epsilon = 0.1  # entropy parameter
     alpha = 1.0  # Unbalanced KL relaxation parameter
-    Gs = ot.unbalanced.sinkhorn_unbalanced(a, b, M, epsilon, alpha, verbose=True)
+
+    Gs, log = ot.unbalanced.mm_unbalanced(a, b, M / M.max(), alpha, verbose=False, log=True)
 
     pl.figure(3, figsize=(5, 5))
-    ot.plot.plot1D_mat(a, b, Gs, "UOT matrix Sinkhorn")
-
+    ot.plot.plot1D_mat(a, b, Gs, "UOT plan")
     pl.show()
-
-
-
-
-
-.. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_003.png
-   :alt: plot UOT 1D
-   :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_003.png
-   :class: sphx-glr-single-img
-
-
-
-
-
-.. GENERATED FROM PYTHON SOURCE LINES 81-83
-
-plot the transported mass
--------------------------
-
-.. GENERATED FROM PYTHON SOURCE LINES 83-91
-
-.. code-block:: Python
-
 
     pl.figure(4, figsize=(6.4, 3))
     pl.plot(x, a, "b", label="Source distribution")
@@ -185,12 +160,85 @@ plot the transported mass
     pl.fill(x, Gs.sum(0), "r", alpha=0.5, label="Transported target")
     pl.legend(loc="upper right")
     pl.title("Distributions and transported mass for UOT")
+    pl.show()
+
+    print("Mass of reweighted marginals:", Gs.sum())
+    print("Unbalanced OT loss:", log["total_cost"] * M.max())
 
 
 
-.. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_004.png
+
+
+.. rst-class:: sphx-glr-horizontal
+
+
+    *
+
+      .. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_003.png
+         :alt: plot UOT 1D
+         :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_003.png
+         :class: sphx-glr-multi-img
+
+    *
+
+      .. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_004.png
+         :alt: Distributions and transported mass for UOT
+         :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_004.png
+         :class: sphx-glr-multi-img
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Mass of reweighted marginals: 2.061425461509171
+    Unbalanced OT loss: 18397.928984107042
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 93-95
+
+Solve 1D UOT with Frank-Wolfe
+-----------------------------
+
+.. GENERATED FROM PYTHON SOURCE LINES 98-125
+
+.. code-block:: Python
+
+
+
+    alpha = M.max()  # Unbalanced KL relaxation parameter
+
+    a_reweighted, b_reweighted, loss = ot.unbalanced.uot_1d(
+        torch.tensor(x, dtype=torch.float64),
+        torch.tensor(x, dtype=torch.float64),
+        alpha,
+        u_weights=torch.tensor(a, dtype=torch.float64),
+        v_weights=torch.tensor(b, dtype=torch.float64),
+        p=2,
+        returnCost="total",
+    )
+
+    pl.figure(4, figsize=(6.4, 3))
+    pl.plot(x, a, "b", label="Source distribution")
+    pl.plot(x, b, "r", label="Target distribution")
+    pl.fill(x, a_reweighted, "b", alpha=0.5, label="Transported source")
+    pl.fill(x, b_reweighted, "r", alpha=0.5, label="Transported target")
+    pl.legend(loc="upper right")
+    pl.title("Distributions and transported mass for UOT")
+    pl.show()
+
+    print("Mass of reweighted marginals:", a_reweighted.sum().item())
+    print("Unbalanced OT loss:", loss.item())
+
+
+
+
+
+.. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_005.png
    :alt: Distributions and transported mass for UOT
-   :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_004.png
+   :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_005.png
    :class: sphx-glr-single-img
 
 
@@ -198,15 +246,76 @@ plot the transported mass
 
  .. code-block:: none
 
+    Mass of reweighted marginals: 2.062383712135279
+    Unbalanced OT loss: 18379.180712239286
 
-    Text(0.5, 1.0, 'Distributions and transported mass for UOT')
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 126-128
+
+Solve Unbalanced Sinkhorn
+-------------------------
+
+.. GENERATED FROM PYTHON SOURCE LINES 130-151
+
+.. code-block:: Python
+
+
+    # Sinkhorn
+
+    epsilon = 0.1  # entropy parameter
+    alpha = 1.0  # Unbalanced KL relaxation parameter
+    Gs = ot.unbalanced.sinkhorn_unbalanced(a, b, M / M.max(), epsilon, alpha, verbose=True)
+
+    pl.figure(3, figsize=(5, 5))
+    ot.plot.plot1D_mat(a, b, Gs, "Entropic UOT plan")
+    pl.show()
+
+    pl.figure(4, figsize=(6.4, 3))
+    pl.plot(x, a, "b", label="Source distribution")
+    pl.plot(x, b, "r", label="Target distribution")
+    pl.fill(x, Gs.sum(1), "b", alpha=0.5, label="Transported source")
+    pl.fill(x, Gs.sum(0), "r", alpha=0.5, label="Transported target")
+    pl.legend(loc="upper right")
+    pl.title("Distributions and transported mass for UOT")
+    pl.show()
+
+    print("Mass of reweighted marginals:", Gs.sum())
+
+
+
+.. rst-class:: sphx-glr-horizontal
+
+
+    *
+
+      .. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_006.png
+         :alt: plot UOT 1D
+         :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_006.png
+         :class: sphx-glr-multi-img
+
+    *
+
+      .. image-sg:: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_007.png
+         :alt: Distributions and transported mass for UOT
+         :srcset: /auto_examples/unbalanced-partial/images/sphx_glr_plot_UOT_1D_007.png
+         :class: sphx-glr-multi-img
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Mass of reweighted marginals: 2.1410336580797997
+
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.297 seconds)
+   **Total running time of the script:** (0 minutes 0.563 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unbalanced-partial_plot_UOT_1D.py:
