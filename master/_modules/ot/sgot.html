@@ -1,0 +1,643 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.sgot &mdash; POT Python Optimal Transport 0.9.7.dev0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=acf7178e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.sgot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.sgot</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Spectral-Grassmann optimal transport for linear operators.</span>
+
+<span class="sd">This module implements the Spectral-Grassmann Wasserstein framework for</span>
+<span class="sd">comparing dynamical systems via their learned operator representations.</span>
+
+<span class="sd">It provides tools to extract spectral &quot;atoms&quot; (eigenvalues and associated</span>
+<span class="sd">eigenspaces) from linear operators and to compute an optimal transport metric</span>
+<span class="sd">that combines a spectral term on eigenvalues with a Grassmannian term on</span>
+<span class="sd">eigenspaces.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Sienna O&#39;Shea  &lt;osheasienna@gmail.com&gt;</span>
+<span class="c1">#         Thibaut Germain&lt;thibaut.germain.pro@gmail.com&gt;</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ot</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ot.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+
+<span class="c1">#####################################################################################################################################</span>
+<span class="c1">#####################################################################################################################################</span>
+<span class="c1">### NORMALIZATION AND OPERATOR ATOMS  ###</span>
+<span class="c1">#####################################################################################################################################</span>
+<span class="c1">#####################################################################################################################################</span>
+
+
+<div class="viewcode-block" id="eigenvalue_cost_matrix">
+<a class="viewcode-back" href="../../gen_modules/ot.sgot.html#ot.sgot.eigenvalue_cost_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">eigenvalue_cost_matrix</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eigen_scaling</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute pairwise eigenvalue distances for source and target domains.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ds: array-like, shape (n_s,)</span>
+<span class="sd">        Source eigenvalues.</span>
+<span class="sd">    Dt: array-like, shape (n_t,)</span>
+<span class="sd">        Target eigenvalues.</span>
+<span class="sd">    q: int or float, optional</span>
+<span class="sd">        Exponent applied to the eigenvalue distance, default 1.</span>
+<span class="sd">    eigen_scaling: None or array-like of length 2, optional</span>
+<span class="sd">        Scaling (real_scale, imag_scale) applied to eigenvalues before computing</span>
+<span class="sd">        distances. If None, defaults to (1.0, 1.0). Accepts tuple/list or</span>
+<span class="sd">        array/tensor with two entries.</span>
+<span class="sd">    nx: module, optional</span>
+<span class="sd">        Backend (NumPy-compatible). If None, inferred from inputs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C: np.ndarray, shape (n_s, n_t)</span>
+<span class="sd">        Eigenvalue cost matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Dt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">eigen_scaling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">real_scale</span><span class="p">,</span> <span class="n">imag_scale</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eigen_scaling</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">real_scale</span><span class="p">,</span> <span class="n">imag_scale</span> <span class="o">=</span> <span class="n">eigen_scaling</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">real_scale</span><span class="p">,</span> <span class="n">imag_scale</span> <span class="o">=</span> <span class="n">eigen_scaling</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">eigen_scaling</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">Dsn</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">Ds</span><span class="p">)</span> <span class="o">*</span> <span class="n">real_scale</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">Ds</span><span class="p">)</span> <span class="o">*</span> <span class="n">imag_scale</span>
+    <span class="n">Dtn</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">Dt</span><span class="p">)</span> <span class="o">*</span> <span class="n">real_scale</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">Dt</span><span class="p">)</span> <span class="o">*</span> <span class="n">imag_scale</span>
+    <span class="n">C_real</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">Dsn</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">Dtn</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">C_real</span> <span class="o">=</span> <span class="n">C_real</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">C_imag</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">Dsn</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">Dtn</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">C_imag</span> <span class="o">=</span> <span class="n">C_imag</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">prod</span> <span class="o">=</span> <span class="n">C_real</span> <span class="o">+</span> <span class="n">C_imag</span>
+    <span class="k">return</span> <span class="n">prod</span> <span class="o">**</span> <span class="p">(</span><span class="n">q</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_columns</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize the columns of an array with a backend-aware norm.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A: array-like, shape (d, n)</span>
+<span class="sd">        Input array whose columns are normalized.</span>
+<span class="sd">    nx: module</span>
+<span class="sd">        Backend (NumPy-compatible) used for math operations.</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Minimum norm value to avoid division by zero, default 1e-12.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A_norm: array-like, shape (d, n)</span>
+<span class="sd">        Column-normalized array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nrm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">nrm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">nrm</span><span class="p">)</span>  <span class="c1"># norm is real; avoid complex dtype for maximum (e.g. torch)</span>
+    <span class="n">nrm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">nrm</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">A</span> <span class="o">/</span> <span class="n">nrm</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_delta_matrix_1d</span><span class="p">(</span><span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the normalized inner-product delta matrix for eigenspaces.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Rs: array-like, shape (L, n_s)</span>
+<span class="sd">        Source right eigenvectors.</span>
+<span class="sd">    Ls: array-like, shape (L, n_s)</span>
+<span class="sd">        Source left eigenvectors.</span>
+<span class="sd">    Rt: array-like, shape (L, n_t)</span>
+<span class="sd">        Target right eigenvectors.</span>
+<span class="sd">    Lt: array-like, shape (L, n_t)</span>
+<span class="sd">        Target left eigenvectors.</span>
+<span class="sd">    nx: module, optional</span>
+<span class="sd">        Backend (NumPy-compatible). If None, inferred from inputs.</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Minimum norm value used in normalization, default 1e-12.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    delta: array-like, shape (n_s, n_t)</span>
+<span class="sd">        Delta matrix with entries in [0, 1].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">)</span>
+
+    <span class="n">Rsn</span> <span class="o">=</span> <span class="n">_normalize_columns</span><span class="p">(</span><span class="n">Rs</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">Lsn</span> <span class="o">=</span> <span class="n">_normalize_columns</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">Rtn</span> <span class="o">=</span> <span class="n">_normalize_columns</span><span class="p">(</span><span class="n">Rt</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">Ltn</span> <span class="o">=</span> <span class="n">_normalize_columns</span><span class="p">(</span><span class="n">Lt</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="n">Cr</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">Rsn</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Rtn</span><span class="p">)</span>
+    <span class="n">Cl</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">Lsn</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Ltn</span><span class="p">)</span>
+
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Cr</span> <span class="o">*</span> <span class="n">Cl</span><span class="p">)</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">delta</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_grassmann_distance_squared</span><span class="p">(</span>
+    <span class="n">delta</span><span class="p">,</span> <span class="n">grassmann_metric</span><span class="o">=</span><span class="s2">&quot;chordal&quot;</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-12</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute Grassmannian distances from delta similarities.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    delta: array-like</span>
+<span class="sd">        Similarity values in [0, 1].</span>
+<span class="sd">    grassmann_metric: str, optional</span>
+<span class="sd">        Metric type: &quot;geodesic&quot;, &quot;chordal&quot;, &quot;procrustes&quot;, or &quot;martin&quot;.</span>
+<span class="sd">    q: int or float, optional</span>
+<span class="sd">        Exponent applied to the Grassmann distance, in the same spirit as the</span>
+<span class="sd">        eigenvalue cost exponent. Default is 1.</span>
+<span class="sd">    nx: module, optional</span>
+<span class="sd">        Backend (NumPy-compatible). If None, inferred from inputs.</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Minimum value used for numerical stability in the Martin metric.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dist_q: array-like</span>
+<span class="sd">        Grassmannian distances raised to the power q.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">delta</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">delta</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;delta must be in [0, 1]; found values outside this range &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(min=</span><span class="si">{</span><span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">grassmann_metric</span> <span class="o">==</span> <span class="s2">&quot;geodesic&quot;</span><span class="p">:</span>
+        <span class="n">dist2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">elif</span> <span class="n">grassmann_metric</span> <span class="o">==</span> <span class="s2">&quot;chordal&quot;</span><span class="p">:</span>
+        <span class="n">dist2</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">delta</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">elif</span> <span class="n">grassmann_metric</span> <span class="o">==</span> <span class="s2">&quot;procrustes&quot;</span><span class="p">:</span>
+        <span class="n">dist2</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">delta</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">grassmann_metric</span> <span class="o">==</span> <span class="s2">&quot;martin&quot;</span><span class="p">:</span>
+        <span class="n">delta2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">delta</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">dist2</span> <span class="o">=</span> <span class="o">-</span><span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">delta2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown grassmann_metric: </span><span class="si">{</span><span class="n">grassmann_metric</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">dist2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="n">q</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+
+
+<span class="c1">#####################################################################################################################################</span>
+<span class="c1">#####################################################################################################################################</span>
+<span class="c1">### SPECTRAL-GRASSMANNIAN WASSERSTEIN METRIC ###</span>
+<span class="c1">#####################################################################################################################################</span>
+<span class="c1">#####################################################################################################################################</span>
+<div class="viewcode-block" id="sgot_cost_matrix">
+<a class="viewcode-back" href="../../gen_modules/ot.sgot.html#ot.sgot.sgot_cost_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sgot_cost_matrix</span><span class="p">(</span>
+    <span class="n">Ds</span><span class="p">,</span>
+    <span class="n">Rs</span><span class="p">,</span>
+    <span class="n">Ls</span><span class="p">,</span>
+    <span class="n">Dt</span><span class="p">,</span>
+    <span class="n">Rt</span><span class="p">,</span>
+    <span class="n">Lt</span><span class="p">,</span>
+    <span class="n">eta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">grassmann_metric</span><span class="o">=</span><span class="s2">&quot;chordal&quot;</span><span class="p">,</span>
+    <span class="n">eigen_scaling</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">eps</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the SGOT cost matrix between two spectral decompositions.</span>
+
+<span class="sd">    This returns the discrete ground cost matrix used in the SGOT optimal transport</span>
+<span class="sd">    objective. Each spectral atom is :math:`z_i=(\lambda_i, V_i)` where</span>
+<span class="sd">    :math:`\lambda_i \in \mathbb{C}` is an eigenvalue and :math:`V_i` is the</span>
+<span class="sd">    associated (bi-orthogonal) eigenspace point.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        C_2(i,j) \;=\; \eta\,C_\lambda(i,j) \;+\; (1-\eta)\,C_G(i,j),</span>
+
+<span class="sd">    with spectral term</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        C_\lambda(i,j) \;=\; \big|\lambda_i - \lambda&#39;_j\big|^{q},</span>
+
+<span class="sd">    and Grassmann term computed from a similarity score :math:`\delta_{ij}\in[0,1]`</span>
+<span class="sd">    built from left/right eigenvectors</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \delta_{ij} \;=\; \left|\langle r_i, r&#39;_j\rangle\,\langle \ell_i, \ell&#39;_j\rangle\right|.</span>
+
+<span class="sd">    Depending on ``grassmann_metric``, the Grassmann contribution is:</span>
+
+<span class="sd">    - ``&quot;chordal&quot;``: :math:`C_G(i,j) = 1 - \delta_{ij}^2`</span>
+<span class="sd">    - ``&quot;geodesic&quot;``: :math:`C_G(i,j) = \arccos(\delta_{ij})^2`</span>
+<span class="sd">    - ``&quot;procrustes&quot;``: :math:`C_G(i,j) = 2(1-\delta_{ij})`</span>
+<span class="sd">    - ``&quot;martin&quot;``: :math:`C_G(i,j) = -\log\!\left(\max(\delta_{ij}^2,\varepsilon)\right)`</span>
+
+<span class="sd">    Finally, we return a matrix suited for a :math:`p`-Wasserstein objective by</span>
+<span class="sd">    treating :math:`C_2 \approx d^2` and outputting</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        C(i,j) \;=\; \big(\operatorname{Re}(C_2(i,j))\big)^{p/2}.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ds: array-like, shape (n_s,)</span>
+<span class="sd">        Eigenvalues of operator T1.</span>
+<span class="sd">    Rs: array-like, shape (L, n_s)</span>
+<span class="sd">        Right eigenvectors of operator T1.</span>
+<span class="sd">    Ls: array-like, shape (L, n_s)</span>
+<span class="sd">        Left eigenvectors of operator T1.</span>
+<span class="sd">    Dt: array-like, shape (n_t,)</span>
+<span class="sd">        Eigenvalues of operator T2.</span>
+<span class="sd">    Rt: array-like, shape (L, n_t)</span>
+<span class="sd">        Right eigenvectors of operator T2.</span>
+<span class="sd">    Lt: array-like, shape (L, n_t)</span>
+<span class="sd">        Left eigenvectors of operator T2.</span>
+<span class="sd">    eta: float, optional</span>
+<span class="sd">        Weighting between spectral and Grassmann terms, default 0.5.</span>
+<span class="sd">    p: int, optional</span>
+<span class="sd">        Exponent defining the OT ground cost. The returned cost is :math:`d^p` with</span>
+<span class="sd">        :math:`d^2 \approx C_2`. Default is 2.</span>
+<span class="sd">    q: int, optional</span>
+<span class="sd">        Exponent applied to the eigenvalue distance in the spectral term.</span>
+<span class="sd">        Default is 1.</span>
+<span class="sd">    grassmann_metric: str, optional</span>
+<span class="sd">        Metric type: &quot;geodesic&quot;, &quot;chordal&quot;, &quot;procrustes&quot;, or &quot;martin&quot;.</span>
+<span class="sd">    eigen_scaling: None or array-like of length 2, optional</span>
+<span class="sd">        Scaling ``(real_scale, imag_scale)`` applied to eigenvalues before computing</span>
+<span class="sd">        :math:`C_\lambda`. If provided, eigenvalues are transformed as</span>
+<span class="sd">        :math:`\lambda \mapsto \alpha\operatorname{Re}(\lambda) + i\,\beta\operatorname{Im}(\lambda)`.</span>
+<span class="sd">        If None, defaults to ``(1.0, 1.0)``. Accepts tuple/list or array/tensor with</span>
+<span class="sd">        two entries.</span>
+<span class="sd">    nx: module, optional</span>
+<span class="sd">        Backend (NumPy-compatible). If None, inferred from inputs.</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Minimum value used for numerical stability in Grassmann distances and</span>
+<span class="sd">        Martin metric. Default is 1e-12.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C: array-like, shape (n_s, n_t)</span>
+<span class="sd">        SGOT cost matrix :math:`C = d^p`.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [83] Germain, T., Flamary, R., Kostic, V. R., &amp; Lounici, K. (2025).</span>
+<span class="sd">       `A Spectral-Grassmann Wasserstein Metric for Operator Representations</span>
+<span class="sd">       of Dynamical Systems &lt;https://arxiv.org/abs/2509.24920&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">)</span>
+
+    <span class="n">_validate_sgot_inputs</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">)</span>
+
+    <span class="n">C_lambda</span> <span class="o">=</span> <span class="n">eigenvalue_cost_matrix</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">eigen_scaling</span><span class="o">=</span><span class="n">eigen_scaling</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">_delta_matrix_1d</span><span class="p">(</span><span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">C_grass</span> <span class="o">=</span> <span class="n">_grassmann_distance_squared</span><span class="p">(</span>
+        <span class="n">delta</span><span class="p">,</span>
+        <span class="n">grassmann_metric</span><span class="o">=</span><span class="n">grassmann_metric</span><span class="p">,</span>
+        <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">C2</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">C_lambda</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">eta</span><span class="p">)</span> <span class="o">*</span> <span class="n">C_grass</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">C2</span> <span class="o">**</span> <span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">C</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_sgot_inputs</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate shapes of spectral atoms for SGOT cost/metric.&quot;&quot;&quot;</span>
+    <span class="n">Ds_shape</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="s2">&quot;shape&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">Dt_shape</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">Dt</span><span class="p">,</span> <span class="s2">&quot;shape&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">Ds_ndim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="s2">&quot;ndim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">Dt_ndim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">Dt</span><span class="p">,</span> <span class="s2">&quot;ndim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Ds_ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">Dt_ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;SGOT expects Ds and Dt to be 1D (n,), &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;got Ds shape </span><span class="si">{</span><span class="n">Ds_shape</span><span class="si">}</span><span class="s2"> and Dt shape </span><span class="si">{</span><span class="n">Dt_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Rs</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">Ls</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="n">Rt</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">Lt</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Right/left eigenvector shapes must match; got &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(Rs,Ls)=(</span><span class="si">{</span><span class="n">Rs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">Ls</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">), (Rt,Lt)=(</span><span class="si">{</span><span class="n">Rt</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">Lt</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Rs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">Ds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">Rt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">Dt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Eigenvector columns must match eigenvalues: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Rs </span><span class="si">{</span><span class="n">Rs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs Ds </span><span class="si">{</span><span class="n">Ds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Rt </span><span class="si">{</span><span class="n">Rt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs Dt </span><span class="si">{</span><span class="n">Dt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="sgot_metric">
+<a class="viewcode-back" href="../../gen_modules/ot.sgot.html#ot.sgot.sgot_metric">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sgot_metric</span><span class="p">(</span>
+    <span class="n">Ds</span><span class="p">,</span>
+    <span class="n">Rs</span><span class="p">,</span>
+    <span class="n">Ls</span><span class="p">,</span>
+    <span class="n">Dt</span><span class="p">,</span>
+    <span class="n">Rt</span><span class="p">,</span>
+    <span class="n">Lt</span><span class="p">,</span>
+    <span class="n">eta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">r</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">grassmann_metric</span><span class="o">=</span><span class="s2">&quot;chordal&quot;</span><span class="p">,</span>
+    <span class="n">eigen_scaling</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">eps</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the SGOT metric between two spectral decompositions.</span>
+
+<span class="sd">    This function computes a discrete optimal transport problem between two measures</span>
+<span class="sd">    over spectral atoms :math:`z_i=(\lambda_i, V_i)` and :math:`z&#39;_j=(\lambda&#39;_j, V&#39;_j)`.</span>
+<span class="sd">    Using the ground cost matrix :math:`C = d^p` returned by :func:`sgot_cost_matrix`,</span>
+<span class="sd">    we solve:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        P^\star \in \arg\min_{P\in\Pi(W_s, W_t)} \langle C, P\rangle,</span>
+
+<span class="sd">    where :math:`C(i,j) = d(i,j)^p` and :math:`d(i,j)` is the SGOT ground distance</span>
+<span class="sd">    combining spectral and Grassmann terms with exponent :math:`q`:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        d(i,j)^2</span>
+<span class="sd">        \;=\; \eta\,\big|\lambda_i - \lambda&#39;_j\big|^{q}</span>
+<span class="sd">              \;+\; (1-\eta)\,d_G(i,j)^{q},</span>
+
+<span class="sd">    and :math:`d_G(i,j)` is the Grassmann distance associated with the chosen</span>
+<span class="sd">    ``grassmann_metric``.</span>
+
+<span class="sd">    From the optimal plan :math:`P^\star`, we first form the :math:`p`-Wasserstein</span>
+<span class="sd">    objective:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathrm{obj}</span>
+<span class="sd">        \;=\;</span>
+<span class="sd">        \left(\sum_{i,j} C(i,j)\,P^\star_{ij}\right)^{1/p},</span>
+
+<span class="sd">    and then apply an outer root :math:`r`:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathrm{SGOT}</span>
+<span class="sd">        \;=\;</span>
+<span class="sd">        \mathrm{obj}^{1/r}.</span>
+
+<span class="sd">    In summary:</span>
+
+<span class="sd">    - :math:`q` controls how strongly spectral and Grassmann distances are curved</span>
+<span class="sd">      (via :math:`|\lambda_i - \lambda&#39;_j|^{q}` and :math:`d_G(i,j)^{q}`),</span>
+<span class="sd">    - :math:`p` is the exponent used in the OT ground cost and the inner</span>
+<span class="sd">      Wasserstein root,</span>
+<span class="sd">    - :math:`r` is an additional outer root applied to the Wasserstein objective.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ds: array-like, shape (n_s,)</span>
+<span class="sd">        Eigenvalues of operator T1.</span>
+<span class="sd">    Rs: array-like, shape (L, n_s)</span>
+<span class="sd">        Right eigenvectors of operator T1.</span>
+<span class="sd">    Ls: array-like, shape (L, n_s)</span>
+<span class="sd">        Left eigenvectors of operator T1.</span>
+<span class="sd">    Dt: array-like, shape (n_t,)</span>
+<span class="sd">        Eigenvalues of operator T2.</span>
+<span class="sd">    Rt: array-like, shape (L, n_t)</span>
+<span class="sd">        Right eigenvectors of operator T2.</span>
+<span class="sd">    Lt: array-like, shape (L, n_t)</span>
+<span class="sd">        Left eigenvectors of operator T2.</span>
+<span class="sd">    eta: float, optional</span>
+<span class="sd">        Weighting between spectral and Grassmann terms, default 0.5.</span>
+<span class="sd">    p: int, optional</span>
+<span class="sd">        Exponent defining the OT ground cost, default 2.</span>
+<span class="sd">    q: int, optional</span>
+<span class="sd">        Exponent applied to the eigenvalue and Grassmann distances, default 1.</span>
+<span class="sd">    r: int or float, optional</span>
+<span class="sd">        Outer root applied to the Wasserstein objective, default 2.</span>
+<span class="sd">    grassmann_metric: str, optional</span>
+<span class="sd">        Metric type: &quot;geodesic&quot;, &quot;chordal&quot;, &quot;procrustes&quot;, or &quot;martin&quot;.</span>
+<span class="sd">    eigen_scaling: None or array-like of length 2, optional</span>
+<span class="sd">        Scaling ``(real_scale, imag_scale)`` applied to eigenvalues before</span>
+<span class="sd">        computing the spectral cost. If None, defaults to ``(1.0, 1.0)``.</span>
+<span class="sd">    Ws: array-like, shape (n_s,), optional</span>
+<span class="sd">        Source weights. If None, uniform weights are used.</span>
+<span class="sd">    Wt: array-like, shape (n_t,), optional</span>
+<span class="sd">        Target weights. If None, uniform weights are used.</span>
+<span class="sd">    nx: module, optional</span>
+<span class="sd">        Backend (NumPy-compatible). If None, inferred from inputs.</span>
+<span class="sd">    eps: float, optional</span>
+<span class="sd">        Numerical stability constant, default 1e-12.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dist: float</span>
+<span class="sd">        SGOT distance between the two spectral decompositions.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [83] Germain, T., Flamary, R., Kostic, V. R., &amp; Lounici, K. (2025).</span>
+<span class="sd">       `A Spectral-Grassmann Wasserstein Metric for Operator Representations</span>
+<span class="sd">       of Dynamical Systems &lt;https://arxiv.org/abs/2509.24920&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">)</span>
+
+    <span class="n">_validate_sgot_inputs</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">Rs</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">Rt</span><span class="p">,</span> <span class="n">Lt</span><span class="p">)</span>
+
+    <span class="n">C</span> <span class="o">=</span> <span class="n">sgot_cost_matrix</span><span class="p">(</span>
+        <span class="n">Ds</span><span class="p">,</span>
+        <span class="n">Rs</span><span class="p">,</span>
+        <span class="n">Ls</span><span class="p">,</span>
+        <span class="n">Dt</span><span class="p">,</span>
+        <span class="n">Rt</span><span class="p">,</span>
+        <span class="n">Lt</span><span class="p">,</span>
+        <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+        <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+        <span class="n">grassmann_metric</span><span class="o">=</span><span class="n">grassmann_metric</span><span class="p">,</span>
+        <span class="n">eigen_scaling</span><span class="o">=</span><span class="n">eigen_scaling</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">Wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">Ws</span> <span class="o">=</span> <span class="n">Ws</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Ws</span><span class="p">)</span>
+    <span class="n">Wt</span> <span class="o">=</span> <span class="n">Wt</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Wt</span><span class="p">)</span>
+
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">ot</span><span class="o">.</span><span class="n">emd2</span><span class="p">(</span><span class="n">Ws</span><span class="p">,</span> <span class="n">Wt</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">C</span><span class="p">))</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">obj</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">))</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7.dev0
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
