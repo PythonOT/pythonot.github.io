@@ -17,8 +17,8 @@
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=acf7178e"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -1679,6 +1679,265 @@
             <span class="s1">&#39;numThreads should either be &quot;max&quot; or a strictly positive integer&#39;</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">numThreads</span></div>
+
+
+
+<div class="viewcode-block" id="DataScaler">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataScaler</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Backend-aware data scaler with sklearn-compatible API.</span>
+
+<span class="sd">    Fit normalization statistics on a single array or on the concatenation</span>
+<span class="sd">    of multiple arrays (joint fitting), then apply the same fixed transform</span>
+<span class="sd">    to any array. Supports NumPy, PyTorch, JAX, and TensorFlow backends via</span>
+<span class="sd">    POT&#39;s backend abstraction.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    norm : str, optional</span>
+<span class="sd">        Normalization method. One of:</span>
+
+<span class="sd">        - ``&#39;standard&#39;`` (default) : zero mean, unit variance per feature</span>
+<span class="sd">        - ``&#39;minmax&#39;`` : scale each feature to [0, 1]</span>
+<span class="sd">        - ``&#39;l2&#39;`` : unit L2-norm per sample (row-wise, stateless)</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    norm : str</span>
+<span class="sd">        The normalization method.</span>
+<span class="sd">    mean_ : array-like</span>
+<span class="sd">        Per-feature means (only for ``norm=&#39;standard&#39;``).</span>
+<span class="sd">    std_ : array-like</span>
+<span class="sd">        Per-feature standard deviations (only for ``norm=&#39;standard&#39;``).</span>
+<span class="sd">    min_ : array-like</span>
+<span class="sd">        Per-feature minimums (only for ``norm=&#39;minmax&#39;``).</span>
+<span class="sd">    max_ : array-like</span>
+<span class="sd">        Per-feature maximums (only for ``norm=&#39;minmax&#39;``).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.utils import DataScaler</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.array([[1.0, 100.0], [2.0, 200.0]])</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.array([[3.0, 300.0], [4.0, 400.0]])</span>
+<span class="sd">    &gt;&gt;&gt; scaler = DataScaler(norm=&#39;standard&#39;).fit([X_s, X_t])</span>
+<span class="sd">    &gt;&gt;&gt; X_s_scaled = scaler.transform(X_s)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_VALID_NORMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;minmax&quot;</span><span class="p">,</span> <span class="s2">&quot;l2&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;standard&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">norm</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VALID_NORMS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid norm &#39;</span><span class="si">{}</span><span class="s2">&#39;. Expected one of: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VALID_NORMS</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="DataScaler.fit">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute normalization statistics from one array or a list of arrays.</span>
+
+<span class="sd">        When given a list, arrays are concatenated along axis 0 before</span>
+<span class="sd">        computing statistics (joint fitting).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+<span class="sd">            Data to fit on. If a list, arrays must have the same number of</span>
+<span class="sd">            features (columns).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : DataScaler</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot fit on empty list.&quot;</span><span class="p">)</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_concat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_concat</span> <span class="o">=</span> <span class="n">X</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span> <span class="o">=</span> <span class="n">nx</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">zero_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">zero_var</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Zero variance detected in one or more feature(s). &quot;</span>
+                    <span class="s2">&quot;Those columns will not be scaled.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">zero_var</span><span class="p">,</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">std_</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">std_</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">zero_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">zero_range</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Zero range detected in one or more feature(s). &quot;</span>
+                    <span class="s2">&quot;Those columns will not be scaled.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">zero_range</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">min_</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the fitted transform to one array or a list of arrays.</span>
+
+<span class="sd">        Internal helper shared by :meth:`transform` and :meth:`fit_transform`.</span>
+<span class="sd">        Validates that the input&#39;s backend matches the one used at fit time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array-like or list of array-like</span>
+<span class="sd">            Transformed data; a list is returned when ``X`` is a list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_apply_transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">X</span><span class="p">]</span>
+
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Backend mismatch: DataScaler was fitted with backend &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span>
+                <span class="s2">&quot;but received input with backend &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nx</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+            <span class="n">norms</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">zero_norm</span> <span class="o">=</span> <span class="n">norms</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">zero_norm</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Zero-norm row(s) detected. These will be left unchanged.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">norms</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">zero_norm</span><span class="p">,</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">norms</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">norms</span><span class="p">),</span>
+                    <span class="n">norms</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">X</span> <span class="o">/</span> <span class="n">norms</span>
+
+<div class="viewcode-block" id="DataScaler.transform">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the fitted transformation to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+<span class="sd">            Data to transform. If a list, each element is transformed and</span>
+<span class="sd">            returned as a list.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_scaled : array-like or list of array-like</span>
+<span class="sd">            Transformed data, same shape and backend as X. If X was a list,</span>
+<span class="sd">            returns a list of transformed arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">!=</span> <span class="s2">&quot;l2&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;DataScaler must be fitted before calling transform() &quot;</span>
+                <span class="s2">&quot;for norm=&#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataScaler.fit_transform">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fit then transform.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_scaled : array-like or list of array-like</span>
+<span class="sd">            If X was a list, returns a list of transformed arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="apply_scaler">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.apply_scaler">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_scaler</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">scaler</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply a scaler to two arrays.</span>
+
+<span class="sd">    Dispatches based on the type of ``scaler``:</span>
+
+<span class="sd">    - ``None`` : returns inputs unchanged.</span>
+<span class="sd">    - Object with a ``.transform()`` method : calls ``scaler.transform()`` on each.</span>
+<span class="sd">    - Callable : calls ``scaler()`` on each (covers functions, lambdas,</span>
+<span class="sd">      PyTorch transforms, neural network encoders, etc.).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like</span>
+<span class="sd">        Source samples.</span>
+<span class="sd">    X_t : array-like</span>
+<span class="sd">        Target samples.</span>
+<span class="sd">    scaler : None, object with .transform(), or callable, optional</span>
+<span class="sd">        Preprocessing to apply.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X_s_out : array-like</span>
+<span class="sd">        Possibly transformed source samples.</span>
+<span class="sd">    X_t_out : array-like</span>
+<span class="sd">        Possibly transformed target samples.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">scaler</span><span class="p">,</span> <span class="s2">&quot;transform&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_s</span><span class="p">),</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">scaler</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scaler</span><span class="p">(</span><span class="n">X_s</span><span class="p">),</span> <span class="n">scaler</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">&quot;scaler must be None, an object with a .transform() method, &quot;</span>
+        <span class="s2">&quot;or a callable. Got type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">scaler</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="p">)</span></div>
 
 
 
