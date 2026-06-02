@@ -90,6 +90,7 @@
 <span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
 <span class="c1"># Author: Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
 <span class="c1"># Author: Clément Bonet &lt;clement.bonet.mapp@polytechnique.edu&gt;</span>
+<span class="c1"># Author: Laetitia Chapel &lt;laetitia.chapel@irisa.fr&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
@@ -100,6 +101,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._network_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">center_ot_dual</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">namedtuple</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">quantile_function</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">cws</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -113,7 +115,8 @@
 <span class="sd">        cumulative weights of the 1D empirical distribution, if batched, must be similar to xs</span>
 <span class="sd">    xs: array-like, shape (n, ...)</span>
 <span class="sd">        locations of the 1D empirical distribution, batched against the `xs.ndim - 1` first dimensions</span>
-<span class="sd">    return_index: bool</span>
+<span class="sd">    return_index: bool, optional</span>
+<span class="sd">        if True, returns also the associated indices. If False, do not return them</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -142,7 +145,13 @@
 <div class="viewcode-block" id="wasserstein_1d">
 <a class="viewcode-back" href="../../../gen_modules/ot.lp.html#ot.wasserstein_1d">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">wasserstein_1d</span><span class="p">(</span>
-    <span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">v_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span>
+    <span class="n">u_values</span><span class="p">,</span>
+    <span class="n">v_values</span><span class="p">,</span>
+    <span class="n">u_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">v_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">require_sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">return_plans</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the 1 dimensional OT loss [15] between two (batched) empirical</span>
@@ -161,23 +170,35 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    u_values: array-like, shape (n, ...)</span>
-<span class="sd">        locations of the first empirical distribution</span>
+<span class="sd">        locations of the first empirical distributions</span>
 <span class="sd">    v_values: array-like, shape (m, ...)</span>
-<span class="sd">        locations of the second empirical distribution</span>
+<span class="sd">        locations of the second empirical distributions</span>
 <span class="sd">    u_weights: array-like, shape (n, ...), optional</span>
-<span class="sd">        weights of the first empirical distribution, if None then uniform weights are used</span>
+<span class="sd">        weights of the first empirical distributions, if None then uniform weights are used</span>
 <span class="sd">    v_weights: array-like, shape (m, ...), optional</span>
-<span class="sd">        weights of the second empirical distribution, if None then uniform weights are used</span>
+<span class="sd">        weights of the second empirical distributions, if None then uniform weights are used</span>
 <span class="sd">    p: int, optional</span>
 <span class="sd">        order of the ground metric used, should be at least 1 (see [2, Chap. 2], default is 1</span>
 <span class="sd">    require_sort: bool, optional</span>
 <span class="sd">        sort the distributions atoms locations, if False we will consider they have been sorted prior to being passed to</span>
 <span class="sd">        the function, default is True</span>
+<span class="sd">    return_plans: True, False or &quot;coo_tuple&quot;, optional</span>
+<span class="sd">        if True, also returns the optimal transport plan between the two</span>
+<span class="sd">        (batched) measures as a coo_matrix, default is False.</span>
+<span class="sd">        if &quot;coo_tuple&quot;, returns the optimal transport plans as a tuple of</span>
+<span class="sd">        (data, rows, cols) of the non-zero elements of the transportation matrix.</span>
+<span class="sd">        This is useful for backends that do not support well sparse matrices (e.g. JAX,</span>
+<span class="sd">        Tensorflow).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    cost: float/array-like, shape (...)</span>
 <span class="sd">        the batched EMD</span>
+<span class="sd">    plans: list of coo_matrix or namedTuple, optional</span>
+<span class="sd">        if return_plans is True, returns a list of coo_matrix containing the plans.</span>
+<span class="sd">        if return_plans is &quot;coo_tuple&quot;, returns the plans as a list of namedTuple</span>
+<span class="sd">        containing the data, rows and cols of the non-zero elements of the</span>
+<span class="sd">        transportation matrix.</span>
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
@@ -187,10 +208,7 @@
 
     <span class="k">assert</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;The OT loss is only valid for p&gt;=1, </span><span class="si">{p}</span><span class="s2"> was given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">u_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">)</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">u_values</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">u_weights</span><span class="p">,</span> <span class="n">v_weights</span><span class="p">)</span>
 
     <span class="n">n</span> <span class="o">=</span> <span class="n">u_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">m</span> <span class="o">=</span> <span class="n">v_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -213,20 +231,58 @@
 
         <span class="n">u_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="n">u_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">v_weights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="n">v_sorter</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">u_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">v_sorter</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 
     <span class="n">u_cumweights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">u_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">v_cumweights</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">v_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="n">qs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">u_cumweights</span><span class="p">,</span> <span class="n">v_cumweights</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">u_quantiles</span> <span class="o">=</span> <span class="n">quantile_function</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">u_cumweights</span><span class="p">,</span> <span class="n">u_values</span><span class="p">)</span>
-    <span class="n">v_quantiles</span> <span class="o">=</span> <span class="n">quantile_function</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">v_cumweights</span><span class="p">,</span> <span class="n">v_values</span><span class="p">)</span>
+    <span class="n">u_quantiles</span><span class="p">,</span> <span class="n">idx_u</span> <span class="o">=</span> <span class="n">quantile_function</span><span class="p">(</span>
+        <span class="n">qs</span><span class="p">,</span> <span class="n">u_cumweights</span><span class="p">,</span> <span class="n">u_values</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">v_quantiles</span><span class="p">,</span> <span class="n">idx_v</span> <span class="o">=</span> <span class="n">quantile_function</span><span class="p">(</span>
+        <span class="n">qs</span><span class="p">,</span> <span class="n">v_cumweights</span><span class="p">,</span> <span class="n">v_values</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
     <span class="n">qs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span> <span class="o">+</span> <span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
     <span class="n">delta</span> <span class="o">=</span> <span class="n">qs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="o">...</span><span class="p">]</span> <span class="o">-</span> <span class="n">qs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">diff_quantiles</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u_quantiles</span> <span class="o">-</span> <span class="n">v_quantiles</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">return_plans</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">u_quantiles_idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">u_sorter</span><span class="p">,</span> <span class="n">idx_u</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">v_quantiles_idx</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v_sorter</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_plans</span> <span class="o">==</span> <span class="s2">&quot;coo_tuple&quot;</span><span class="p">:</span>
+            <span class="n">PlanTuple</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;PlanTuple&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;rows&quot;</span><span class="p">,</span> <span class="s2">&quot;cols&quot;</span><span class="p">])</span>
+            <span class="n">plans</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">PlanTuple</span><span class="p">(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="n">delta</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span>
+                    <span class="n">rows</span><span class="o">=</span><span class="n">u_quantiles_idx</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span>
+                    <span class="n">cols</span><span class="o">=</span><span class="n">v_quantiles_idx</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plans</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">nx</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">(</span>
+                    <span class="n">delta</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span>
+                    <span class="n">u_quantiles_idx</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span>
+                    <span class="n">v_quantiles_idx</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span>
+                    <span class="n">type_as</span><span class="o">=</span><span class="n">u_values</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">]</span>
+
     <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">diff_quantiles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">diff_quantiles</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+        <span class="n">w_1d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">diff_quantiles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">w_1d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">diff_quantiles</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_plans</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">w_1d</span><span class="p">,</span> <span class="n">plans</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">w_1d</span></div>
 
 
 
@@ -298,7 +354,8 @@
 <span class="sd">    gamma: ndarray, shape (ns, nt)</span>
 <span class="sd">        Optimal transportation matrix for the given parameters</span>
 <span class="sd">    log: dict</span>
-<span class="sd">        If input log is True, a dictionary containing the cost</span>
+<span class="sd">        If input log is True, a dictionary containing the cost and the indices</span>
+<span class="sd">        of the non-zero elements of the transportation matrix</span>
 
 
 <span class="sd">    Examples</span>
@@ -394,6 +451,8 @@
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;JAX does not support sparse matrices, converting to dense&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cost&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x_a</span><span class="p">)}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;perms_x_a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">perm_a</span><span class="p">[</span><span class="n">indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;perms_x_b&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">perm_b</span><span class="p">[</span><span class="n">indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
         <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">return</span> <span class="n">G</span></div>
 

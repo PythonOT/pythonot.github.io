@@ -5011,12 +5011,18 @@
         <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
 
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
         <span class="n">sparse_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">(</span>
             <span class="n">indices</span><span class="o">=</span><span class="n">tnp</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">dense_shape</span><span class="o">=</span><span class="n">shape</span>
         <span class="p">)</span>
-        <span class="c1"># if type_as is not None:</span>
-        <span class="c1">#     sparse_tensor = self.from_numpy(sparse_tensor, type_as=type_as)</span>
-        <span class="c1"># SparseTensor are not subscriptable so we use dense tensors</span>
+        <span class="c1"># avoid duplicate indices by summing them up</span>
+        <span class="n">sparse_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">sparse_tensor</span><span class="p">)</span>
+        <span class="n">sparse_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sparse_tensor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">todense</span><span class="p">(</span><span class="n">sparse_tensor</span><span class="p">)</span></div>
 
 
