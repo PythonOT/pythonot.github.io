@@ -180,6 +180,121 @@
 
 
 
+<div class="viewcode-block" id="bures_wasserstein_mapping_hd">
+<a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.bures_wasserstein_mapping_hd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bures_wasserstein_mapping_hd</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sigma2_s</span><span class="p">,</span> <span class="n">sigma2_t</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return OT linear operator between HD Gaussian distritutions.</span>
+
+<span class="sd">    The function estimates the optimal linear operator that aligns the two</span>
+<span class="sd">    HD Gaussian distributions :math:`\mathcal{N}(\mu_s, U_s, l_s, \sigma_s^2, d_s)`</span>
+<span class="sd">    and :math:`\mathcal{N}(\mu_t, U_t, l_t, \sigma_t^2, d_t)` as proposed in</span>
+<span class="sd">    :ref:`[88] &lt;references-OT-mapping-linear&gt;`, Th. 2.9</span>
+<span class="sd">    .</span>
+
+<span class="sd">    The linear operator from source to target :math:`M`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        M(\mathbf{x})= \mathbf{A} \mathbf{x} + \mathbf{b}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{A}      &amp;= \Sigma_s^{-1/2} \left(\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2} \right)^{1/2} </span>
+<span class="sd">        \Sigma_s^{-1/2}                            \\</span>
+<span class="sd">            </span>
+<span class="sd">        \Sigma_s^{1/2}  &amp;=\sigma_s I_p + U_s C_s U_s^T                  \\</span>
+<span class="sd">            </span>
+<span class="sd">        C_s             &amp;=\text{diag}(\sqrt{l_{s1} + \sigma_s^2} - \sigma_s, \dots, \sqrt{l_{sd_s} + \sigma_s^2} - \sigma_s)    \\</span>
+<span class="sd">            </span>
+<span class="sd">        \Sigma_s^{-1/2} &amp;= \frac{1}{\sigma_s} (I_p - U_s D_s U_s^T )   \\</span>
+<span class="sd">            </span>
+<span class="sd">        D_s &amp;= \text{diag}((\sqrt{l_{s1} + \sigma_s^2} - \sigma_s)/\sqrt{l_{s1} + \sigma_s^2}, \dots, (\sqrt{l_{sd_s} + \sigma_s^2} - \sigma_s)/\sqrt{l_{sd_s} + \sigma_s^2}) \\</span>
+<span class="sd">            </span>
+<span class="sd">        \Sigma_t        &amp;= U_t \text{diag}(l_t) U_t^T + \sigma_t^2 I_p    \\</span>
+<span class="sd">            </span>
+<span class="sd">        \mathbf{b}      &amp;= \mu_t - \mathbf{A} \mu_s</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ms : array-like (p,)</span>
+<span class="sd">        mean of the source distribution</span>
+<span class="sd">    mt : array-like (p,)</span>
+<span class="sd">        mean of the target distribution</span>
+<span class="sd">    Us : array-like (p,ds)</span>
+<span class="sd">        orthogonal matrix spanning the principal subspace of the source distribution</span>
+<span class="sd">    Ut : array-like (p,dt)</span>
+<span class="sd">        orthogonal matrix spanning the principal subspace of the target distribution</span>
+<span class="sd">    ls : array-like (ds,) </span>
+<span class="sd">        the variances associated with the principal sub-axes for the source distribution</span>
+<span class="sd">    lt : array-like (dt,) </span>
+<span class="sd">        the variances associated with the principal sub-axes for the target distribution</span>
+<span class="sd">    sigma_s^2 : array-like (1,) </span>
+<span class="sd">                the residual variance of the source distribution</span>
+<span class="sd">    sigma_t^2 : array-like (1,)</span>
+<span class="sd">                the residual variance of the target distribution                         </span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A : (d, d) array-like</span>
+<span class="sd">        Linear operator</span>
+<span class="sd">    b : (1, d) array-like</span>
+<span class="sd">        bias</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-OT-mapping-linear:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] Knott, M. and Smith, C. S. &quot;On the optimal mapping of</span>
+<span class="sd">        distributions&quot;, Journal of Optimization Theory and Applications</span>
+<span class="sd">        Vol 43, 1984</span>
+
+<span class="sd">    .. [2] Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+<span class="sd">        </span>
+<span class="sd">    .. [88] Bouveyron, C. &amp; Corneli, M. (&quot;Scaling Optimal Transport to High-Dimensional Gaussian Distributions&quot;)    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sigma2_s</span><span class="p">,</span> <span class="n">sigma2_t</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">ms</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">mt</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">Us</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">Ut</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ls</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">lt</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sigma2_s</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sigma2_t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Us</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># source</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ls</span> <span class="o">+</span> <span class="n">sigma2_s</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_s</span><span class="p">))</span>
+    <span class="n">Ss_sq</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Us</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Us</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_s</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">Ds</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ls</span> <span class="o">+</span> <span class="n">sigma2_s</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_s</span><span class="p">))</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ls</span> <span class="o">+</span> <span class="n">sigma2_s</span><span class="p">))</span>
+    <span class="n">Ss_sqinv</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_s</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">dots</span><span class="p">(</span><span class="n">Us</span><span class="p">,</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">Us</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+    <span class="c1"># destination</span>
+    <span class="n">St</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Ut</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">lt</span><span class="p">),</span> <span class="n">Ut</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="n">sigma2_t</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">M0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">dots</span><span class="p">(</span><span class="n">Ss_sq</span><span class="p">,</span> <span class="n">St</span><span class="p">,</span> <span class="n">Ss_sq</span><span class="p">))</span>
+
+    <span class="n">A</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Ss_sqinv</span><span class="p">,</span> <span class="n">M0</span><span class="p">,</span> <span class="n">Ss_sqinv</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">mt</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Ss_sq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ss_sq</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Ss_sqinv&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ss_sqinv</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span></div>
+
+
+
 <div class="viewcode-block" id="empirical_bures_wasserstein_mapping">
 <a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.empirical_bures_wasserstein_mapping">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">empirical_bures_wasserstein_mapping</span><span class="p">(</span>
@@ -217,7 +332,7 @@
 <span class="sd">        regularization added to the diagonals of covariances (&gt;0)</span>
 <span class="sd">    ws : array-like (ns,1), optional</span>
 <span class="sd">        weights for the source samples</span>
-<span class="sd">    wt : array-like (ns,1), optional</span>
+<span class="sd">    wt : array-like (nt,1), optional</span>
 <span class="sd">        weights for the target samples</span>
 <span class="sd">    bias: boolean, optional</span>
 <span class="sd">        estimate bias :math:`\mathbf{b}` else :math:`\mathbf{b} = 0` (default:True)</span>
@@ -284,6 +399,154 @@
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Cs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cs</span>
         <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Ct&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ct</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span></div>
+
+
+
+<div class="viewcode-block" id="empirical_bures_wasserstein_mapping_hd">
+<a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.empirical_bures_wasserstein_mapping_hd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">empirical_bures_wasserstein_mapping_hd</span><span class="p">(</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">d_intrinsic</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return OT HD linear operator between samples.</span>
+
+<span class="sd">    The function estimates the optimal linear HD operator that aligns the two</span>
+<span class="sd">    empirical distributions. This is equivalent to estimating the closed</span>
+<span class="sd">    form mapping between two HD Gaussian distributions :math:`\mathcal{N}(\mu_s, U_s, l_s, \sigma_s^2, d_s)`</span>
+<span class="sd">    and :math:`\mathcal{N}(\mu_t, U_t, l_t, \sigma_t^2, d_t)` as proposed in</span>
+<span class="sd">    :ref:`[88] &lt;references-empirical-bures-wasserstein-mapping-hd&gt;`, Th. 2.9.</span>
+<span class="sd">    </span>
+<span class="sd">    The linear operator from source to target :math:`M`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        M(\mathbf{x})= \mathbf{A} \mathbf{x} + \mathbf{b}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{A}      &amp;= \Sigma_s^{-1/2} \left(\Sigma_s^{1/2}\Sigma_t\Sigma_s^{1/2} \right)^{1/2} </span>
+<span class="sd">        \Sigma_s^{-1/2}                            \\</span>
+<span class="sd">            </span>
+<span class="sd">        \Sigma_s^{1/2}  &amp;=\sigma_s I_p + U_s C_s U_s^T                  \\</span>
+<span class="sd">            </span>
+<span class="sd">        C_s             &amp;=\text{diag}(\sqrt{l_{s1} + \sigma_s^2} - \sigma_s, \dots, \sqrt{l_{sd_s} + \sigma_s^2} - \sigma_s)    \\</span>
+<span class="sd">            </span>
+<span class="sd">        \Sigma_s^{-1/2} &amp;= \frac{1}{\sigma_s} (I_p - U_s D_s U_s^T )   \\</span>
+<span class="sd">            </span>
+<span class="sd">        D_s &amp;= \text{diag}((\sqrt{l_{s1} + \sigma_s^2} - \sigma_s)/\sqrt{l_{s1} + \sigma_s^2}, \dots, (\sqrt{l_{sd_s} + \sigma_s^2} - \sigma_s)/\sqrt{l_{sd_s} + \sigma_s^2}) \\</span>
+<span class="sd">            </span>
+<span class="sd">        \Sigma_t        &amp;= U_t \text{diag}(l_t) U_t^T + \sigma_t^2 I_p    \\</span>
+<span class="sd">            </span>
+<span class="sd">        \mathbf{b}      &amp;= \mu_t - \mathbf{A} \mu_s</span>
+<span class="sd">        </span>
+<span class="sd">    Assuming that the source and destination data samples have been generated from HD Gaussian                                          distributions, the probabilistic PCA estimators proposed in :ref: `[89] &lt;references-empirical-bures-wasserstein-distance-hd&gt;` are used to estimate the model parameters and plugged into the above formulas.        </span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs : array-like (ns,p)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    xt : array-like (nt,p)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    d_instrinsic : int or list of two ints</span>
+<span class="sd">                  the intrinsic dimensions of the source and destination distribution, respectively. If d_intrinsic is int it is assumed the intrinsic dimension is the same                            </span>
+<span class="sd">    reg : float,optional</span>
+<span class="sd">        regularization added to the diagonals of covariances (null by default)</span>
+<span class="sd">    ws : array-like (ns,1), optional</span>
+<span class="sd">        weights for the source samples</span>
+<span class="sd">    wt : array-like (nt,1), optional</span>
+<span class="sd">        weights for the target samples</span>
+<span class="sd">    bias: boolean, optional</span>
+<span class="sd">        estimate bias :math:`\mathbf{b}` else :math:`\mathbf{b} = 0` (default:True)</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A : (p, p) array-like</span>
+<span class="sd">        Linear operator</span>
+<span class="sd">    b : (1, p) array-like</span>
+<span class="sd">        bias</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-empirical-bures-wasserstein-hd:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [88] Bouveyron, C. &amp; Corneli, M. (&quot;Scaling Optimal Transport to High-Dimensional Gaussian Distributions&quot;)    </span>
+<span class="sd">       [89] Tipping, M.E. &amp; Bishop, C.M, (&quot;Probabilistic Principal Component Analysis&quot;)    </span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">d_intrinsic</span><span class="p">,</span> <span class="n">d_intrinsic</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_intrinsic</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">d_intrinsic</span>
+    <span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">is_input_finite</span> <span class="o">=</span> <span class="n">is_all_finite</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
+        <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ws</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span>
+        <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">wt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span>
+
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span> <span class="o">-</span> <span class="n">mxs</span>
+        <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">-</span> <span class="n">mxt</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xs</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">Ct</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xt</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">eigs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">a_s</span> <span class="o">=</span> <span class="n">eigs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="n">ds</span><span class="p">:]</span>
+    <span class="n">sgm2_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_s</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">ds</span><span class="p">)</span>
+    <span class="n">Qs</span> <span class="o">=</span> <span class="n">eigs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">Us</span> <span class="o">=</span> <span class="n">Qs</span><span class="p">[:,</span> <span class="o">-</span><span class="n">ds</span><span class="p">:]</span>
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">a_s</span> <span class="o">-</span> <span class="n">sgm2_s</span>
+
+    <span class="n">eigt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Ct</span><span class="p">)</span>
+    <span class="n">a_t</span> <span class="o">=</span> <span class="n">eigt</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="n">dt</span><span class="p">:]</span>
+    <span class="n">sgm2_t</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">Ct</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_t</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="n">Qt</span> <span class="o">=</span> <span class="n">eigt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">Ut</span> <span class="o">=</span> <span class="n">Qt</span><span class="p">[:,</span> <span class="o">-</span><span class="n">dt</span><span class="p">:]</span>
+    <span class="n">lt</span> <span class="o">=</span> <span class="n">a_t</span> <span class="o">-</span> <span class="n">sgm2_t</span>
+
+    <span class="n">sgm2_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">sgm2_s</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">sgm2_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">sgm2_t</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">bures_wasserstein_mapping_hd</span><span class="p">(</span>
+            <span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sgm2_s</span><span class="p">,</span> <span class="n">sgm2_t</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bures_wasserstein_mapping_hd</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sgm2_s</span><span class="p">,</span> <span class="n">sgm2_t</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_input_finite</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_all_finite</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Numerical errors were encountered in ot.gaussian.empirical_bures_wasserstein_mapping_hd. &quot;</span>
+            <span class="s2">&quot;Consider increasing the regularization parameter `reg` or reducing the intrinsic dimensions ds/dt.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Us&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Us</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Ut&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ut</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;ls&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ls</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;lt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lt</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;sigma2_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sgm2_s</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;sigma2_t&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sgm2_t</span>
         <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">b</span></div>
@@ -457,6 +720,101 @@
 
 
 
+<div class="viewcode-block" id="bures_wasserstein_distance_hd">
+<a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.bures_wasserstein_distance_hd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bures_wasserstein_distance_hd</span><span class="p">(</span>
+    <span class="n">ms</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sigma2_s</span><span class="p">,</span> <span class="n">sigma2_t</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the 2-Wassestein distance between HD Gaussian distritutions.</span>
+
+<span class="sd">    The function estimates the 2-Wasserstein distance between the two</span>
+<span class="sd">    HD Gaussian distributions :math:`\mathcal{N}(\mu_s, U_s, l_s, \sigma_s^2, d_s)`</span>
+<span class="sd">    and :math:`\mathcal{N}(\mu_t, U_t, l_t, \sigma_t^2, d_t)` as proposed in</span>
+<span class="sd">    :ref:`[88] &lt;references-bures-wasserstein-distance-hd&gt;`, Prop. 2.3</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathcal{W}(\mu_s, \mu_t)_2^2= \left\lVert \mathbf{m}_s - \mathbf{m}_t \right\rVert^2 + \text{Tr}(\Lambda_s) + \text{Tr}(\Lambda_t) + p(\sigma_s^2 + \sigma_t^2) - 2\text{Tr}((\Sigma_s^{(1/2)}\Sigma_t \Sigma_s^{1/2})^{1/2})</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Lambda_s &amp;= \text{diag}(ls) \\</span>
+<span class="sd">        \Lambda_t &amp;= \text{diag}(lt) \\    </span>
+<span class="sd">        \Sigma_t &amp;= U_t \Lambda_t U_t^T + \sigma_t^2 I_p  \\</span>
+<span class="sd">        \Sigma_s^{1/2}  &amp;=\sigma_s I_p + U_s C_s U_s^T    \\</span>
+<span class="sd">        C_s             &amp;=\text{diag}(\sqrt{l_{s1} + \sigma_s^2} - \sigma_s, \dots, \sqrt{l_{sd_s} + \sigma_s^2} - \sigma_s)    \\ </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ms : array-like (p,)</span>
+<span class="sd">        mean of the source distribution</span>
+<span class="sd">    mt : array-like (p,)</span>
+<span class="sd">        mean of the target distribution</span>
+<span class="sd">    Us : array-like (p,ds)</span>
+<span class="sd">        orthogonal matrix spanning the principal subspace of the source distribution</span>
+<span class="sd">    Ut : array-like (p,dt)</span>
+<span class="sd">        orthogonal matrix spanning the principal subspace of the target distribution</span>
+<span class="sd">    ls : array-like (ds,) </span>
+<span class="sd">        the variances associated with the principal sub-axes for the source distribution</span>
+<span class="sd">    lt : array-like (dt,) </span>
+<span class="sd">        the variances associated with the principal sub-axes for the target distribution</span>
+<span class="sd">    sigma_s^2 : array-like (1,) </span>
+<span class="sd">                the residual variance of the source distribution</span>
+<span class="sd">    sigma_t^2 : array-like(1,)</span>
+<span class="sd">                the residual variance of the target distribution                                                      </span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    W : float </span>
+<span class="sd">        Bures Wasserstein distance</span>
+
+<span class="sd">    .. _references-bures-wasserstein-distance-hd:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] Knott, M. and Smith, C. S. &quot;On the optimal mapping of</span>
+<span class="sd">        distributions&quot;, Journal of Optimization Theory and Applications</span>
+<span class="sd">        Vol 43, 1984</span>
+
+<span class="sd">    .. [2] Peyré, G., &amp; Cuturi, M. (2017). &quot;Computational Optimal</span>
+<span class="sd">        Transport&quot;, 2018.</span>
+<span class="sd">        </span>
+<span class="sd">    .. [88] Bouveyron, C. &amp; Corneli, M. (&quot;Scaling Optimal Transport to High-Dimensional Gaussian Distributions&quot;)    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sigma2_s</span><span class="p">,</span> <span class="n">sigma2_t</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Us</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># source</span>
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ls</span> <span class="o">+</span> <span class="n">sigma2_s</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_s</span><span class="p">))</span>
+    <span class="n">Ss_sq</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Us</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Us</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_s</span><span class="p">)</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="c1"># destination</span>
+    <span class="n">St</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Ut</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">lt</span><span class="p">),</span> <span class="n">Ut</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="n">sigma2_t</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">dots</span><span class="p">(</span><span class="n">Ss_sq</span><span class="p">,</span> <span class="n">St</span><span class="p">,</span> <span class="n">Ss_sq</span><span class="p">)</span>
+    <span class="n">W2</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">ms</span> <span class="o">-</span> <span class="n">mt</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lt</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">p</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma2_s</span> <span class="o">+</span> <span class="n">sigma2_t</span><span class="p">)</span>
+        <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">W2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;Ss_sq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Ss_sq</span>
+        <span class="n">log</span><span class="p">[</span><span class="s2">&quot;St&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">St</span>
+
+        <span class="k">return</span> <span class="n">W</span><span class="p">,</span> <span class="n">log</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">W</span></div>
+
+
+
 <div class="viewcode-block" id="empirical_bures_wasserstein_distance">
 <a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.empirical_bures_wasserstein_distance">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">empirical_bures_wasserstein_distance</span><span class="p">(</span>
@@ -542,6 +900,136 @@
         <span class="k">return</span> <span class="n">W</span><span class="p">,</span> <span class="n">log</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">W</span> <span class="o">=</span> <span class="n">bures_wasserstein_distance</span><span class="p">(</span><span class="n">mxs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mxt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">Ct</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">W</span></div>
+
+
+
+<div class="viewcode-block" id="empirical_bures_wasserstein_distance_hd">
+<a class="viewcode-back" href="../../gen_modules/ot.gaussian.html#ot.gaussian.empirical_bures_wasserstein_distance_hd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">empirical_bures_wasserstein_distance_hd</span><span class="p">(</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">d_intrinsic</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return 2D Wasserstein between high-dimensional (HD) Gaussian distributions.</span>
+
+<span class="sd">    The function estimates the 2-Wasserstein distance between the two</span>
+<span class="sd">    HD Gaussian distributions :math:`\mathcal{N}(\mu_s, U_s, l_s, \sigma_s^2, d_s)`</span>
+<span class="sd">    and :math:`\mathcal{N}(\mu_t, U_t, l_t, \sigma_t^2, d_t)` as proposed in</span>
+<span class="sd">    :ref:`[88] &lt;references-empirical-bures-wasserstein-distance-hd&gt;`, Prop. 2.3</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathcal{W}(\mu_s, \mu_t)_2^2= \left\lVert \mathbf{m}_s - \mathbf{m}_t \right\rVert^2 + \text{Tr}(\Lambda_s) + \text{Tr}(\Lambda_t) + p(\sigma_s^2 + \sigma_t^2) - 2\text{Tr}((\Sigma_s^{(1/2)}\Sigma_t \Sigma_s^{1/2})^{1/2})</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Lambda_s &amp;= \text{diag}(ls) \\</span>
+<span class="sd">        \Lambda_t &amp;= \text{diag}(lt) \\    </span>
+<span class="sd">        \Sigma_t &amp;= U_t \Lambda_t U_t^T + \sigma_t^2 I_p  \\</span>
+<span class="sd">        \Sigma_s^{1/2}  &amp;=\sigma_s I_p + U_s C_s U_s^T    \\</span>
+<span class="sd">        C_s             &amp;=\text{diag}(\sqrt{l_{s1} + \sigma_s^2} - \sigma_s, \dots, \sqrt{l_{sd_s} + \sigma_s^2} - \sigma_s)    \\ </span>
+<span class="sd">    </span>
+<span class="sd">    Assuming that the source and destination data samples have been generated from HD Gaussian                                      distributions, the probabilistic PCA estimators proposed in :ref: `[89] &lt;references-empirical-bures-wasserstein-distance-hd&gt;` are used to estimate the model parameters and plugged into the above formula of the Wasserstein distance.</span>
+<span class="sd">   </span>
+<span class="sd">        </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xs : array-like (ns,p)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    xt : array-like (nt,p)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    d_instrinsic : int or list of two ints</span>
+<span class="sd">                  the intrinsic dimensions of the source and destination distribution, respectively. If d_intrinsic is int it is assumed the intrinsic dimension is the same     </span>
+<span class="sd">    reg : float,optional</span>
+<span class="sd">        regularization added to the diagonals of covariances (null by default)</span>
+<span class="sd">    ws : array-like (ns,1), optional</span>
+<span class="sd">        weights for the source samples</span>
+<span class="sd">    wt : array-like (nt,1), optional</span>
+<span class="sd">        weights for the target samples</span>
+<span class="sd">    bias: boolean, optional</span>
+<span class="sd">        estimate bias :math:`\mathbf{b}` else :math:`\mathbf{b} = 0` (default:True)</span>
+<span class="sd">    log : bool, optional</span>
+<span class="sd">        record log if True</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A : (p, p) array-like</span>
+<span class="sd">        Linear operator</span>
+<span class="sd">    b : (1, p) array-like</span>
+<span class="sd">        bias</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+
+<span class="sd">    .. _references-empirical-bures-wasserstein-distance-hd:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd"> </span>
+<span class="sd">    .. [88] Bouveyron, C. &amp; Corneli, M. (&quot;Scaling Optimal Transport to High-Dimensional Gaussian Distributions&quot;)</span>
+<span class="sd">       [89] Tipping, M.E. &amp; Bishop, C.M, (&quot;Probabilistic Principal Component Analysis&quot;)        </span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">d_intrinsic</span><span class="p">,</span> <span class="n">d_intrinsic</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_intrinsic</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">d_intrinsic</span>
+    <span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+    <span class="n">is_input_finite</span> <span class="o">=</span> <span class="n">is_all_finite</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">xt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
+        <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ws</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span>
+        <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">wt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span>
+
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span> <span class="o">-</span> <span class="n">mxs</span>
+        <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">-</span> <span class="n">mxt</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mxs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">mxt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+
+    <span class="n">Cs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xs</span> <span class="o">*</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ws</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">Ct</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">xt</span> <span class="o">*</span> <span class="n">wt</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">xt</span><span class="p">)</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wt</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">xt</span><span class="p">)</span>
+
+    <span class="n">eigs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span>
+    <span class="n">a_s</span> <span class="o">=</span> <span class="n">eigs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="n">ds</span><span class="p">:]</span>
+    <span class="n">sgm2_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">Cs</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_s</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">ds</span><span class="p">)</span>
+    <span class="n">Qs</span> <span class="o">=</span> <span class="n">eigs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">Us</span> <span class="o">=</span> <span class="n">Qs</span><span class="p">[:,</span> <span class="o">-</span><span class="n">ds</span><span class="p">:]</span>
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">a_s</span> <span class="o">-</span> <span class="n">sgm2_s</span>
+
+    <span class="n">eigt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">Ct</span><span class="p">)</span>
+    <span class="n">a_t</span> <span class="o">=</span> <span class="n">eigt</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="n">dt</span><span class="p">:]</span>
+    <span class="n">sgm2_t</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">Ct</span><span class="p">)</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_t</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="n">Qt</span> <span class="o">=</span> <span class="n">eigt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">Ut</span> <span class="o">=</span> <span class="n">Qt</span><span class="p">[:,</span> <span class="o">-</span><span class="n">dt</span><span class="p">:]</span>
+    <span class="n">lt</span> <span class="o">=</span> <span class="n">a_t</span> <span class="o">-</span> <span class="n">sgm2_t</span>
+
+    <span class="n">sgm2_s</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">sgm2_s</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">sgm2_t</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">sgm2_t</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">W</span><span class="p">,</span> <span class="n">log</span> <span class="o">=</span> <span class="n">bures_wasserstein_distance_hd</span><span class="p">(</span>
+            <span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sgm2_s</span><span class="p">,</span> <span class="n">sgm2_t</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="n">log</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">bures_wasserstein_distance_hd</span><span class="p">(</span><span class="n">mxs</span><span class="p">,</span> <span class="n">mxt</span><span class="p">,</span> <span class="n">Us</span><span class="p">,</span> <span class="n">Ut</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">sgm2_s</span><span class="p">,</span> <span class="n">sgm2_t</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_input_finite</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_all_finite</span><span class="p">(</span><span class="n">W</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Numerical errors were encountered in ot.gaussian.empirical_bures_wasserstein_distance_hd. &quot;</span>
+            <span class="s2">&quot;Consider increasing the regularization parameter `reg` or reducing the intrinsic dimensions ds/dt.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">W</span><span class="p">,</span> <span class="n">log</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">W</span></div>
 
 

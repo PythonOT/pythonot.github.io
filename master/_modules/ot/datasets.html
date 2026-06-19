@@ -92,6 +92,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">ortho_group</span><span class="p">,</span> <span class="n">multivariate_normal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_random_state</span><span class="p">,</span> <span class="n">deprecated</span>
 
 
@@ -273,6 +274,103 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">get_data_classif</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">nz</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Deprecated see  make_data_classif&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">make_data_classif</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">nz</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="make_gauss_hd">
+<a class="viewcode-back" href="../../gen_modules/ot.datasets.html#ot.datasets.make_gauss_hd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_gauss_hd</span><span class="p">(</span>
+    <span class="n">ns</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">m_diff</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span> <span class="n">b</span><span class="o">=</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">),</span> <span class="n">sub_the_same</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generation of source and target domains from Gaussian HD distributions</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ns      : int</span>
+<span class="sd">            number of samples (source)</span>
+<span class="sd">    nt      : int</span>
+<span class="sd">            number of samples (target)</span>
+<span class="sd">    p       : int</span>
+<span class="sd">            dimension of the ambient space the data live in</span>
+<span class="sd">    dim     : (int,int) or int</span>
+<span class="sd">            the intrinsic dimensions of the source and target Gaussian HD distriutions. If a single int the intrinsic dimension is assumed to be the same</span>
+<span class="sd">    m_diff  : float</span>
+<span class="sd">            the shift in the first coordinate of the means of the Gaussian HD distributions, i.e. ms_0 and mt_0, respectively (see code)</span>
+<span class="sd">    a       : (float, float)</span>
+<span class="sd">            positive floating numbers corresponding to the isotropic variances in the principal subspace, for the source and target distributions, respectively. The same as \delta in :ref:`[1] &lt;references-make_gauss-hd&gt;`, Proposition 2.2</span>
+<span class="sd">    b       : (float, float)</span>
+<span class="sd">            positive floating numbers corresponding to the isotropic variance outside the principal subspace for the source and target distributions, respectively.</span>
+<span class="sd">    sub_the_same : bool</span>
+<span class="sd">              should the source/target Gaussian HD distributions live in the same principal subspace?</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Xs   : ndarray, shape (ns, p)</span>
+<span class="sd">        `ns` observations of size `p` (source)</span>
+<span class="sd">    Xt   : ndarray, shape (nt, p)</span>
+<span class="sd">        `nt` observations of size `p` (destination)</span>
+<span class="sd">    pmts : list</span>
+<span class="sd">         a list containing the parameters of the Gaussian HD distributions</span>
+
+<span class="sd">    .. _references-make_gauss_hd:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [1] Bouveyron, C. &amp; Corneli, M. (&quot;Scaling Optimal Transport to High-Dimensional Gaussian Distributions&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">dim</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">mu</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">m_diff</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="n">ortho_group</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">sub_the_same</span><span class="p">:</span>
+        <span class="n">Q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">S</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">Q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]))))</span>
+        <span class="o">@</span> <span class="n">Q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+    <span class="p">)</span>
+    <span class="n">S</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">Q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]))))</span>
+        <span class="o">@</span> <span class="n">Q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+    <span class="p">)</span>
+
+    <span class="n">Xs</span> <span class="o">=</span> <span class="n">multivariate_normal</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mu</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cov</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">ns</span><span class="p">)</span>
+    <span class="n">Xt</span> <span class="o">=</span> <span class="n">multivariate_normal</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mu</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">cov</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">ns</span><span class="p">)</span>
+
+    <span class="n">ms</span> <span class="o">=</span> <span class="n">mu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">mt</span> <span class="o">=</span> <span class="n">mu</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">sigma2_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">sigma2_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ds</span><span class="p">)</span> <span class="o">-</span> <span class="n">sigma2_s</span>
+    <span class="n">lt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dt</span><span class="p">)</span> <span class="o">-</span> <span class="n">sigma2_t</span>
+    <span class="n">Us</span> <span class="o">=</span> <span class="n">Q</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="p">:</span><span class="n">ds</span><span class="p">]</span>
+    <span class="n">Ut</span> <span class="o">=</span> <span class="n">Q</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:</span><span class="n">dt</span><span class="p">]</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ds</span><span class="p">])</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">dt</span><span class="p">])</span>
+
+    <span class="n">prmts</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;ms&quot;</span><span class="p">:</span> <span class="n">ms</span><span class="p">,</span>
+        <span class="s2">&quot;mt&quot;</span><span class="p">:</span> <span class="n">mt</span><span class="p">,</span>
+        <span class="s2">&quot;sigma2_s&quot;</span><span class="p">:</span> <span class="n">sigma2_s</span><span class="p">,</span>
+        <span class="s2">&quot;sigma2_t&quot;</span><span class="p">:</span> <span class="n">sigma2_t</span><span class="p">,</span>
+        <span class="s2">&quot;ls&quot;</span><span class="p">:</span> <span class="n">ls</span><span class="p">,</span>
+        <span class="s2">&quot;lt&quot;</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span>
+        <span class="s2">&quot;Us&quot;</span><span class="p">:</span> <span class="n">Us</span><span class="p">,</span>
+        <span class="s2">&quot;Ut&quot;</span><span class="p">:</span> <span class="n">Ut</span><span class="p">,</span>
+        <span class="s2">&quot;ds&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">,</span>
+        <span class="s2">&quot;dt&quot;</span><span class="p">:</span> <span class="n">dt</span><span class="p">,</span>
+        <span class="s2">&quot;Cs&quot;</span><span class="p">:</span> <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s2">&quot;Ct&quot;</span><span class="p">:</span> <span class="n">S</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">Xs</span><span class="p">,</span> <span class="n">Xt</span><span class="p">,</span> <span class="n">prmts</span></div>
+
 </pre></div>
 
            </div>
