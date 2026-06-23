@@ -1,0 +1,792 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.solvers._bary &mdash; POT Python Optimal Transport 0.9.7.dev0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=acf7178e"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.solvers._bary</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.solvers._bary</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">General OT solvers with unified API</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@polytechnique.edu&gt;</span>
+<span class="c1">#         Cédric Vincent-Cuaz &lt;cedvincentcuaz@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaryResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..lp</span><span class="w"> </span><span class="kn">import</span> <span class="n">free_support_barycenter_generic_costs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve</span><span class="p">,</span> <span class="n">solve_sample</span><span class="p">,</span> <span class="n">lst_method_lazy</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_bary_sample_bcd</span><span class="p">(</span>
+    <span class="n">X_a_list</span><span class="p">,</span>
+    <span class="n">X_b_init</span><span class="p">,</span>
+    <span class="n">a_list</span><span class="p">,</span>
+    <span class="n">b</span><span class="p">,</span>
+    <span class="n">w</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">,</span>
+    <span class="n">inner_solver</span><span class="p">,</span>
+    <span class="n">update_masses</span><span class="p">,</span>
+    <span class="n">warmstart_plan</span><span class="p">,</span>
+    <span class="n">warmstart_potentials</span><span class="p">,</span>
+    <span class="n">stopping_criterion</span><span class="p">,</span>
+    <span class="n">max_iter_bary</span><span class="p">,</span>
+    <span class="n">tol_bary</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">,</span>
+    <span class="n">log</span><span class="p">,</span>
+    <span class="n">nx</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the barycenter using BCD.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_a_list : list of array-like, shape (n_samples_k, dim)</span>
+<span class="sd">        List of samples in each source distribution</span>
+<span class="sd">    X_b_init : array-like, shape (n_samples_b, dim),</span>
+<span class="sd">        Initialization of the barycenter samples.</span>
+<span class="sd">    a_list : list of array-like, shape (dim_k,)</span>
+<span class="sd">        List of samples weights in each source distribution</span>
+<span class="sd">    b : array-like, shape (n_samples_b,)</span>
+<span class="sd">        Weights of the barycenter samples.</span>
+<span class="sd">    w : list of array-like, shape (N,)</span>
+<span class="sd">        Samples barycentric weights</span>
+<span class="sd">    metric : str</span>
+<span class="sd">        Metric to use for the cost matrix, by default &quot;sqeuclidean&quot;</span>
+<span class="sd">    inner_solver : callable with parameters (X_a, X_b, a, b, plan_init, potentials_init)</span>
+<span class="sd">        Function to solve the inner OT problem with inputs: source and target samples (`X_a`, `X_b`),</span>
+<span class="sd">        their respective masses (`a`, `b`), optional initial transport plan `plan_init`, optional initial</span>
+<span class="sd">        dual potentials `potentials_init` used for instance with sinkhorn-like inner solvers.</span>
+<span class="sd">    update_masses : bool</span>
+<span class="sd">        Update the masses of the barycenter, depending on whether balanced or unbalanced OT is used.</span>
+<span class="sd">    warmstart_plan : bool</span>
+<span class="sd">        Use the previous plan as initialization for the inner solver. Set based on inner solver type in ot.bary_sample</span>
+<span class="sd">    warmstart_potentials : bool</span>
+<span class="sd">        Use the previous potentials as initialization for the inner solver. Set based on inner solver type in ot.bary_sample</span>
+<span class="sd">    stopping_criterion : str</span>
+<span class="sd">        Stopping criterion for the BCD algorithm. Can be &quot;loss&quot; or &quot;bary&quot;.</span>
+<span class="sd">    max_iter_bary : int</span>
+<span class="sd">        Maximum number of iterations for the barycenter</span>
+<span class="sd">    tol_bary : float</span>
+<span class="sd">        Tolerance for the barycenter convergence</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Print information in the solver</span>
+<span class="sd">    log : bool</span>
+<span class="sd">        Log the loss during the iterations</span>
+<span class="sd">    nx: backend, optional</span>
+<span class="sd">        Backend to use for the computation. If provided it must match the backend of the input arrays.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    res : BaryResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.X : Barycenter samples</span>
+<span class="sd">        - res.b : Barycenter weights</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+<span class="sd">        - res.list_res: List of OTResult for each inner OT problem (one per source distribution)</span>
+<span class="sd">        - res.log: log of the optimization process (if log=True)</span>
+
+<span class="sd">        See :any:`BaryResult` for more information.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">X_a_list</span><span class="p">,</span> <span class="n">X_b_init</span><span class="p">,</span> <span class="o">*</span><span class="n">a_list</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+
+    <span class="n">X_b</span> <span class="o">=</span> <span class="n">X_b_init</span>
+    <span class="c1"># inv_b is used to compute the barycenter samples in closed-form</span>
+    <span class="c1"># inv_b is fixed in balanced OT, or updated via estimated b in unbalanced settings.</span>
+    <span class="n">inv_b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="n">prev_criterion</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">)</span>
+
+    <span class="n">log_</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">log_</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;stopping_criterion&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="c1"># Compute the barycenter using BCD</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter_bary</span><span class="p">):</span>
+        <span class="c1"># Solve the inner OT problem for each source distribution</span>
+        <span class="k">if</span> <span class="n">it</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># no pre-defined warmstart used at iteration 0.</span>
+            <span class="n">list_res</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">inner_solver</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">b</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="n">warmstart_plan</span><span class="p">:</span>
+            <span class="n">list_res</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">inner_solver</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">b</span><span class="p">,</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="n">warmstart_potentials</span><span class="p">:</span>
+            <span class="n">list_res</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">inner_solver</span><span class="p">(</span>
+                    <span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">b</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">potentials</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_res</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">inner_solver</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">b</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="c1"># Update the estimated barycenter weights in unbalanced cases</span>
+        <span class="k">if</span> <span class="n">update_masses</span><span class="p">:</span>
+            <span class="n">b_estimated</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">w</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)]</span>
+            <span class="p">)</span>
+            <span class="n">inv_b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">b_estimated</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">posinf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">neginf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="c1"># Update the barycenter samples</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">]:</span>
+            <span class="n">X_b_new</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">sum</span><span class="p">([</span><span class="n">w</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)])</span>
+                <span class="o">*</span> <span class="n">inv_b</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not implemented metric=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">metric</span><span class="p">))</span>
+
+        <span class="c1"># compute criterion</span>
+        <span class="k">if</span> <span class="n">stopping_criterion</span> <span class="o">==</span> <span class="s2">&quot;loss&quot;</span><span class="p">:</span>
+            <span class="n">new_criterion</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">w</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># stopping_criterion = &quot;bary&quot;</span>
+            <span class="n">new_criterion</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">X_b_new</span> <span class="o">-</span> <span class="n">X_b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">it</span> <span class="o">%</span> <span class="mi">1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;BCD iteration </span><span class="si">{</span><span class="n">it</span><span class="si">}</span><span class="s2">: criterion </span><span class="si">{</span><span class="n">stopping_criterion</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">new_criterion</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log_</span><span class="p">[</span><span class="s2">&quot;stopping_criterion&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_criterion</span><span class="p">)</span>
+        <span class="c1"># Check convergence</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">new_criterion</span> <span class="o">-</span> <span class="n">prev_criterion</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">prev_criterion</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol_bary</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BCD converged in </span><span class="si">{</span><span class="n">it</span><span class="si">}</span><span class="s2"> iterations&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="n">X_b</span> <span class="o">=</span> <span class="n">X_b_new</span>
+        <span class="n">prev_criterion</span> <span class="o">=</span> <span class="n">new_criterion</span>
+
+    <span class="c1"># compute loss values</span>
+
+    <span class="n">value_linear</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">w</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">value_linear</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)])</span>
+    <span class="k">if</span> <span class="n">stopping_criterion</span> <span class="o">==</span> <span class="s2">&quot;loss&quot;</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">new_criterion</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">w</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)])</span>
+    <span class="c1"># update BaryResult</span>
+    <span class="n">bary_res</span> <span class="o">=</span> <span class="n">BaryResult</span><span class="p">(</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">X_b</span><span class="p">,</span>
+        <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="n">log_</span><span class="p">,</span>
+        <span class="n">list_res</span><span class="o">=</span><span class="n">list_res</span><span class="p">,</span>
+        <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">bary_res</span>
+
+
+<div class="viewcode-block" id="solve_bary_sample">
+<a class="viewcode-back" href="../../../all.html#ot.solve_bary_sample">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">solve_bary_sample</span><span class="p">(</span>
+    <span class="n">X_a_list</span><span class="p">,</span>
+    <span class="n">n</span><span class="p">,</span>
+    <span class="n">a_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">w</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">X_b_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg_type</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span>
+    <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">unbalanced_type</span><span class="o">=</span><span class="s2">&quot;KL&quot;</span><span class="p">,</span>
+    <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">auto_bary_method</span><span class="o">=</span><span class="s2">&quot;L2_barycentric_proj&quot;</span><span class="p">,</span>
+    <span class="n">warmstart</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">stopping_criterion</span><span class="o">=</span><span class="s2">&quot;loss&quot;</span><span class="p">,</span>
+    <span class="n">max_iter_bary</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">tol_bary</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solve the discrete OT barycenter problem over source distributions optimizing the barycenter support using Block-Coordinate Descent.</span>
+
+<span class="sd">    The function solves the following general OT barycenter problem</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{X} \in \mathbb{R}^{n \times d}} \min_{\{ \mathbf{T}^{(k)} \}_k \in \mathbb{R}_+^{n_i \times n}} \quad \sum_k w_k \{ \langle \mathbf{T}^{(k)}, \mathbf{M}^{(k)} \rangle_F + \lambda_r R(\mathbf{T}^{(k)}) +</span>
+<span class="sd">        \lambda_u U(\mathbf{T^{(k)}}\mathbf{1},\mathbf{a}^{(k)}) +</span>
+<span class="sd">        \lambda_u U(\mathbf{T}^{(k)T}\mathbf{1},\mathbf{b}) \}</span>
+
+<span class="sd">    where the cost matrices :math:`\mathbf{M}^{(k)}` from each input distribution :math:`(\mathbf{X}^{(k)}, \mathbf{a}^{(k)})`</span>
+<span class="sd">    to the barycenter domain are computed as :math:`M^{(k)}_{i,j} = d(x^{(k)}_i,x_j)` where</span>
+<span class="sd">    :math:`d` is a metric (by default the squared Euclidean distance). For common metrics the barycenter is computed in closed-form.</span>
+<span class="sd">    For balanced OT, the `metric` parameter can also be any callable function, or list of functions, that computes the distance from an input to the barycenter.</span>
+<span class="sd">    In which case, the barycenter is updated by gradient descent using the provided metric(s) and the optimal transport plan(s) at each iteration.</span>
+<span class="sd">    The barycenter probability weights are fixed to :math:`\mathbf{b}`.</span>
+
+<span class="sd">    The regularization is selected with `reg` (:math:`\lambda_r`) and `reg_type`. By</span>
+<span class="sd">    default ``reg=None`` and there is no regularization. The unbalanced marginal</span>
+<span class="sd">    penalization can be selected with `unbalanced` (:math:`\lambda_u`) and</span>
+<span class="sd">    `unbalanced_type`. By default ``unbalanced=None`` and the function</span>
+<span class="sd">    solves the exact optimal transport problem (respecting the marginals).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_a_list : list of array-like, shape (n_samples_k, dim)</span>
+<span class="sd">        List of N samples in each source distribution</span>
+<span class="sd">    n : int</span>
+<span class="sd">        number of samples in the barycenter domain</span>
+<span class="sd">    a_list : list of array-like, shape (n_samples_k,), optional</span>
+<span class="sd">        List of samples weights in each source distribution (default is uniform)</span>
+<span class="sd">    w : list of array-like, shape (N,), optional</span>
+<span class="sd">        Samples barycentric weights (default is uniform)</span>
+<span class="sd">    X_b_init : array-like, shape (n, dim), optional</span>
+<span class="sd">        Initialization of the barycenter samples (default is gaussian random sampling)</span>
+<span class="sd">    b : array-like, shape (n,), optional</span>
+<span class="sd">        Barycenter weights (default is uniform)</span>
+<span class="sd">    metric : str, callable or list of callables optional</span>
+<span class="sd">        Metric to use for the computation of the cost matrix, by default &quot;sqeuclidean&quot;.</span>
+<span class="sd">        It can be a list of callables (bary, source) of length N (number of source distributions) to use different metrics for each source distribution.</span>
+<span class="sd">        In this case, the barycenter is updated by gradient descent using the provided metric(s) and the optimal transport plan(s) at each iteration.</span>
+<span class="sd">        If only callable is provided the same cost function is used for all source distributions.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Regularization weight :math:`\lambda_r`, by default None (no reg., exact</span>
+<span class="sd">        OT)</span>
+<span class="sd">    c : array-like, shape (dim_a, dim_b), optional (default=None)</span>
+<span class="sd">        Reference measure for the regularization.</span>
+<span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a}^{(k)} \mathbf{b}^T`.</span>
+<span class="sd">        If :math:`\texttt{reg_type}=`&#39;entropy&#39;, then :math:`\mathbf{c} = 1_{|a^{(k)}|} 1_{|b|}^T`.</span>
+<span class="sd">    reg_type : str, optional</span>
+<span class="sd">        Type of regularization :math:`R`  either &quot;KL&quot;, &quot;L2&quot;, &quot;entropy&quot;, by default &quot;KL&quot;</span>
+<span class="sd">    unbalanced : float or indexable object of length 1 or 2</span>
+<span class="sd">        Marginal relaxation term.</span>
+<span class="sd">        If it is a scalar or an indexable object of length 1,</span>
+<span class="sd">        then the same relaxation is applied to both marginal relaxations.</span>
+<span class="sd">        The balanced OT can be recovered using :math:`unbalanced=float(&quot;inf&quot;)`.</span>
+<span class="sd">        For semi-relaxed case, use either</span>
+<span class="sd">        :math:`unbalanced=(float(&quot;inf&quot;), scalar)` or</span>
+<span class="sd">        :math:`unbalanced=(scalar, float(&quot;inf&quot;))`.</span>
+<span class="sd">        If unbalanced is an array,</span>
+<span class="sd">        it must have the same backend as input arrays `(a, b, M)`.</span>
+<span class="sd">    unbalanced_type : str, optional</span>
+<span class="sd">        Type of unbalanced penalization function :math:`U`  either &quot;KL&quot;, &quot;L2&quot;, &quot;TV&quot;, by default &quot;KL&quot;</span>
+<span class="sd">    lazy : bool, optional</span>
+<span class="sd">        Return :any:`OTResultlazy` object to reduce memory cost when True, by</span>
+<span class="sd">        default False</span>
+<span class="sd">    method : str, optional</span>
+<span class="sd">        Method for solving the problem, this can be used to select the solver</span>
+<span class="sd">        for unbalanced problems (see :any:`ot.solve`), or to select a specific</span>
+<span class="sd">        large scale solver.</span>
+<span class="sd">    auto_bary_method: str, optional</span>
+<span class="sd">        For balanced OT with callable metric functions, the barycenter method to use in &#39;L2_barycentric_proj&#39; (default) for Euclidean</span>
+<span class="sd">        barycentric projection, or &#39;true_fixed_point&#39; for iterates using the North West Corner multi-marginal gluing method.</span>
+<span class="sd">    warmstart : bool, optional</span>
+<span class="sd">        Use the previous OT or potentials as initialization for the next inner solver iteration, by default False.</span>
+<span class="sd">    stopping_criterion : str, optional</span>
+<span class="sd">        Stopping criterion for the outer loop of the BCD solver, by default &#39;loss&#39;.</span>
+<span class="sd">        Either &#39;loss&#39; to use the optimize objective or &#39;bary&#39; for variations of the barycenter w.r.t the Frobenius norm.</span>
+<span class="sd">    max_iter_bary : int, optional</span>
+<span class="sd">        Maximum number of iteration for the outer loop of the BCD solver, by default 1000.</span>
+<span class="sd">    tol_bary : float, optional</span>
+<span class="sd">        Tolerance for solution precision of the barycenter problem, by default 1e-5.</span>
+<span class="sd">    random_state : int, optional</span>
+<span class="sd">        Random seed for the initialization of the barycenter samples, by default 0.</span>
+<span class="sd">        Only used if `X_init` is None.</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print information in the solver, by default False</span>
+<span class="sd">    kwargs : optional</span>
+<span class="sd">        Additional parameters for the inner solver (see :any:`ot.solve_sample` and :any:`ot.lp.free_support_barycenter_generic_costs`)</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    res : BaryResult()</span>
+<span class="sd">        Result of the optimization problem. The information can be obtained as follows:</span>
+
+<span class="sd">        - res.X : Barycenter samples</span>
+<span class="sd">        - res.b : Barycenter weights</span>
+<span class="sd">        - res.value : Optimal value of the optimization problem</span>
+<span class="sd">        - res.value_linear : Linear OT loss with the optimal OT plan</span>
+<span class="sd">        - res.list_res: List of OTResult for each inner OT problem (one per source distribution)</span>
+<span class="sd">        - res.log: log of the optimization process (if log=True)</span>
+
+<span class="sd">        See :any:`BaryResult` for more information.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    The following methods are available for solving barycenter problems with respect to these inner OT problems:</span>
+
+<span class="sd">    - **Classical exact OT problem [1]** (default parameters) :</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \forall k, \quad \min_{\mathbf{T}^{(k)}} \quad \langle \mathbf{T}^{(k)}, \mathbf{M}^{(k)} \rangle_F</span>
+
+<span class="sd">        s.t. \ \mathbf{T}^{(k)} \mathbf{1} = \mathbf{a}^{(k)}</span>
+
+<span class="sd">             \mathbf{T}^{(k)^T} \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T}^{(k)} \geq 0,  M^{(k)}_{i,j} = d(x^{(k)}_i,x_j)</span>
+
+
+
+<span class="sd">    can be solved with the following code for various cost metrics between the source distributions and the barycenter:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # for squared Euclidean cost, where closed-form solutions are used to update the barycenter</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, metric=&#39;sqeuclidean&#39;)</span>
+
+<span class="sd">        # for uniform sample weights and barycentric weights,</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n, [a1, a2], w, metric=&#39;sqeuclidean&#39;)</span>
+
+<span class="sd">        # for other cost functions, where the barycenter is updated with gradient descent using Pytorch</span>
+<span class="sd">        # refer to the documentation and examples for more details.</span>
+
+<span class="sd">    - **Entropic regularized OT [2]** (when ``reg!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}^{(k)}} \quad \langle \mathbf{T}^{(k)}, \mathbf{M}^{(k)} \rangle_F + \lambda R(\mathbf{T}^{(k)})</span>
+
+<span class="sd">        s.t. \ \mathbf{T}^{(k)} \mathbf{1} = \mathbf{a}^{(k)}</span>
+
+<span class="sd">             \mathbf{T}^{(k)^T} \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T}^{(k)} \geq 0,  M^{(k)}_{i,j} = d(x^{(k)}_i,x_j)</span>
+
+
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # default is ``&quot;KL&quot;`` regularization (``reg_type=&quot;KL&quot;``)</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, reg=1.0)</span>
+
+<span class="sd">        # or for original Sinkhorn paper formulation [2]</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, reg=1.0, reg_type=&#39;entropy&#39;)</span>
+
+
+<span class="sd">    - **Quadratic regularized OT [17]** (when ``reg!=None`` and ``reg_type=&quot;L2&quot;``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}^{(k)}} \quad \langle \mathbf{T}^{(k)}, \mathbf{M}^{(k)} \rangle_F + \lambda R(\mathbf{T}^{(k))})</span>
+
+<span class="sd">        s.t. \ \mathbf{T}^{(k)} \mathbf{1} = \mathbf{a}^{(k)}</span>
+
+<span class="sd">             \mathbf{T}^{(k)^T} \mathbf{1} = \mathbf{b}</span>
+
+<span class="sd">             \mathbf{T}^{(k)} \geq 0,  M^{(k)}_{i,j} = d(x^{(k)}_i,x_j)</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, reg=1.0, reg_type=&#39;L2&#39;)</span>
+
+<span class="sd">    - **Unbalanced OT [41]** (when ``unbalanced!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}^{(k)}\geq 0} \quad \langle \mathbf{T}^{(k)}, \mathbf{M}^{(k)} \rangle_F + \lambda_u U(\mathbf{T}^{(k)}\mathbf{1},\mathbf{a}^{(k)}) + \lambda_u U(\mathbf{T}^{(k)^T}\mathbf{1},\mathbf{b})</span>
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # default is ``&quot;KL&quot;``</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, unbalanced=1.0)</span>
+
+<span class="sd">        # quadratic unbalanced OT</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, unbalanced=1.0, unbalanced_type=&#39;L2&#39;)</span>
+<span class="sd">        # TV = partial OT</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, unbalanced=1.0, unbalanced_type=&#39;TV&#39;)</span>
+
+
+<span class="sd">    - **Regularized unbalanced regularized OT [34]** (when ``unbalanced!=None`` and ``reg!=None``):</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\mathbf{T}^{(k)} \geq 0} \quad \langle \mathbf{T}^{(k)}, \mathbf{M}^{(k)} \rangle_F + \lambda_r R(\mathbf{T}^{(k)}) + \lambda_u U(\mathbf{T}^{(k)}\mathbf{1},\mathbf{a}^{(k)}) + \lambda_u U(\mathbf{T}^{(k)^T}\mathbf{1},\mathbf{b})</span>
+
+
+<span class="sd">    can be solved with the following code:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        # default is ``&quot;KL&quot;`` for both</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, reg=1.0, unbalanced=1.0)</span>
+<span class="sd">        # quadratic unbalanced OT with KL regularization</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, reg=1.0, unbalanced=1.0, unbalanced_type=&#39;L2&#39;)</span>
+<span class="sd">        # both quadratic</span>
+<span class="sd">        res = ot.solve_bary_sample([x1, x2], n , [a1, a2], w, reg=1.0, reg_type=&#39;L2&#39;, unbalanced=1.0, unbalanced_type=&#39;L2&#39;)</span>
+
+<span class="sd">    .. _references-solve_bary_sample:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [20] Cuturi, Marco, and Arnaud Doucet. &quot;Fast computation of Wasserstein barycenters.&quot; International Conference on Machine Learning. 2014.</span>
+
+<span class="sd">    .. [43] Álvarez-Esteban, Pedro C., et al. &quot;A fixed-point approach to barycenters in Wasserstein space.&quot; Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762.</span>
+
+<span class="sd">    .. [77] Tanguy, Eloi and Delon, Julie and Gozlan, Nathaël (2024). Computing</span>
+<span class="sd">        barycenters of Measures for Generic Transport Costs. arXiv preprint</span>
+<span class="sd">        2501.04016 (2024)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">lst_method_lazy</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;method </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> operating on lazy tensors is not implemented yet&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stopping_criterion</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">,</span> <span class="s2">&quot;bary&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;stopping_criterion must be either &#39;loss&#39; or &#39;bary&#39;, got </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">stopping_criterion</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">lazy</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Barycenter solver with lazy=True not implemented&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># default non lazy solver calls ot.solve_sample within _bary_sample_bcd</span>
+        <span class="c1"># Detect backend</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">X_a_list</span><span class="p">,</span> <span class="n">X_b_init</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+
+        <span class="c1"># check sample weights</span>
+        <span class="k">if</span> <span class="n">a_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a_list</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                <span class="o">/</span> <span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="c1"># check samples barycentric weights</span>
+        <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_a_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">n_samples</span>
+
+        <span class="c1"># check X_b_init</span>
+        <span class="k">if</span> <span class="n">X_b_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">mean_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)],</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">mean_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mean_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">std_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)],</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">std_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">std_</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">X_b_init</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">std_</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">X_a_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_a_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">mean_</span>
+            <span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">X_b_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">X_b_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_a_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X_b_init must have shape (n, dim)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># check b</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_a_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">n</span>
+
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">callable</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metric</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s2">&quot;Custom callable metric only available for balanced OT (reg=None and unbalanced=None)&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">auto_bary_method</span> <span class="o">==</span> <span class="s2">&quot;true_fixed_point&quot;</span><span class="p">:</span>
+                    <span class="n">ground_bary</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ground_bary&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">ground_bary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;ground_bary must be provided in kwargs for true_fixed_point method with callable metrics&quot;</span>
+                        <span class="p">)</span>
+
+                <span class="n">outputs</span> <span class="o">=</span> <span class="n">free_support_barycenter_generic_costs</span><span class="p">(</span>
+                    <span class="n">X_a_list</span><span class="p">,</span>
+                    <span class="n">a_list</span><span class="p">,</span>
+                    <span class="n">X_b_init</span><span class="p">,</span>
+                    <span class="n">metric</span><span class="p">,</span>
+                    <span class="n">ground_bary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">a</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+                    <span class="n">numItermax</span><span class="o">=</span><span class="n">max_iter_bary</span><span class="p">,</span>
+                    <span class="n">method</span><span class="o">=</span><span class="n">auto_bary_method</span><span class="p">,</span>
+                    <span class="n">stopThr</span><span class="o">=</span><span class="n">tol_bary</span><span class="p">,</span>
+                    <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">auto_bary_method</span> <span class="o">==</span> <span class="s2">&quot;L2_barycentric_proj&quot;</span><span class="p">:</span>
+                    <span class="n">X_b</span><span class="p">,</span> <span class="n">log_</span> <span class="o">=</span> <span class="n">outputs</span>
+
+                <span class="k">elif</span> <span class="n">auto_bary_method</span> <span class="o">==</span> <span class="s2">&quot;true_fixed_point&quot;</span><span class="p">:</span>
+                    <span class="n">X_b</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">log_</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">outputs</span>  <span class="c1"># potentially modify the masses of the barycenter with the true fixed point method</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># compute the pairwise transport plans and losses</span>
+                <span class="n">metric_list</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">metric</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_samples</span>
+                <span class="p">)</span>
+                <span class="n">list_res</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">solve</span><span class="p">(</span>
+                        <span class="n">M</span><span class="o">=</span><span class="n">metric_list</span><span class="p">[</span><span class="n">k</span><span class="p">](</span>
+                            <span class="n">X_b</span><span class="p">,</span> <span class="n">X_a_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>  <span class="c1"># in the free support setting, the cost matrix is computed from the barycenter to the source distribution, so we transpose it here to be consistent with the inner_solver interface (X_a, X_b,</span>
+                        <span class="n">a</span><span class="o">=</span><span class="n">a_list</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
+                        <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+                        <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">unbalanced</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+                <span class="p">]</span>
+
+                <span class="n">value_linear</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                    <span class="n">w</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">list_res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">value_linear</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">BaryResult</span><span class="p">(</span>
+                    <span class="n">X</span><span class="o">=</span><span class="n">X_b</span><span class="p">,</span>
+                    <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span>
+                    <span class="n">value_linear</span><span class="o">=</span><span class="n">value_linear</span><span class="p">,</span>
+                    <span class="n">log</span><span class="o">=</span><span class="n">log_</span><span class="p">,</span>
+                    <span class="n">list_res</span><span class="o">=</span><span class="n">list_res</span><span class="p">,</span>
+                    <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="n">res</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># check metric</span>
+            <span class="k">if</span> <span class="n">metric</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s1">&#39;Not implemented BCD with closed-form on the barycenter samples with metric=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">metric</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">warmstart</span><span class="p">:</span>
+                <span class="c1"># covers exact OT, regularized OT, unbalanced and regularized OT, but not unbalanced OT without regularization (not implemented)</span>
+                <span class="n">warmstart_plan</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">warmstart_potentials</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;kl&quot;</span><span class="p">]</span>
+                        <span class="ow">and</span> <span class="n">unbalanced_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;kl&quot;</span>
+                    <span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="n">warmstart_plan</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">warmstart_potentials</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warmstart_plan</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">warmstart_potentials</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">inner_solver</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">X_b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">plan_init</span><span class="p">,</span> <span class="n">potentials_init</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">solve_sample</span><span class="p">(</span>
+                    <span class="n">X_a</span><span class="o">=</span><span class="n">X_a</span><span class="p">,</span>
+                    <span class="n">X_b</span><span class="o">=</span><span class="n">X_b</span><span class="p">,</span>
+                    <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span>
+                    <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+                    <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                    <span class="n">reg</span><span class="o">=</span><span class="n">reg</span><span class="p">,</span>
+                    <span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span>
+                    <span class="n">reg_type</span><span class="o">=</span><span class="n">reg_type</span><span class="p">,</span>
+                    <span class="n">unbalanced</span><span class="o">=</span><span class="n">unbalanced</span><span class="p">,</span>
+                    <span class="n">unbalanced_type</span><span class="o">=</span><span class="n">unbalanced_type</span><span class="p">,</span>
+                    <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+                    <span class="n">plan_init</span><span class="o">=</span><span class="n">plan_init</span><span class="p">,</span>
+                    <span class="n">potentials_init</span><span class="o">=</span><span class="n">potentials_init</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="c1"># compute the barycenter using BCD</span>
+            <span class="n">update_masses</span> <span class="o">=</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">_bary_sample_bcd</span><span class="p">(</span>
+                <span class="n">X_a_list</span><span class="p">,</span>
+                <span class="n">X_b_init</span><span class="p">,</span>
+                <span class="n">a_list</span><span class="p">,</span>
+                <span class="n">b</span><span class="p">,</span>
+                <span class="n">w</span><span class="p">,</span>
+                <span class="n">metric</span><span class="p">,</span>
+                <span class="n">inner_solver</span><span class="p">,</span>
+                <span class="n">update_masses</span><span class="p">,</span>
+                <span class="n">warmstart_plan</span><span class="p">,</span>
+                <span class="n">warmstart_potentials</span><span class="p">,</span>
+                <span class="n">stopping_criterion</span><span class="p">,</span>
+                <span class="n">max_iter_bary</span><span class="p">,</span>
+                <span class="n">tol_bary</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="p">,</span>
+                <span class="kc">True</span><span class="p">,</span>  <span class="c1"># log set to True by default</span>
+                <span class="n">nx</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">res</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7.dev0
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
