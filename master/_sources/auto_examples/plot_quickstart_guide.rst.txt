@@ -634,8 +634,8 @@ Fused Gromov-Wasserstein
      loss_fgw = ot.gromov.fused_gromov_wasserstein2(C1, C2, M, a, b, alpha=0.1)
      loss_efgw = ot.gromov.entropic_fused_gromov_wasserstein2(C1, C2, M, a, b, alpha=0.1, epsilon=reg)
 
-Large scale OT
---------------
+Large scale OT and approximations
+---------------------------------
 
 We discuss here strategies to solve large scale OT problems using approximations
 of the exact OT problem.
@@ -807,11 +807,116 @@ covariance matrices of the samples.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 587-598
+.. GENERATED FROM PYTHON SOURCE LINES 587-590
+
+One can also use the HD gaussian assumption (low rank covariance + diagonal)
+that has better properties in high dimension. The rank of the covariance
+matrices can be controlled with the :code:`rank` parameter.
+
+.. GENERATED FROM PYTHON SOURCE LINES 590-596
+
+.. code-block:: Python
+
+
+    hdbw_value = ot.solve_sample(x1, x2, a, b, method="gaussian_hd", rank=1).value
+
+    print(f"Bures-Wasserstein distance = {bw_value:1.3f}")
+    print(f"High Dimensional Bures-Wasserstein distance = {hdbw_value}")
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Bures-Wasserstein distance = 4.558
+    High Dimensional Bures-Wasserstein distance = [4.55794871]
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 597-609
 
 .. note::
    The Gaussian Wasserstein problem can be solved with the classic API using the
    :func:`ot.gaussian.empirical_bures_wasserstein_distance` function.
+
+Sliced Wasserstein
+~~~~~~~~~~~~~~~~~~
+
+The Sliced Wasserstein distance is a Wasserstein distance between
+empirical distributions that is computed by projecting the samples on random
+directions and averaging the Wasserstein distances between the projected
+distributions. It can be used as an approximation of the Wasserstein distance
+between empirical distributions.
+
+.. GENERATED FROM PYTHON SOURCE LINES 609-619
+
+.. code-block:: Python
+
+
+    sw_value = ot.solve_sample(x1, x2, a, b, method="sliced", n_projections=10).value
+    max_sw_value = ot.solve_sample(
+        x1, x2, a, b, method="max_sliced", n_projections=10
+    ).value
+
+    print(f"Exact OT loss = {loss:1.3f}")
+    print(f"Sliced Wasserstein distance = {sw_value:1.3f}")
+    print(f"Max Sliced Wasserstein distance = {max_sw_value:1.3f}")
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Exact OT loss = 5.292
+    Sliced Wasserstein distance = 1.597
+    Max Sliced Wasserstein distance = 1.794
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 620-628
+
+Binary Space Partitioning (BSP) OT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One can also use the BSP OT approximation that is based on a recursive
+partitioning of the space and computes the Wasserstein distance between the
+empirical distributions by solving small OT problems between the samples in each
+partition. The number of partitions can be controlled with the
+`n_projections` parameter.
+
+.. GENERATED FROM PYTHON SOURCE LINES 628-636
+
+.. code-block:: Python
+
+
+    # BSP can only find bijections so require same number of points
+    x1_bsp = np.concatenate([x1, x1], axis=0)
+
+    sol_bsp = ot.solve_sample(x1_bsp, x2, method="bsp", n_projections=10)
+    bsp_value = sol_bsp.value
+    bsp_sparse_plan = sol_bsp.sparse_plan
+
+
+
+
+.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+   :alt: BSP OT plan loss=5.791
+   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+   :class: sphx-glr-single-img
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 647-654
 
 Comparing all OT plans
 ----------------------
@@ -821,7 +926,7 @@ The color intensity represents the amount of mass transported
 between the samples.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 598-602
+.. GENERATED FROM PYTHON SOURCE LINES 654-658
 
 .. code-block:: Python
 
@@ -832,16 +937,16 @@ between the samples.
 
 
 
-.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_020.png
    :alt: OT plan, Sinkhorn plan, Quadratic reg. plan, Unbalanced KL plan, Unbalanced KL + reg plan, Unbalanced L2 plan, Partial 50% mass plan, Factored OT plan, Low rank OT plan, GW plan, Entropic GW plan, Fused GW plan
-   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_020.png
    :class: sphx-glr-single-img
 
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 644-658
+.. GENERATED FROM PYTHON SOURCE LINES 700-714
 
 Solving barycenter problems
 -------------------------------
@@ -858,7 +963,7 @@ The function returns an :class:`ot.utils.OTBaryResult` object that contains in p
 In the following, we illustrate the use of this function with the same 2D data as above considered as input distributions and compute their barycenter while using exact OT.
 Notice that most of the arguments of the :func:`ot.solve_bary_sample` function are similar to those of the :func:`ot.solve_sample` function and that the same regularization and unbalanced parameters can be used to solve regularized and unbalanced barycenter problems.
 
-.. GENERATED FROM PYTHON SOURCE LINES 659-674
+.. GENERATED FROM PYTHON SOURCE LINES 715-730
 
 .. code-block:: Python
 
@@ -880,9 +985,9 @@ Notice that most of the arguments of the :func:`ot.solve_bary_sample` function a
 
 
 
-.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_020.png
+.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_021.png
    :alt: Barycenter samples and OT plans   total loss= 1.356 = 0.5 * 1.338 + 0.5 * 1.374
-   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_020.png
+   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_021.png
    :class: sphx-glr-single-img
 
 
@@ -901,7 +1006,7 @@ Notice that most of the arguments of the :func:`ot.solve_bary_sample` function a
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 25.641 seconds)
+   **Total running time of the script:** (0 minutes 31.108 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_quickstart_guide.py:
