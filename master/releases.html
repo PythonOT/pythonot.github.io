@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Releases &mdash; POT Python Optimal Transport 0.9.7.dev0 documentation</title>
+  <title>Releases &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
@@ -17,7 +17,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=acf7178e"></script>
+      <script src="_static/documentation_options.js?v=f2328ca0"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/sg-tags.js?v=d80f6fa4"></script>
@@ -178,11 +178,57 @@
 <h1>Releases<a class="headerlink" href="#releases" title="Link to this heading"></a></h1>
 <section id="id1">
 <h2>0.9.7<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>This new release adds support for sparse cost matrices and a new lazy exact OT solver that re-computes distances on-the-fly from coordinates, reducing memory usage from O(n×m) to O(n+m). Both implementations are backend-agnostic and preserve gradient computation for automatic differentiation.</p>
+<p>This release contains several bug fixes and performance improvements, as well as updates to the documentation and examples and tests. We provide below a summary of the main new features and closed issues.</p>
+<p><strong>New exact OT solvers.</strong> This new release adds many new variants and updates for the exact OT solver. First a new lazy exact OT solver that re-computes distances on-the-fly from coordinates, reducing memory usage from O(n×m) to O(n+m) ( available in <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample</span></code></a> with <code class="docutils literal notranslate"><span class="pre">lazy=True)</span></code>).  Another major feature is the addition of a warmstart feature for the EMD solver, allowing users to provide initial potentials to speed up convergence (with <code class="docutils literal notranslate"><span class="pre">init_potentials</span></code> in <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve"><code class="docutils literal notranslate"><span class="pre">ot.solve</span></code></a> and  <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample</span></code></a>). Finally the release also include a sparse solver  and <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve"><code class="docutils literal notranslate"><span class="pre">ot.solve</span></code></a> now accept sparse cost matrices and provides an OT plan whose support is included in the support of the cost matrix. All implementations are backend-agnostic and preserve gradient computation for automatic differentiation (but are solved on CPU).</p>
+<p>The computational time for different solvers (on a laptop CPU) are shown below:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>n</p></th>
+<th class="head text-center"><p>100</p></th>
+<th class="head text-center"><p>500</p></th>
+<th class="head text-center"><p>1000</p></th>
+<th class="head text-center"><p>5000</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Solve</p></td>
+<td class="text-center"><p>7.259e-04</p></td>
+<td class="text-center"><p>1.501e-02</p></td>
+<td class="text-center"><p>1.055e-01</p></td>
+<td class="text-center"><p>2.343e+00</p></td>
+</tr>
+<tr class="row-odd"><td><p>Solve Warm Start</p></td>
+<td class="text-center"><p>6.970e-04</p></td>
+<td class="text-center"><p>5.413e-03</p></td>
+<td class="text-center"><p>2.291e-02</p></td>
+<td class="text-center"><p>6.036e-01</p></td>
+</tr>
+<tr class="row-even"><td><p>Solve Lazy</p></td>
+<td class="text-center"><p>1.280e-03</p></td>
+<td class="text-center"><p>3.098e-02</p></td>
+<td class="text-center"><p>1.421e-01</p></td>
+<td class="text-center"><p>3.377e+00</p></td>
+</tr>
+<tr class="row-odd"><td><p>Solve Sparse 10%</p></td>
+<td class="text-center"><p>3.453e-04</p></td>
+<td class="text-center"><p>6.716e-04</p></td>
+<td class="text-center"><p>1.535e-03</p></td>
+<td class="text-center"><p>3.534e-02</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>BSPOT solver.</strong> A new solver relying on <a class="reference external" href="https://pythonot.github.io/master/auto_examples/plot_bsp_ot.html">Binary Space Partitioning (BSP)</a> has been added to compute sparse transport plans between discrete measures in loglinear time which allows for very large problems to be solved. The release also includes a new <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.unbalanced.html#ot.unbalanced.uot_1d"><code class="docutils literal notranslate"><span class="pre">ot.unbalanced.uot_1d</span></code></a> solver with a Frank-Wolfe solver for unbalanced optimal transport in 1D.</p>
+<p><strong>Sliced OT pans</strong> Finally we now have a sliced OT plan solver that can be used to compute sliced transport plans (<a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.sliced.html#ot.sliced.min_sliced_transport_plan">min-pivot sliced</a> and <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.sliced.html#ot.sliced.expected_sliced_plan">expected sliced</a>) between two measures.</p>
+<p><strong>OT between dynamical systems.</strong> A novel <a class="reference external" href="https://pythonot.github.io/master/auto_examples/others/plot_sgot.html">Spectral-Grassmann Wasserstein metric for operator representations of dynamical systems</a> has been implemented in <code class="docutils literal notranslate"><span class="pre">ot.sgot</span></code>.</p>
+<p><strong>Unified API for barycenter solvers in <code class="docutils literal notranslate"><span class="pre">ot.solve_bary_sample</span></code>.</strong> A new free support solver for barycenter solvers has been added in <a class="reference external" href="https://pythonot.github.io/master/all.html#ot.solve_bary_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_bary_sample</span></code></a>. You can see <a class="reference external" href="https://pythonot.github.io/master/auto_examples/barycenters/plot_solve_barycenter_variants.html">examples of how to use it here</a>.</p>
+<p><strong>OT between high dimensional Gaussian distributions.</strong> New methods to compute the linear transport map and the related 2-Wasserstein distance between high-dimensional (HD) Gaussian distributions have been added in <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.gaussian.html#id56"><code class="docutils literal notranslate"><span class="pre">ot.gaussian.bures_wasserstein_mapping_hd</span></code></a> and <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.gaussian.html#ot.gaussian.bures_wasserstein_distance_hd"><code class="docutils literal notranslate"><span class="pre">ot.gaussian.bures_wasserstein_distance_hd</span></code></a>, respectively with empirical versions that estimate the distance from sample.</p>
+<p><strong>Batched solver for exact OT.</strong> The batch implementations have also been improved and you can now solve exact OT problems in parallel on CPU or GPU using the new proximal point solver in functions <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.batch.html#ot.batch.solve_batch"><code class="docutils literal notranslate"><span class="pre">ot.solve_batch</span></code></a> and <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.batch.html#ot.batch.solve_sample_batch"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample_batch</span></code></a> when <code class="docutils literal notranslate"><span class="pre">reg=0</span></code> or no provided. A new batch <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.batch.html#ot.batch.loss_quadratic_batch">loss for Fused unbalanced Gromov-Wasserstein</a> is also now available in <code class="docutils literal notranslate"><span class="pre">ot.batch</span></code>.</p>
+<p><strong>New methods in unified API <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample</span></code></a>.</strong> The unified API function
+<a class="reference external" href="https://pythonot.github.io/all.html#ot.solve_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample</span></code></a> has also been updated to allows solving of specific problems such as BSP-OT, distance between high-dimensional (HD) Gaussian distributions and  sliced and max-sliced distances.</p>
+<p><strong>Data normalization for sliced and <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample</span></code></a> solvers.</strong> The release also includes tools for data normalization and scaling which can not be used in sliced Wasserstein distance computations. A simple normalization class <a class="reference external" href="https://pythonot.github.io/master/gen_modules/ot.utils.html#id46"><code class="docutils literal notranslate"><span class="pre">ot.utils.DataScaler</span></code></a> has been added and supports all backends for <code class="docutils literal notranslate"><span class="pre">'standard'</span></code>, <code class="docutils literal notranslate"><span class="pre">'minmax'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'l2'</span></code> methods. Finally an optional <code class="docutils literal notranslate"><span class="pre">scaler</span></code> parameter has been added to <a class="reference external" href="https://pythonot.github.io/master/all.html#ot.sliced_wasserstein_distance"><code class="docutils literal notranslate"><span class="pre">ot.sliced_wasserstein_distance</span></code></a>,  <a class="reference external" href="https://pythonot.github.io/master/all.html#ot.max_sliced_wasserstein_distance"><code class="docutils literal notranslate"><span class="pre">ot.max_sliced_wasserstein_distance</span></code></a> and <a class="reference external" href="https://pythonot.github.io/all.html#ot.solve_sample"><code class="docutils literal notranslate"><span class="pre">ot.solve_sample</span></code></a>.</p>
 <section id="new-features">
 <h3>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>Fix reference number error introduced in <a class="reference external" href="https://github.com/PythonOT/POT/pull/767">PR #767</a> (PR #819)</p></li>
 <li><p>Refactor lazy EMD network simplex storage to avoid dense per-arc cost,
 endpoint, flow, and state storage where possible, and return sparse lazy
 transport plans instead of materializing dense plans internally (<a class="reference external" href="https://github.com/PythonOT/POT/pull/813">PR #813</a>)</p></li>
@@ -204,9 +250,7 @@ a callable, or a no-op (<a class="reference external" href="https://github.com/P
 <li><p>Add optional <code class="docutils literal notranslate"><span class="pre">scaler</span></code> parameter to <code class="docutils literal notranslate"><span class="pre">sliced_wasserstein_distance</span></code> and  <code class="docutils literal notranslate"><span class="pre">max_sliced_wasserstein_distance</span></code> (<a class="reference external" href="https://github.com/PythonOT/POT/pull/808">PR #808</a>)</p></li>
 <li><p>Add SGD based semi-discrete OT solver in <code class="docutils literal notranslate"><span class="pre">ot.semidiscrete</span></code> and a gallery example. (<a class="reference external" href="https://github.com/PythonOT/POT/pull/812">PR #812</a>)</p></li>
 <li><p>Add a numerically stable log-domain solver for entropic partial Wasserstein, selectable via the new <code class="docutils literal notranslate"><span class="pre">method</span></code> parameter of <code class="docutils literal notranslate"><span class="pre">entropic_partial_wasserstein</span></code> (<code class="docutils literal notranslate"><span class="pre">method='sinkhorn_log'</span></code>) or directly through <code class="docutils literal notranslate"><span class="pre">entropic_partial_wasserstein_logscale</span></code> (<a class="reference external" href="https://github.com/PythonOT/POT/issues/723">Issue #723</a>)</p></li>
-<li><p>Add cost functions between linear operators following<br />
-<a class="reference external" href="https://arxiv.org/pdf/2509.24920">A Spectral-Grassmann Wasserstein metric for operator representations of dynamical systems</a>,<br />
-implemented in <code class="docutils literal notranslate"><span class="pre">ot.sgot</span></code> (<a class="reference external" href="https://github.com/PythonOT/POT/pull/792">PR #792</a>, PR #830)</p></li>
+<li><p>Add cost functions between linear operators following    <a class="reference external" href="https://arxiv.org/pdf/2509.24920">A Spectral-Grassmann Wasserstein metric for operator representations of dynamical systems</a>, implemented in <code class="docutils literal notranslate"><span class="pre">ot.sgot</span></code> (<a class="reference external" href="https://github.com/PythonOT/POT/pull/792">PR #792</a>, PR #830)</p></li>
 <li><p>Add batch FUGW loss to <code class="docutils literal notranslate"><span class="pre">ot.batch</span></code> and fix issues in some default parameters in the batch module (<a class="reference external" href="https://github.com/PythonOT/POT/pull/775">PR #775</a>)</p></li>
 <li><p>Wrapper for barycenter solvers with free support <code class="docutils literal notranslate"><span class="pre">ot.solvers.bary_free_support</span></code> (<a class="reference external" href="https://github.com/PythonOT/POT/pull/730">PR #730</a>)</p></li>
 <li><p>Build wheels on ubuntu ARM to avoid QEMU emulation (<a class="reference external" href="https://github.com/PythonOT/POT/pull/818">PR #818</a>)</p></li>
@@ -239,6 +283,7 @@ implemented in <code class="docutils literal notranslate"><span class="pre">ot.s
 <li><p>Fix entropic regularization in <code class="docutils literal notranslate"><span class="pre">gcg</span></code>(<a class="reference external" href="https://github.com/PythonOT/POT/pull/817">PR #817</a>, <a class="reference external" href="https://github.com/PythonOT/POT/issues/758">Issue #758</a>)</p></li>
 <li><p>Fix documentation build on master with submodules (<a class="reference external" href="https://github.com/PythonOT/POT/pull/818">PR #818</a>)</p></li>
 <li><p>Fix failing test for unbalanced solver with generic regularization (<a class="reference external" href="https://github.com/PythonOT/POT/pull/824">PR #824</a>)</p></li>
+<li><p>Fix reference number error introduced in <a class="reference external" href="https://github.com/PythonOT/POT/pull/767">PR #767</a> (PR #819)</p></li>
 <li><p>Fix docstrings for <code class="docutils literal notranslate"><span class="pre">lowrank_gromov_wasserstein_samples</span></code> and <code class="docutils literal notranslate"><span class="pre">lowrank_sinkhorn</span></code> (<a class="reference external" href="https://github.com/PythonOT/POT/pull/823">PR #823</a>)</p></li>
 <li><p>Update sgot cost function and example (<a class="reference external" href="https://github.com/PythonOT/POT/pull/830">PR #830</a>)</p></li>
 </ul>
@@ -1088,7 +1133,7 @@ aria-label="versions">
   <!--  add shift_up to the class for force viewing ,
   data-toggle="rst-current-version" -->
     <span class="rst-current-version"  style="margin-bottom:1mm;">
-      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7.dev0
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
       <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
      <!--  versions
       <span class="fa fa-caret-down"></span>-->
