@@ -365,6 +365,13 @@ Quadratic Regularized OT
    :class: sphx-glr-single-img
 
 
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    /home/circleci/project/ot/smooth.py:352: OptimizeWarning: Unknown solver options: disp
+      res = minimize(
+
 
 
 
@@ -498,6 +505,13 @@ Partial Optimal Transport
    :class: sphx-glr-single-img
 
 
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    /home/circleci/project/ot/unbalanced/_lbfgs.py:319: OptimizeWarning: Unknown solver options: disp
+      res = minimize(
+
 
 
 
@@ -620,8 +634,8 @@ Fused Gromov-Wasserstein
      loss_fgw = ot.gromov.fused_gromov_wasserstein2(C1, C2, M, a, b, alpha=0.1)
      loss_efgw = ot.gromov.entropic_fused_gromov_wasserstein2(C1, C2, M, a, b, alpha=0.1, epsilon=reg)
 
-Large scale OT
---------------
+Large scale OT and approximations
+---------------------------------
 
 We discuss here strategies to solve large scale OT problems using approximations
 of the exact OT problem.
@@ -686,8 +700,10 @@ in a dense form.
 
     /home/circleci/project/ot/bregman/_empirical.py:259: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
       warnings.warn(
-    [KeOps] Generating code for Max_SumShiftExpWeight_Reduction reduction (with parameters 0) of formula [c-1/2*(d*Sum((a-b)**2)),1] with a=Var(0,2,0), b=Var(1,2,1), c=Var(2,1,1), d=Var(3,1,2) ... OK
-    [pyKeOps] Compiling pykeops cpp 9534d93517 module ... OK
+    [KeOps] Generating code for Sum_Reduction reduction (with parameters 0) of formula (Sum((a-b)**2)-c)*d with a=Var(0,2,0), b=Var(1,2,1), c=Var(2,1,1), d=Var(3,1,1) ... OK
+    [pyKeOps] Compiling pykeops cpp 00bc9a26c9 module ... OK
+    [KeOps] Generating code for Max_SumShiftExpWeight_Reduction reduction (with parameters 0) of formula [a-Sum((b-c)**2)/d,1] with a=Var(0,1,1), b=Var(1,2,0), c=Var(2,2,1), d=Var(3,1,2) ... OK
+    [pyKeOps] Compiling pykeops cpp 11350fee71 module ... OK
 
 
 
@@ -791,11 +807,116 @@ covariance matrices of the samples.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 587-598
+.. GENERATED FROM PYTHON SOURCE LINES 587-590
+
+One can also use the HD gaussian assumption (low rank covariance + diagonal)
+that has better properties in high dimension. The rank of the covariance
+matrices can be controlled with the :code:`rank` parameter.
+
+.. GENERATED FROM PYTHON SOURCE LINES 590-596
+
+.. code-block:: Python
+
+
+    hdbw_value = ot.solve_sample(x1, x2, a, b, method="gaussian_hd", rank=1).value
+
+    print(f"Bures-Wasserstein distance = {bw_value:1.3f}")
+    print(f"High Dimensional Bures-Wasserstein distance = {hdbw_value}")
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Bures-Wasserstein distance = 4.558
+    High Dimensional Bures-Wasserstein distance = [4.55794871]
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 597-609
 
 .. note::
    The Gaussian Wasserstein problem can be solved with the classic API using the
    :func:`ot.gaussian.empirical_bures_wasserstein_distance` function.
+
+Sliced Wasserstein
+~~~~~~~~~~~~~~~~~~
+
+The Sliced Wasserstein distance is a Wasserstein distance between
+empirical distributions that is computed by projecting the samples on random
+directions and averaging the Wasserstein distances between the projected
+distributions. It can be used as an approximation of the Wasserstein distance
+between empirical distributions.
+
+.. GENERATED FROM PYTHON SOURCE LINES 609-619
+
+.. code-block:: Python
+
+
+    sw_value = ot.solve_sample(x1, x2, a, b, method="sliced", n_projections=10).value
+    max_sw_value = ot.solve_sample(
+        x1, x2, a, b, method="max_sliced", n_projections=10
+    ).value
+
+    print(f"Exact OT loss = {loss:1.3f}")
+    print(f"Sliced Wasserstein distance = {sw_value:1.3f}")
+    print(f"Max Sliced Wasserstein distance = {max_sw_value:1.3f}")
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Exact OT loss = 5.292
+    Sliced Wasserstein distance = 1.597
+    Max Sliced Wasserstein distance = 1.794
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 620-628
+
+Binary Space Partitioning (BSP) OT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One can also use the BSP OT approximation that is based on a recursive
+partitioning of the space and computes the Wasserstein distance between the
+empirical distributions by solving small OT problems between the samples in each
+partition. The number of partitions can be controlled with the
+`n_projections` parameter.
+
+.. GENERATED FROM PYTHON SOURCE LINES 628-636
+
+.. code-block:: Python
+
+
+    # BSP can only find bijections so require same number of points
+    x1_bsp = np.concatenate([x1, x1], axis=0)
+
+    sol_bsp = ot.solve_sample(x1_bsp, x2, method="bsp", n_projections=10)
+    bsp_value = sol_bsp.value
+    bsp_sparse_plan = sol_bsp.sparse_plan
+
+
+
+
+.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+   :alt: BSP OT plan loss=5.791
+   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+   :class: sphx-glr-single-img
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 647-654
 
 Comparing all OT plans
 ----------------------
@@ -805,7 +926,7 @@ The color intensity represents the amount of mass transported
 between the samples.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 598-601
+.. GENERATED FROM PYTHON SOURCE LINES 654-658
 
 .. code-block:: Python
 
@@ -815,11 +936,69 @@ between the samples.
 
 
 
-.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+
+.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_020.png
    :alt: OT plan, Sinkhorn plan, Quadratic reg. plan, Unbalanced KL plan, Unbalanced KL + reg plan, Unbalanced L2 plan, Partial 50% mass plan, Factored OT plan, Low rank OT plan, GW plan, Entropic GW plan, Fused GW plan
-   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_019.png
+   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_020.png
    :class: sphx-glr-single-img
 
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 700-714
+
+Solving barycenter problems
+-------------------------------
+Solve Optimal transport barycenter problem with free support between several input distributions.
+~~~~~~~~~~~~~~~~~~~~
+
+The :func:`ot.solve_bary_sample` function can be used to solve the Optimal Transport barycenter problem
+between multiple sets of samples while optimizing the support of the barycenter and letting fixed their probability weights.
+The function takes as its first argument the list of samples in each input distribution,
+and as second argument the number of samples to learn in the barycenter. By default, the probability weights in each distribution and the barycentric weights are uniform but they can be customized by the user.
+
+The function returns an :class:`ot.utils.OTBaryResult` object that contains in part the barycenter samples and the OT plans between the barycenter and each input distribution.
+
+In the following, we illustrate the use of this function with the same 2D data as above considered as input distributions and compute their barycenter while using exact OT.
+Notice that most of the arguments of the :func:`ot.solve_bary_sample` function are similar to those of the :func:`ot.solve_sample` function and that the same regularization and unbalanced parameters can be used to solve regularized and unbalanced barycenter problems.
+
+.. GENERATED FROM PYTHON SOURCE LINES 715-730
+
+.. code-block:: Python
+
+
+    # Solve the OT barycenter problem (exact OT without any regularization)
+    sol = ot.solve_bary_sample([x1, x2], n=35)
+
+    # get the barycenter support
+    X = sol.X
+
+    # get the OT plans between the barycenter and each input distribution
+    list_P = [sol.list_res[i].plan for i in range(2)]
+
+    # get the barycenterOT loss
+    loss = sol.value
+
+    print(f"Barycenter OT loss = {loss:1.3f}")
+
+
+
+
+.. image-sg:: /auto_examples/images/sphx_glr_plot_quickstart_guide_021.png
+   :alt: Barycenter samples and OT plans   total loss= 1.356 = 0.5 * 1.338 + 0.5 * 1.374
+   :srcset: /auto_examples/images/sphx_glr_plot_quickstart_guide_021.png
+   :class: sphx-glr-single-img
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    /home/circleci/project/ot/solvers/_bary.py:162: RuntimeWarning: invalid value encountered in scalar divide
+      if abs(new_criterion - prev_criterion) / abs(prev_criterion) < tol_bary:
+    BCD converged in 4 iterations
+    Barycenter OT loss = 1.356
 
 
 
@@ -827,7 +1006,7 @@ between the samples.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 21.660 seconds)
+   **Total running time of the script:** (0 minutes 31.657 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_quickstart_guide.py:

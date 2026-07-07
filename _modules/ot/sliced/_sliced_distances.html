@@ -1,0 +1,427 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.sliced._sliced_distances &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f2328ca0"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.sliced._sliced_distances</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.sliced._sliced_distances</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Sliced Wasserstein distances solvers: sliced and max-sliced.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Adrien Corenflos &lt;adrien.corenflos@aalto.fi&gt;</span>
+<span class="c1">#         Nicolas Courty   &lt;ncourty@irisa.fr&gt;</span>
+<span class="c1">#         Rémi Flamary &lt;remi.flamary@polytechnique.edu&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">apply_scaler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_random_projections</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..lp</span><span class="w"> </span><span class="kn">import</span> <span class="n">wasserstein_1d</span>
+
+
+<div class="viewcode-block" id="sliced_wasserstein_distance">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced_wasserstein_distance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sliced_wasserstein_distance</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_projections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">projections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">scaler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes a Monte-Carlo approximation of the p-Sliced Wasserstein distance</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathcal{SWD}_p(\mu, \nu) = \underset{\theta \sim \mathcal{U}(\mathbb{S}^{d-1})}{\mathbb{E}}\left(\mathcal{W}_p^p(\theta_\# \mu, \theta_\# \nu)\right)^{\frac{1}{p}}</span>
+
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\theta_\# \mu` stands for the pushforwards of the projection :math:`X \in \mathbb{R}^d \mapsto \langle \theta, X \rangle`</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : ndarray, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : ndarray, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    a : ndarray, shape (n_samples_a,), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : ndarray, shape (n_samples_b,), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    n_projections : int, optional</span>
+<span class="sd">        Number of projections used for the Monte-Carlo approximation</span>
+<span class="sd">    p: float, optional</span>
+<span class="sd">        Power p used for computing the sliced Wasserstein</span>
+<span class="sd">    projections: shape (dim, n_projections), optional</span>
+<span class="sd">        Projection matrix (n_projections and seed are not used in this case)</span>
+<span class="sd">    seed: int or RandomState or None, optional</span>
+<span class="sd">        Seed used for random number generator</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        if True, sliced_wasserstein_distance returns the projections used and their associated EMD.</span>
+<span class="sd">    scaler: None, object with .transform(), or callable, optional</span>
+<span class="sd">        Preprocessing applied to X_s and X_t before computing the distance.</span>
+<span class="sd">        Useful for normalizing inputs when features have very different scales.</span>
+
+<span class="sd">        - ``None`` : no preprocessing (default)</span>
+<span class="sd">        - Object with ``.transform()`` method : e.g. an :class:`ot.utils.DataScaler`</span>
+<span class="sd">          fitted on a representative sample. This is the recommended way to get</span>
+<span class="sd">          stable, consistent normalization across multiple calls (e.g. when</span>
+<span class="sd">          using SWD as a loss in mini-batch training).</span>
+<span class="sd">        - Callable : any function, lambda, or PyTorch transform applied</span>
+<span class="sd">          directly as ``scaler(X_s)`` and ``scaler(X_t)``.</span>
+
+<span class="sd">        See :class:`ot.utils.DataScaler` for a backend-aware scaler that supports</span>
+<span class="sd">        joint fitting on multiple distributions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cost: float</span>
+<span class="sd">        Sliced Wasserstein Cost</span>
+<span class="sd">    log : dict, optional</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 20</span>
+<span class="sd">    &gt;&gt;&gt; X = np.random.normal(0., 1., (n_samples_a, 5))</span>
+<span class="sd">    &gt;&gt;&gt; sliced_wasserstein_distance(X, X, seed=0)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    0.0</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [31] Bonneel, Nicolas, et al. &quot;Sliced and radon wasserstein barycenters of measures.&quot; Journal of Mathematical Imaging and Vision 51.1 (2015): 22-45</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">apply_scaler</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">scaler</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;X_s and X_t must have the same number of dimensions </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">projections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_random_projections</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">X_s_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+    <span class="n">X_t_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="n">projected_emd</span> <span class="o">=</span> <span class="n">wasserstein_1d</span><span class="p">(</span><span class="n">X_s_projections</span><span class="p">,</span> <span class="n">X_t_projections</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">projected_emd</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_projections</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;projections&quot;</span><span class="p">:</span> <span class="n">projections</span><span class="p">,</span> <span class="s2">&quot;projected_emds&quot;</span><span class="p">:</span> <span class="n">projected_emd</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="max_sliced_wasserstein_distance">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.max_sliced_wasserstein_distance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">max_sliced_wasserstein_distance</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_projections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">projections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">scaler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes a Monte-Carlo approximation of the max p-Sliced Wasserstein distance</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathcal{Max-SWD}_p(\mu, \nu) = \underset{\theta \in</span>
+<span class="sd">        \mathcal{U}(\mathbb{S}^{d-1})}{\max} [\mathcal{W}_p^p(\theta_\#</span>
+<span class="sd">        \mu, \theta_\# \nu)]^{\frac{1}{p}}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`\theta_\# \mu` stands for the pushforwards of the projection :math:`\mathbb{R}^d \ni X \mapsto \langle \theta, X \rangle`</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : ndarray, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    X_t : ndarray, shape (n_samples_b, dim)</span>
+<span class="sd">        samples in the target domain</span>
+<span class="sd">    a : ndarray, shape (n_samples_a,), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : ndarray, shape (n_samples_b,), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    n_projections : int, optional</span>
+<span class="sd">        Number of projections used for the Monte-Carlo approximation</span>
+<span class="sd">    p: float, optional =</span>
+<span class="sd">        Power p used for computing the sliced Wasserstein</span>
+<span class="sd">    projections: shape (dim, n_projections), optional</span>
+<span class="sd">        Projection matrix (n_projections and seed are not used in this case)</span>
+<span class="sd">    seed: int or RandomState or None, optional</span>
+<span class="sd">        Seed used for random number generator</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        if True, sliced_wasserstein_distance returns the projections used and their associated EMD.</span>
+<span class="sd">    scaler : None, object with .transform(), or callable, optional</span>
+<span class="sd">        Preprocessing applied to X_s and X_t before computing the distance.</span>
+<span class="sd">        Useful for normalizing inputs when features have very different scales.</span>
+
+<span class="sd">        - ``None`` : no preprocessing (default)</span>
+<span class="sd">        - Object with ``.transform()`` method : e.g. an :class:`ot.utils.DataScaler`</span>
+<span class="sd">          fitted on a representative sample. This is the recommended way to get</span>
+<span class="sd">          stable, consistent normalization across multiple calls (e.g. when</span>
+<span class="sd">          using SWD as a loss in mini-batch training).</span>
+<span class="sd">        - Callable : any function, lambda, or PyTorch transform applied</span>
+<span class="sd">          directly as ``scaler(X_s)`` and ``scaler(X_t)``.</span>
+
+<span class="sd">        See :class:`ot.utils.DataScaler` for a backend-aware scaler that supports</span>
+<span class="sd">        joint fitting on multiple distributions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cost: float</span>
+<span class="sd">        Sliced Wasserstein Cost</span>
+<span class="sd">    log : dict, optional</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 20</span>
+<span class="sd">    &gt;&gt;&gt; X = np.random.normal(0., 1., (n_samples_a, 5))</span>
+<span class="sd">    &gt;&gt;&gt; sliced_wasserstein_distance(X, X, seed=0)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    0.0</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [35] Deshpande, I., Hu, Y. T., Sun, R., Pyrros, A., Siddiqui, N., Koyejo, S., ... &amp; Schwing, A. G. (2019). Max-sliced wasserstein distance and its use for gans. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 10648-10656).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">apply_scaler</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">scaler</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;X_s and X_t must have the same number of dimensions </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">projections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_random_projections</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span>
+        <span class="p">)</span>
+
+    <span class="n">X_s_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+    <span class="n">X_t_projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_t</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="n">projected_emd</span> <span class="o">=</span> <span class="n">wasserstein_1d</span><span class="p">(</span><span class="n">X_s_projections</span><span class="p">,</span> <span class="n">X_t_projections</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">projected_emd</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;projections&quot;</span><span class="p">:</span> <span class="n">projections</span><span class="p">,</span> <span class="s2">&quot;projected_emds&quot;</span><span class="p">:</span> <span class="n">projected_emd</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

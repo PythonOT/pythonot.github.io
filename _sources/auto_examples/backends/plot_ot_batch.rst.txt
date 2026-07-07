@@ -29,12 +29,13 @@ In that case using a for loop to solve the problems sequentially is inefficient.
 This example shows how to use the batch solvers implemented in POT to solve
 many problems in parallel on CPU or GPU (even more efficient on GPU).
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-21
+.. GENERATED FROM PYTHON SOURCE LINES 14-22
 
 .. code-block:: Python
 
 
     # Author: Paul Krzakala <paul.krzakala@gmail.com>
+    #         Thibaut Germain <thibaut.germain.pro@gmail.com>
     # License: MIT License
 
     # sphinx_gallery_thumbnail_number = 1
@@ -47,7 +48,7 @@ many problems in parallel on CPU or GPU (even more efficient on GPU).
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 22-37
+.. GENERATED FROM PYTHON SOURCE LINES 23-38
 
 Computing the Cost Matrices
 ---------------------------------------------
@@ -65,7 +66,7 @@ To do this, we first need to compute the cost matrices for each problem.
 Instead, you can directly use :func:`ot.batch.dist_batch`, which computes
 all cost matrices in parallel.
 
-.. GENERATED FROM PYTHON SOURCE LINES 38-64
+.. GENERATED FROM PYTHON SOURCE LINES 39-65
 
 .. code-block:: Python
 
@@ -102,7 +103,7 @@ all cost matrices in parallel.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 65-78
+.. GENERATED FROM PYTHON SOURCE LINES 66-84
 
 Solving the Problems
 ---------------------------------------------
@@ -116,39 +117,73 @@ optimal transport problems.
    This is simple but inefficient for large batches.
 
 Instead, you can use :func:`ot.batch.solve_batch`, which solves all
-problems in parallel.
+problems in parallel. Several methods are available: ["sinkhorn", "log_sinkhorn"]
+which solve regularized OT problems, and ["proximal"] which
+solves regularized and unregularized OT problem using a proximal point scheme.
+By default, the method is set to "auto" which automatically selects the appropriate
+method based on the value of `reg`. If `reg` is None or 0, the proximal point method
+is used. If `reg` is greater than 0, the Sinkhorn algorithm is used.
 
-.. GENERATED FROM PYTHON SOURCE LINES 79-98
+.. GENERATED FROM PYTHON SOURCE LINES 85-126
 
 .. code-block:: Python
 
 
-    reg = 1.0
-    max_iter = 100
-    tol = 1e-3
+    max_iter = 10000
+    tol = 1e-4
 
-    # Naive approach
+    # Classical OT problem
+    ## Naive approach
+    results_values_list = []
+    for i in range(n_problems):
+        res = ot.solve(M_list[i], max_iter=max_iter, tol=tol)
+        results_values_list.append(res.value_linear)
+
+    ## Batched approach
+    results_batch = ot.solve_batch(M=M_batch, max_iter=max_iter, tol=tol)
+    results_values_batch = results_batch.value_linear
+
+    exact_validated = np.allclose(
+        np.array(results_values_list), results_values_batch, atol=tol * 10
+    )
+
+    # Entropic regularized OT problem
+    ## Naive approach
+    reg = 1.0
     results_values_list = []
     for i in range(n_problems):
         res = ot.solve(M_list[i], reg=reg, max_iter=max_iter, tol=tol, reg_type="entropy")
         results_values_list.append(res.value_linear)
 
-    # Batched approach
+    ## Batched approach
     results_batch = ot.solve_batch(
         M=M_batch, reg=reg, max_iter=max_iter, tol=tol, reg_type="entropy"
     )
     results_values_batch = results_batch.value_linear
 
-    assert np.allclose(np.array(results_values_list), results_values_batch, atol=tol * 10)
+    entropic_validated = np.allclose(
+        np.array(results_values_list), results_values_batch, atol=tol * 10
+    )
+
+    print(
+        f"Exact solve vs proximal batch close: {exact_validated} \nSinkhorn solve vs Sinkhorn solve_batch close: {entropic_validated}"
+    )
 
 
 
 
 
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Exact solve vs proximal batch close: True 
+    Sinkhorn solve vs Sinkhorn solve_batch close: True
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 99-107
+
+.. GENERATED FROM PYTHON SOURCE LINES 127-135
 
 Comparing Computation Time
 ---------------------------------------------
@@ -159,7 +194,7 @@ We now compare the runtime of the two approaches on larger problems.
    The speedup obtained with :mod:`ot.batch` can be even more
    significant when computations are performed on a GPU.
 
-.. GENERATED FROM PYTHON SOURCE LINES 108-148
+.. GENERATED FROM PYTHON SOURCE LINES 136-176
 
 .. code-block:: Python
 
@@ -211,13 +246,13 @@ We now compare the runtime of the two approaches on larger problems.
 
  .. code-block:: none
 
-    Naive approach time: 0.2942 seconds
-    Batched approach time: 0.0094 seconds
+    Naive approach time: 0.4132 seconds
+    Batched approach time: 0.0111 seconds
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 149-177
+.. GENERATED FROM PYTHON SOURCE LINES 177-205
 
 Gromov-Wasserstein
 ---------------------------------------------
@@ -248,7 +283,7 @@ As a result:
    If your data is on a GPU, :func:`ot.batch.solve_gromov_batch`
    is significantly faster AND provides better objective values.
 
-.. GENERATED FROM PYTHON SOURCE LINES 178-214
+.. GENERATED FROM PYTHON SOURCE LINES 206-242
 
 .. code-block:: Python
 
@@ -297,18 +332,18 @@ As a result:
  .. code-block:: none
 
     Method              Time (s)       Avg Value      
-    Naive GW            0.0897         0.7070         
-    Batched GW          0.3746         0.2914         
+    Naive GW            0.0948         0.7070         
+    Batched GW          0.4727         0.2914         
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 215-217
+.. GENERATED FROM PYTHON SOURCE LINES 243-245
 
 In summary: no more for loops!
 ---------------------------------------------
 
-.. GENERATED FROM PYTHON SOURCE LINES 218-227
+.. GENERATED FROM PYTHON SOURCE LINES 246-255
 
 .. code-block:: Python
 
@@ -336,7 +371,7 @@ In summary: no more for loops!
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.818 seconds)
+   **Total running time of the script:** (0 minutes 1.715 seconds)
 
 
 .. _sphx_glr_download_auto_examples_backends_plot_ot_batch.py:

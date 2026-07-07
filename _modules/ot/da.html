@@ -5,10 +5,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.da &mdash; POT Python Optimal Transport 0.9.6 documentation</title>
+  <title>ot.da &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -16,9 +16,10 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=564a08b9"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=f2328ca0"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -130,6 +131,9 @@
     <span class="n">joint_OT_mapping_linear</span><span class="p">,</span>
     <span class="n">joint_OT_mapping_kernel</span><span class="p">,</span>
 <span class="p">)</span>
+
+<span class="c1"># value used in ys/yt to mark a sample whose label is unknown</span>
+<span class="n">MISSING_LABEL</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
 
 
 <div class="viewcode-block" id="sinkhorn_lpl1_mm">
@@ -697,23 +701,24 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">)</span>
 
-                <span class="c1"># missing_labels is a (ns, nt) matrix of {0, 1} such that</span>
-                <span class="c1"># the cells (i, j) has 0 iff either ys[i] or yt[j] is masked</span>
-                <span class="n">missing_ys</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">)</span>
-                <span class="n">missing_yt</span> <span class="o">=</span> <span class="p">(</span><span class="n">yt</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">yt</span><span class="p">)</span>
-                <span class="n">missing_labels</span> <span class="o">=</span> <span class="n">missing_ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">@</span> <span class="n">missing_yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
-                <span class="c1"># labels_match is a (ns, nt) matrix of {True, False} such that</span>
-                <span class="c1"># the cells (i, j) has False if ys[i] != yt[i]</span>
-                <span class="n">label_match</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">!=</span> <span class="mi">0</span>
+                <span class="c1"># present_labels is a (ns, nt) matrix of {0, 1} such that</span>
+                <span class="c1"># the cell (i, j) is 1 iff both ys[i] and yt[j] are labeled</span>
+                <span class="c1"># (i.e. neither is masked with MISSING_LABEL)</span>
+                <span class="n">present_ys</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span> <span class="o">!=</span> <span class="n">MISSING_LABEL</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">)</span>
+                <span class="n">present_yt</span> <span class="o">=</span> <span class="p">(</span><span class="n">yt</span> <span class="o">!=</span> <span class="n">MISSING_LABEL</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">yt</span><span class="p">)</span>
+                <span class="n">present_labels</span> <span class="o">=</span> <span class="n">present_ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">@</span> <span class="n">present_yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="c1"># label_mismatch is a (ns, nt) matrix of {True, False} such that</span>
+                <span class="c1"># the cell (i, j) is True if ys[i] != yt[j]</span>
+                <span class="n">label_mismatch</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">!=</span> <span class="mi">0</span>
                 <span class="c1"># cost correction is a (ns, nt) matrix of {-Inf, float, Inf} such</span>
                 <span class="c1"># that he cells (i, j) has -Inf where there&#39;s no correction necessary</span>
-                <span class="c1"># by &#39;correction&#39; we mean setting cost to a large value when</span>
-                <span class="c1"># labels do not match</span>
+                <span class="c1"># by &#39;correction&#39; we mean setting cost to a large value when two</span>
+                <span class="c1"># labeled samples have different labels</span>
                 <span class="c1"># we suppress potential RuntimeWarning caused by Inf multiplication</span>
                 <span class="c1"># (as we explicitly cover potential NANs later)</span>
                 <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
                     <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
-                    <span class="n">cost_correction</span> <span class="o">=</span> <span class="n">label_match</span> <span class="o">*</span> <span class="n">missing_labels</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span>
+                    <span class="n">cost_correction</span> <span class="o">=</span> <span class="n">label_mismatch</span> <span class="o">*</span> <span class="n">present_labels</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span>
                 <span class="c1"># this operation is necessary because 0 * Inf = NAN</span>
                 <span class="c1"># thus is irrelevant when limit_max is finite</span>
                 <span class="n">cost_correction</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">cost_correction</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
@@ -3003,7 +3008,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
@@ -3021,7 +3026,7 @@ aria-label="versions">
   <!--  add shift_up to the class for force viewing ,
   data-toggle="rst-current-version" -->
     <span class="rst-current-version"  style="margin-bottom:1mm;">
-      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
       <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
      <!--  versions
       <span class="fa fa-caret-down"></span>-->

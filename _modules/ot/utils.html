@@ -5,10 +5,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.utils &mdash; POT Python Optimal Transport 0.9.6 documentation</title>
+  <title>ot.utils &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -16,9 +16,10 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=564a08b9"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=f2328ca0"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -158,7 +159,18 @@
 <a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.list_to_array">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">list_to_array</span><span class="p">(</span><span class="o">*</span><span class="n">lst</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Convert a list if in numpy format&quot;&quot;&quot;</span>
-    <span class="n">lst_not_empty</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lst</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">list</span><span class="p">)]</span>
+    <span class="c1"># Filter to non-empty, non-list items (handle sparse matrices gracefully)</span>
+    <span class="n">lst_not_empty</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">lst_not_empty</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="c1"># Sparse matrices don&#39;t support len(), but they&#39;re not empty</span>
+            <span class="n">lst_not_empty</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># find backend</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst_not_empty</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">type_as</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -412,6 +424,99 @@
 
 
 
+<div class="viewcode-block" id="sparse_ot_dist">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.sparse_ot_dist">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sparse_ot_dist</span><span class="p">(</span>
+    <span class="n">x1</span><span class="p">,</span>
+    <span class="n">x2</span><span class="p">,</span>
+    <span class="n">i</span><span class="p">,</span>
+    <span class="n">j</span><span class="p">,</span>
+    <span class="n">w</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;sqeuclidean&quot;</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute ot distance between samples in :math:`\mathbf{x_1}` and :math:`\mathbf{x_2}`</span>
+<span class="sd">    with sparse weights given by `w` for the pairs of samples with indices `i` and `j`.</span>
+
+<span class="sd">    .. note:: This function is backend-compatible and will work on arrays</span>
+<span class="sd">        from all compatible backends for the following metrics:</span>
+<span class="sd">        &#39;sqeuclidean&#39;, &#39;euclidean&#39;, &#39;cityblock&#39;, &#39;minkowski&#39;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    x1 : array-like, shape (n1,d)</span>
+<span class="sd">        matrix with `n1` samples of size `d`</span>
+<span class="sd">    x2 : array-like, shape (n2,d), optional</span>
+<span class="sd">        matrix with `n2` samples of size `d` (if None then :math:`\mathbf{x_2} = \mathbf{x_1}`)</span>
+<span class="sd">    i : array-like, shape (k,)</span>
+<span class="sd">        indices of samples in `x1` to compute distance from</span>
+<span class="sd">    j : array-like, shape (k,)</span>
+<span class="sd">        indices of samples in `x2` to compute distance to</span>
+<span class="sd">    w : array-like, shape (k,), optional</span>
+<span class="sd">        weights for each pair of samples to compute distance between.</span>
+<span class="sd">        If None, all pairs are weighted equally (=1/k).</span>
+<span class="sd">    metric : str | callable, optional</span>
+<span class="sd">        &#39;sqeuclidean&#39;, &#39;euclidean&#39;, &#39;cityblock&#39; or &#39;minkowski&#39;.</span>
+<span class="sd">    p : float, optional</span>
+<span class="sd">        p-norm for the Minkowski metric. Default value is 2.</span>
+<span class="sd">    batch_size : int, optional</span>
+<span class="sd">        If specified, compute the distance in batches of size `batch_size` to avoid memory issues for large datasets. Default is None (no batching).</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dist : float</span>
+<span class="sd">        sum of the distance between :math:`\mathbf{x_1}_i` and :math:`\mathbf{x_2}_j` computed with given metric and weighted by `w`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">x1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;x1 must be a 2d array, got </span><span class="si">{</span><span class="n">x1</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">d array instead&quot;</span>
+    <span class="k">assert</span> <span class="n">x2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;x2 must be a 2d array, got </span><span class="si">{</span><span class="n">x2</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">d array instead&quot;</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+        <span class="n">j</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;i and j must have the same length, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="n">i</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;w must have the same length as i and j, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">assert</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;minkowski&quot;</span><span class="p">,</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">,</span> <span class="s2">&quot;cityblock&quot;</span><span class="p">,</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s2">&quot;sparse_dist work only with metrics from the following list: &quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;`[&#39;sqeuclidean&#39;, &#39;minkowski&#39;, &#39;cityblock&#39;, &#39;euclidean&#39;]`&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">x1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">x2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;x1 (</span><span class="si">{</span><span class="n">x1</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) and x2 (</span><span class="si">{</span><span class="n">x2</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) must have the same number of columns&quot;</span>
+
+    <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;cityblock&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist_idxs</span><span class="p">(</span><span class="n">idx_x1</span><span class="p">,</span> <span class="n">idx_x2</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;sqeuclidean&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x1</span><span class="p">[</span><span class="n">idx_x1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x2</span><span class="p">[</span><span class="n">idx_x2</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="n">idx_x1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x2</span><span class="p">[</span><span class="n">idx_x2</span><span class="p">])</span> <span class="o">**</span> <span class="n">p</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">+=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">dist_idxs</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="n">b</span> <span class="p">:</span> <span class="n">b</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">j</span><span class="p">[</span><span class="n">b</span> <span class="p">:</span> <span class="n">b</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">])</span>
+            <span class="o">*</span> <span class="n">w</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="n">b</span> <span class="p">:</span> <span class="n">b</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]]</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+
 <div class="viewcode-block" id="dist">
 <a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.dist">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">dist</span><span class="p">(</span>
@@ -536,7 +641,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">metric</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;minkowski&quot;</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">cdist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Only pass w parameter for metrics that support it</span>
+            <span class="c1"># According to SciPy docs, only &#39;minkowski&#39; and &#39;wminkowski&#39; support w</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;minkowski&quot;</span><span class="p">,</span> <span class="s2">&quot;wminkowski&quot;</span><span class="p">]:</span>
                 <span class="k">return</span> <span class="n">cdist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">cdist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span></div>
 
@@ -1354,8 +1461,12 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Transport plan, encoded as a dense array.&quot;&quot;&quot;</span>
         <span class="c1"># N.B.: We may catch out-of-memory errors and suggest</span>
         <span class="c1"># the use of lazy_plan or sparse_plan when appropriate.</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plan</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plan</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plan</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sparse_plan</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backend</span><span class="o">.</span><span class="n">todense</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sparse_plan</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sparse_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1461,6 +1572,187 @@
     <span class="c1"># def samples(self):</span>
     <span class="c1">#     &quot;&quot;&quot;Sample locations for the Wasserstein barycenter.&quot;&quot;&quot;</span>
     <span class="c1">#     raise NotImplementedError()</span>
+
+    <span class="c1"># Miscellaneous --------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">citation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Appropriate citation(s) for this result, in plain text and BibTex formats.&quot;&quot;&quot;</span>
+
+        <span class="c1"># The string below refers to the POT library:</span>
+        <span class="c1"># successor methods may concatenate the relevant references</span>
+        <span class="c1"># to the original definitions, solvers and underlying numerical backends.</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;POT library:</span>
+
+<span class="s2">            POT Python Optimal Transport library, Journal of Machine Learning Research, 22(78):1−8, 2021.</span>
+<span class="s2">            Website: https://pythonot.github.io/</span>
+<span class="s2">            Rémi Flamary, Nicolas Courty, Alexandre Gramfort, Mokhtar Z. Alaya, Aurélie Boisbunon, Stanislas Chambon, Laetitia Chapel, Adrien Corenflos, Kilian Fatras, Nemo Fournier, Léo Gautheron, Nathalie T.H. Gayraud, Hicham Janati, Alain Rakotomamonjy, Ievgen Redko, Antoine Rolet, Antony Schutz, Vivien Seguy, Danica J. Sutherland, Romain Tavenard, Alexander Tong, Titouan Vayer;</span>
+
+<span class="s2">            @article{flamary2021pot,</span>
+<span class="s2">              author  = {R{</span><span class="se">\&#39;</span><span class="s2">e}mi Flamary and Nicolas Courty and Alexandre Gramfort and Mokhtar Z. Alaya and Aur{</span><span class="se">\&#39;</span><span class="s2">e}lie Boisbunon and Stanislas Chambon and Laetitia Chapel and Adrien Corenflos and Kilian Fatras and Nemo Fournier and L{</span><span class="se">\&#39;</span><span class="s2">e}o Gautheron and Nathalie T.H. Gayraud and Hicham Janati and Alain Rakotomamonjy and Ievgen Redko and Antoine Rolet and Antony Schutz and Vivien Seguy and Danica J. Sutherland and Romain Tavenard and Alexander Tong and Titouan Vayer},</span>
+<span class="s2">              title   = {{POT}: </span><span class="si">{Python}</span><span class="s2"> </span><span class="si">{Optimal}</span><span class="s2"> </span><span class="si">{Transport}</span><span class="s2">},</span>
+<span class="s2">              journal = {Journal of Machine Learning Research},</span>
+<span class="s2">              year    = </span><span class="si">{2021}</span><span class="s2">,</span>
+<span class="s2">              volume  = </span><span class="si">{22}</span><span class="s2">,</span>
+<span class="s2">              number  = </span><span class="si">{78}</span><span class="s2">,</span>
+<span class="s2">              pages   = {1-8},</span>
+<span class="s2">              url     = {http://jmlr.org/papers/v22/20-451.html}</span>
+<span class="s2">            }</span>
+<span class="s2">        &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="BaryResult">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.BaryResult">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaryResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for OT barycenter results.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (`n`, `d`)</span>
+<span class="sd">        Barycenter features.</span>
+<span class="sd">    C: array-like, shape (`n`, `n`)</span>
+<span class="sd">        Barycenter structure for Gromov Wasserstein solutions.</span>
+<span class="sd">    b : array-like, shape (`n`,)</span>
+<span class="sd">        Barycenter weights.</span>
+<span class="sd">    value : float, array-like</span>
+<span class="sd">        Full transport cost, including possible regularization terms and</span>
+<span class="sd">        quadratic term for Gromov Wasserstein solutions.</span>
+<span class="sd">    value_linear : float, array-like</span>
+<span class="sd">        The linear part of the transport cost, i.e. the product between the</span>
+<span class="sd">        transport plan and the cost.</span>
+<span class="sd">    value_quad : float, array-like</span>
+<span class="sd">        The quadratic part of the transport cost for Gromov-Wasserstein</span>
+<span class="sd">        solutions.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Dictionary containing potential information about the solver.</span>
+<span class="sd">    list_res: list of OTResult</span>
+<span class="sd">        List of results for the individual OT matching with input distributions considered as</span>
+<span class="sd">        sources and the learned barycenter distribution as target.</span>
+<span class="sd">    status : int or str</span>
+<span class="sd">        Status of the solver.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    X : array-like, shape (`n`, `d`)</span>
+<span class="sd">        Barycenter features.</span>
+<span class="sd">    C: array-like, shape (`n`, `n`)</span>
+<span class="sd">        Barycenter structure for Gromov Wasserstein solutions.</span>
+<span class="sd">    b : array-like, shape (`n`,)</span>
+<span class="sd">        Barycenter weights.</span>
+<span class="sd">    value : float, array-like</span>
+<span class="sd">        Full transport cost, including possible regularization terms and</span>
+<span class="sd">        quadratic term for Gromov Wasserstein solutions.</span>
+<span class="sd">    value_linear : float, array-like</span>
+<span class="sd">        The linear part of the transport cost, i.e. the product between the</span>
+<span class="sd">        transport plan and the cost.</span>
+<span class="sd">    value_quad : float, array-like</span>
+<span class="sd">        The quadratic part of the transport cost for Gromov-Wasserstein</span>
+<span class="sd">        solutions.</span>
+<span class="sd">    log : dict</span>
+<span class="sd">        Dictionary containing potential information about the solver.</span>
+<span class="sd">    list_res: list of OTResult</span>
+<span class="sd">        List of results for the individual OT matching.</span>
+<span class="sd">    status : int or str</span>
+<span class="sd">        Status of the solver.</span>
+<span class="sd">    backend : Backend</span>
+<span class="sd">        Backend used to compute the results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">value_linear</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">value_quad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">list_res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">status</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_X</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_C</span> <span class="o">=</span> <span class="n">C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_linear</span> <span class="o">=</span> <span class="n">value_linear</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_quad</span> <span class="o">=</span> <span class="n">value_quad</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span> <span class="o">=</span> <span class="n">log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_list_res</span> <span class="o">=</span> <span class="n">list_res</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_backend</span> <span class="o">=</span> <span class="n">backend</span> <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;BaryResult(&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;value=</span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_linear</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;value_linear=</span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_linear</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;X=</span><span class="si">{}</span><span class="s2">(shape=</span><span class="si">{}</span><span class="s2">),&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_C</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;C=</span><span class="si">{}</span><span class="s2">(shape=</span><span class="si">{}</span><span class="s2">),&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_C</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_C</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;b=</span><span class="si">{}</span><span class="s2">(shape=</span><span class="si">{}</span><span class="s2">),&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_b</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_b</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;(&quot;</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+        <span class="k">return</span> <span class="n">s</span>
+
+    <span class="c1"># Barycerters --------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">X</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Barycenter features.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">C</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Barycenter structure for Gromov Wasserstein solutions.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_C</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">b</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Barycenter weights.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_b</span>
+
+    <span class="c1"># Loss values --------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Full transport cost, including possible regularization terms and</span>
+<span class="sd">        quadratic term for Gromov Wasserstein solutions.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">value_linear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The &quot;minimal&quot; transport cost, i.e. the product between the transport plan and the cost.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_linear</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">value_quad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The quadratic part of the transport cost for Gromov-Wasserstein solutions.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_quad</span>
+
+    <span class="c1"># List of OTResult objects -------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_res</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List of results for the individual OT matching.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_list_res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optimization status of the solver.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dictionary containing potential information about the solver.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log</span>
 
     <span class="c1"># Miscellaneous --------------------------------</span>
 
@@ -1668,6 +1960,265 @@
 
 
 
+<div class="viewcode-block" id="DataScaler">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataScaler</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Backend-aware data scaler with sklearn-compatible API.</span>
+
+<span class="sd">    Fit normalization statistics on a single array or on the concatenation</span>
+<span class="sd">    of multiple arrays (joint fitting), then apply the same fixed transform</span>
+<span class="sd">    to any array. Supports NumPy, PyTorch, JAX, and TensorFlow backends via</span>
+<span class="sd">    POT&#39;s backend abstraction.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    norm : str, optional</span>
+<span class="sd">        Normalization method. One of:</span>
+
+<span class="sd">        - ``&#39;standard&#39;`` (default) : zero mean, unit variance per feature</span>
+<span class="sd">        - ``&#39;minmax&#39;`` : scale each feature to [0, 1]</span>
+<span class="sd">        - ``&#39;l2&#39;`` : unit L2-norm per sample (row-wise, stateless)</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    norm : str</span>
+<span class="sd">        The normalization method.</span>
+<span class="sd">    mean_ : array-like</span>
+<span class="sd">        Per-feature means (only for ``norm=&#39;standard&#39;``).</span>
+<span class="sd">    std_ : array-like</span>
+<span class="sd">        Per-feature standard deviations (only for ``norm=&#39;standard&#39;``).</span>
+<span class="sd">    min_ : array-like</span>
+<span class="sd">        Per-feature minimums (only for ``norm=&#39;minmax&#39;``).</span>
+<span class="sd">    max_ : array-like</span>
+<span class="sd">        Per-feature maximums (only for ``norm=&#39;minmax&#39;``).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.utils import DataScaler</span>
+<span class="sd">    &gt;&gt;&gt; X_s = np.array([[1.0, 100.0], [2.0, 200.0]])</span>
+<span class="sd">    &gt;&gt;&gt; X_t = np.array([[3.0, 300.0], [4.0, 400.0]])</span>
+<span class="sd">    &gt;&gt;&gt; scaler = DataScaler(norm=&#39;standard&#39;).fit([X_s, X_t])</span>
+<span class="sd">    &gt;&gt;&gt; X_s_scaled = scaler.transform(X_s)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_VALID_NORMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;minmax&quot;</span><span class="p">,</span> <span class="s2">&quot;l2&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;standard&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">norm</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VALID_NORMS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid norm &#39;</span><span class="si">{}</span><span class="s2">&#39;. Expected one of: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">norm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VALID_NORMS</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="DataScaler.fit">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute normalization statistics from one array or a list of arrays.</span>
+
+<span class="sd">        When given a list, arrays are concatenated along axis 0 before</span>
+<span class="sd">        computing statistics (joint fitting).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+<span class="sd">            Data to fit on. If a list, arrays must have the same number of</span>
+<span class="sd">            features (columns).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : DataScaler</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot fit on empty list.&quot;</span><span class="p">)</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="o">*</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_concat</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_concat</span> <span class="o">=</span> <span class="n">X</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span> <span class="o">=</span> <span class="n">nx</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">zero_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">zero_var</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Zero variance detected in one or more feature(s). &quot;</span>
+                    <span class="s2">&quot;Those columns will not be scaled.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">std_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">zero_var</span><span class="p">,</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">std_</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">std_</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">X_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">zero_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">zero_range</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Zero range detected in one or more feature(s). &quot;</span>
+                    <span class="s2">&quot;Those columns will not be scaled.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">zero_range</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">min_</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the fitted transform to one array or a list of arrays.</span>
+
+<span class="sd">        Internal helper shared by :meth:`transform` and :meth:`fit_transform`.</span>
+<span class="sd">        Validates that the input&#39;s backend matches the one used at fit time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array-like or list of array-like</span>
+<span class="sd">            Transformed data; a list is returned when ``X`` is a list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_apply_transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">X</span><span class="p">]</span>
+
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Backend mismatch: DataScaler was fitted with backend &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span>
+                <span class="s2">&quot;but received input with backend &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nx</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;minmax&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+            <span class="n">norms</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">zero_norm</span> <span class="o">=</span> <span class="n">norms</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">zero_norm</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Zero-norm row(s) detected. These will be left unchanged.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">norms</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">zero_norm</span><span class="p">,</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">norms</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">norms</span><span class="p">),</span>
+                    <span class="n">norms</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">X</span> <span class="o">/</span> <span class="n">norms</span>
+
+<div class="viewcode-block" id="DataScaler.transform">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the fitted transformation to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+<span class="sd">            Data to transform. If a list, each element is transformed and</span>
+<span class="sd">            returned as a list.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_scaled : array-like or list of array-like</span>
+<span class="sd">            Transformed data, same shape and backend as X. If X was a list,</span>
+<span class="sd">            returns a list of transformed arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">!=</span> <span class="s2">&quot;l2&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fitted</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;DataScaler must be fitted before calling transform() &quot;</span>
+                <span class="s2">&quot;for norm=&#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataScaler.fit_transform">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.DataScaler.fit_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fit then transform.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like or list of array-like</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_scaled : array-like or list of array-like</span>
+<span class="sd">            If X was a list, returns a list of transformed arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="apply_scaler">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.apply_scaler">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_scaler</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">scaler</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply a scaler to two arrays.</span>
+
+<span class="sd">    Dispatches based on the type of ``scaler``:</span>
+
+<span class="sd">    - ``None`` : returns inputs unchanged.</span>
+<span class="sd">    - Object with a ``.transform()`` method : calls ``scaler.transform()`` on each.</span>
+<span class="sd">    - Callable : calls ``scaler()`` on each (covers functions, lambdas,</span>
+<span class="sd">      PyTorch transforms, neural network encoders, etc.).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s : array-like</span>
+<span class="sd">        Source samples.</span>
+<span class="sd">    X_t : array-like</span>
+<span class="sd">        Target samples.</span>
+<span class="sd">    scaler : None, object with .transform(), or callable, optional</span>
+<span class="sd">        Preprocessing to apply.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    X_s_out : array-like</span>
+<span class="sd">        Possibly transformed source samples.</span>
+<span class="sd">    X_t_out : array-like</span>
+<span class="sd">        Possibly transformed target samples.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">scaler</span><span class="p">,</span> <span class="s2">&quot;transform&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_s</span><span class="p">),</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">scaler</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scaler</span><span class="p">(</span><span class="n">X_s</span><span class="p">),</span> <span class="n">scaler</span><span class="p">(</span><span class="n">X_t</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">&quot;scaler must be None, an object with a .transform() method, &quot;</span>
+        <span class="s2">&quot;or a callable. Got type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">scaler</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="fun_to_numpy">
 <a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.fun_to_numpy">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fun_to_numpy</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -1709,6 +2260,110 @@
 
         <span class="k">return</span> <span class="n">fun_numpy</span></div>
 
+
+
+<div class="viewcode-block" id="split_sample_ratio">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.split_sample_ratio">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_sample_ratio</span><span class="p">(</span>
+    <span class="n">X_a</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">random_split</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split distribution according to a ratio of weights (using point ordering).</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_a : array-like, shape (n_samples_a, dim)</span>
+<span class="sd">        samples in the source domain</span>
+<span class="sd">    a : array-like, shape (dim_a,), optional</span>
+<span class="sd">        Samples weights in the source domain (default is uniform)</span>
+<span class="sd">    nx : backend, optional</span>
+<span class="sd">        Backend for array operations, by default None (auto-detect)</span>
+<span class="sd">    ratio : float, optional</span>
+<span class="sd">        Ratio of the split, by default 0.5</span>
+<span class="sd">    random_split : bool, optional</span>
+<span class="sd">        Whether to split randomly, by default False</span>
+<span class="sd">    random_state : int, optional</span>
+<span class="sd">        Random state for reproducibility, by default None</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    X_a1 : array-like, shape (n_samples_a1, dim)</span>
+<span class="sd">        First half of the samples in the source domain</span>
+<span class="sd">    X_a2 : array-like, shape (n_samples_a2, dim)</span>
+<span class="sd">        Second half of the samples in the source domain</span>
+<span class="sd">    a1 : array-like, shape (dim_a1,)</span>
+<span class="sd">        First half of the weights in the source domain</span>
+<span class="sd">    a2 : array-like, shape (dim_a2,)</span>
+<span class="sd">        Second half of the weights in the source domain</span>
+<span class="sd">    sel_a1 : slice, ndarray-like</span>
+<span class="sd">        Slice or indexes for the first half of the samples in the source domain</span>
+<span class="sd">    sel_a2 : slice, ndarray-like</span>
+<span class="sd">        Slice or indexes for the second half of the samples in the source domain</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">ratio</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ratio</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ratio should be in [0, 1]&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_a</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+    <span class="n">n_a</span> <span class="o">=</span> <span class="n">X_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_a</span>
+
+    <span class="k">if</span> <span class="n">random_split</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">n_a</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_a</span><span class="p">)</span>
+        <span class="n">X_a</span> <span class="o">=</span> <span class="n">X_a</span><span class="p">[</span><span class="n">perm</span><span class="p">]</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">perm</span><span class="p">]</span>
+
+    <span class="c1"># find the split indices</span>
+    <span class="n">acs</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">thr_a</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">idx_a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">acs</span><span class="p">,</span> <span class="n">thr_a</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+
+    <span class="c1"># split the samples and weights</span>
+    <span class="n">X_a1</span><span class="p">,</span> <span class="n">X_a2</span> <span class="o">=</span> <span class="n">X_a</span><span class="p">[:</span> <span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">X_a</span><span class="p">[</span><span class="n">idx_a</span><span class="p">:]</span>
+
+    <span class="c1"># compute weights for each half and adjust the last/first weight to sum to 0.5</span>
+    <span class="n">a01</span><span class="p">,</span> <span class="n">a02</span> <span class="o">=</span> <span class="n">a</span><span class="p">[:</span><span class="n">idx_a</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+    <span class="n">v_idx</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">idx_a</span><span class="p">]</span>
+    <span class="n">a1_1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">v_idx</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">((</span><span class="n">thr_a</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a01</span><span class="p">))</span> <span class="o">/</span> <span class="n">v_idx</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">a2_0</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">v_idx</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">((</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="n">thr_a</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a02</span><span class="p">))</span> <span class="o">/</span> <span class="n">v_idx</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># concat mass or remove samples if mass is 0</span>
+    <span class="k">if</span> <span class="n">a1_1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">a01</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">a1_1</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,))])</span>
+        <span class="k">if</span> <span class="n">random_split</span><span class="p">:</span>
+            <span class="n">sel_a1</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[:</span> <span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sel_a1</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">X_a1</span> <span class="o">=</span> <span class="n">X_a</span><span class="p">[:</span><span class="n">idx_a</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">random_split</span><span class="p">:</span>
+            <span class="n">sel_a1</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[:</span><span class="n">idx_a</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sel_a1</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_a</span><span class="p">)</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">a01</span>
+
+    <span class="k">if</span> <span class="n">a2_0</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">a2_0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)),</span> <span class="n">a02</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">random_split</span><span class="p">:</span>
+            <span class="n">sel_a2</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[</span><span class="n">idx_a</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sel_a2</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">idx_a</span><span class="p">,</span> <span class="n">n_a</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">X_a2</span> <span class="o">=</span> <span class="n">X_a</span><span class="p">[</span><span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+        <span class="k">if</span> <span class="n">random_split</span><span class="p">:</span>
+            <span class="n">sel_a2</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[</span><span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sel_a2</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">idx_a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_a</span><span class="p">)</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">a02</span>
+
+    <span class="k">return</span> <span class="n">X_a1</span><span class="p">,</span> <span class="n">X_a2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">sel_a1</span><span class="p">,</span> <span class="n">sel_a2</span></div>
+
 </pre></div>
 
            </div>
@@ -1718,7 +2373,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
@@ -1736,7 +2391,7 @@ aria-label="versions">
   <!--  add shift_up to the class for force viewing ,
   data-toggle="rst-current-version" -->
     <span class="rst-current-version"  style="margin-bottom:1mm;">
-      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
       <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
      <!--  versions
       <span class="fa fa-caret-down"></span>-->

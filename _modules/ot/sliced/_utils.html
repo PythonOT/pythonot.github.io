@@ -1,0 +1,341 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.sliced._utils &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f2328ca0"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.sliced._utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.sliced._utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Useful functions for solvers for the (balanced) sliced transport problem.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Adrien Corenflos &lt;adrien.corenflos@aalto.fi&gt;</span>
+<span class="c1">#         Nicolas Courty   &lt;ncourty@irisa.fr&gt;</span>
+<span class="c1">#         Rémi Flamary &lt;remi.flamary@polytechnique.edu&gt;</span>
+<span class="c1">#         Eloi Tanguy &lt;eloi.tanguy@math.cnrs.fr&gt;</span>
+<span class="c1">#         Laetitia Chapel &lt;laetitia.chapel@irisa.fr&gt;</span>
+<span class="c1">#         Clément Bonet &lt;clement.bonet.mapp@polytechnique.edu&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span><span class="p">,</span> <span class="n">NumpyBackend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_coordinate_circle</span>
+
+
+<div class="viewcode-block" id="get_random_projections">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced.get_random_projections">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_random_projections</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates n_projections samples from the uniform on the unit sphere of dimension :math:`d-1`: :math:`\mathcal{U}(\mathcal{S}^{d-1})`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    d : int</span>
+<span class="sd">        dimension of the space</span>
+<span class="sd">    n_projections : int</span>
+<span class="sd">        number of samples requested</span>
+<span class="sd">    seed: int or RandomState, optional</span>
+<span class="sd">        Seed used for numpy random number generator</span>
+<span class="sd">    backend:</span>
+<span class="sd">        Backend to use for random generation</span>
+<span class="sd">    type_as: type, optional</span>
+<span class="sd">        Type of the returned array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out: ndarray, shape (d, n_projections)</span>
+<span class="sd">        The uniform unit vectors on the sphere</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; n_projections = 100</span>
+<span class="sd">    &gt;&gt;&gt; d = 5</span>
+<span class="sd">    &gt;&gt;&gt; projs = get_random_projections(d, n_projections)</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(np.sum(np.square(projs), 0), 1.)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    True</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">backend</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">seed</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">projections</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">projections</span></div>
+
+
+
+<div class="viewcode-block" id="get_projections_sphere">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced.get_projections_sphere">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_projections_sphere</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates n_projections samples from the uniform distribution on the Stiefel manifold of dimension :math:`d\times 2`: :math:`\mathbb{V}_{d,2}=\{X \in \mathbb{R}^{d\times 2}, X^TX=I_2\}`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    d : int</span>
+<span class="sd">        dimension of the space</span>
+<span class="sd">    n_projections : int</span>
+<span class="sd">        number of samples requested</span>
+<span class="sd">    seed: int or RandomState, optional</span>
+<span class="sd">        Seed used for numpy random number generator</span>
+<span class="sd">    backend:</span>
+<span class="sd">        Backend to use for random generation</span>
+<span class="sd">    type_as: optional</span>
+<span class="sd">        Type to use for random generation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out: ndarray, shape (n_projections, d, 2)</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; n_projections = 100</span>
+<span class="sd">    &gt;&gt;&gt; d = 5</span>
+<span class="sd">    &gt;&gt;&gt; projs = get_projections_sphere(d, n_projections)</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(np.einsum(&quot;nij, nik -&gt; njk&quot;, projs, projs), np.eye(2))  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">backend</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">seed</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n_projections</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n_projections</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="n">projections</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">projections</span></div>
+
+
+
+<div class="viewcode-block" id="projection_sphere_to_circle">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced.projection_sphere_to_circle">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">projection_sphere_to_circle</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">n_projections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">projections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Projection of :math:`x\in S^{d-1}` on circles using coordinates on [0,1[.</span>
+
+<span class="sd">    To get the projection on the circle, we use the following formula:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        P^U(x) = \frac{U^Tx}{\|U^Tx\|_2}</span>
+
+<span class="sd">    where :math:`U` is a random matrix sampled from the uniform distribution on the Stiefel manifold of dimension :math:`d\times 2`: :math:`\mathbb{V}_{d,2}=\{X \in \mathbb{R}^{d\times 2}, X^TX=I_2\}`</span>
+<span class="sd">    and :math:`x` is a point on the sphere. Then, we apply the function get_coordinate_circle to get the coordinates on :math:`[0,1[`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : ndarray, shape (n_samples, dim)</span>
+<span class="sd">        samples on the sphere</span>
+<span class="sd">    n_projections : int, optional</span>
+<span class="sd">        Number of projections used for the Monte-Carlo approximation</span>
+<span class="sd">    projections: shape (n_projections, dim, 2), optional</span>
+<span class="sd">        Projection matrix (n_projections and seed are not used in this case)</span>
+<span class="sd">    seed: int or RandomState or None, optional</span>
+<span class="sd">        Seed used for random number generator</span>
+<span class="sd">    backend:</span>
+<span class="sd">        Backend to use for random generation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Xp_coords: ndarray, shape (n_projections, n_samples)</span>
+<span class="sd">        Coordinates of the projections on the circle</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">backend</span>
+
+    <span class="n">n</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="k">if</span> <span class="n">projections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_projections_sphere</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">x</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Projection on S^1</span>
+    <span class="c1"># Projection on plane</span>
+    <span class="n">Xp</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ikj, lk -&gt; ilj&quot;</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="c1"># Projection on sphere</span>
+    <span class="n">Xp</span> <span class="o">=</span> <span class="n">Xp</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Xp</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="c1"># Get coordinates on [0,1[</span>
+    <span class="n">Xp_coords</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">get_coordinate_circle</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Xp</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))),</span> <span class="p">(</span><span class="n">n_projections</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Xp_coords</span><span class="p">,</span> <span class="n">projections</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -5,10 +5,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ot.lp._barycenter_solvers &mdash; POT Python Optimal Transport 0.9.6 documentation</title>
+  <title>ot.lp._barycenter_solvers &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
       <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
@@ -16,9 +16,10 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=564a08b9"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=f2328ca0"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -301,9 +302,9 @@
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
-<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
-<span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
-<span class="sd">        &quot;max&quot; selects the highest number possible.</span>
+<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1)</span>
+<span class="sd">        Deprecated compatibility parameter forwarded to EMD. The network</span>
+<span class="sd">        simplex solver no longer uses OpenMP, so this parameter is ignored.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -440,9 +441,9 @@
 <span class="sd">        Print information along iterations</span>
 <span class="sd">    log : bool, optional</span>
 <span class="sd">        record log if True</span>
-<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1, i.e. OpenMP is not used)</span>
-<span class="sd">        If compiled with OpenMP, chooses the number of threads to parallelize.</span>
-<span class="sd">        &quot;max&quot; selects the highest number possible.</span>
+<span class="sd">    numThreads: int or &quot;max&quot;, optional (default=1)</span>
+<span class="sd">        Deprecated compatibility parameter forwarded to EMD. The network</span>
+<span class="sd">        simplex solver no longer uses OpenMP, so this parameter is ignored.</span>
 <span class="sd">    eps: Stability coefficient for the change of variable matrix inversion</span>
 <span class="sd">        If the :math:`\mathbf{P}_i^T` matrices don&#39;t span :math:`\mathbb{R}^d`, the problem is ill-defined and a matrix</span>
 <span class="sd">        inversion will fail. In this case one may set eps=1e-8 and get a solution anyway (which may make little sense)</span>
@@ -521,16 +522,20 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">ot_barycenter_energy</span><span class="p">(</span><span class="n">measure_locations</span><span class="p">,</span> <span class="n">measure_weights</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">cost_list</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the energy of the OT barycenter functional for a given barycenter</span>
-<span class="sd">    support `X` and weights `a`: .. math::</span>
+<span class="sd">    support `X` and weights `a`:</span>
+
+<span class="sd">    .. math::</span>
 <span class="sd">        V(X, a) = \sum_{k=1}^K w_k \mathcal{T}_{c_k}(X, a, Y_k, b_k),</span>
 
-<span class="sd">    where: - :math:`X` (n, d) is the barycenter support, - :math:`a` (n) is the</span>
-<span class="sd">    barycenter weights, - :math:`Y_k` (m_k, d_k) is the k-th measure support</span>
-<span class="sd">      (`measure_locations[k]`),</span>
+<span class="sd">    where:</span>
+
+<span class="sd">    - :math:`X` (n, d) is the barycenter support,</span>
+<span class="sd">    - :math:`a` (n) is the barycenter weights,</span>
+<span class="sd">    - :math:`Y_k` (m_k, d_k) is the k-th measure support (`measure_locations[k]`),</span>
 <span class="sd">    - :math:`b_k` (m_k) is the k-th measure weights (`measure_weights[k]`),</span>
 <span class="sd">    - :math:`c_k: \mathbb{R}^{n\times d}\times\mathbb{R}^{m_k\times d_k}</span>
-<span class="sd">         \rightarrow \mathbb{R}_+^{n\times m_k}` is the k-th cost function</span>
-<span class="sd">         (which computes the pairwise cost matrix)</span>
+<span class="sd">      \rightarrow \mathbb{R}_+^{n\times m_k}` is the k-th cost function</span>
+<span class="sd">      (which computes the pairwise cost matrix)</span>
 <span class="sd">    - :math:`\mathcal{T}_{c_k}(X, a, Y_k, b)` is the OT cost between the</span>
 <span class="sd">      barycenter measure and the k-th measure with respect to the cost</span>
 <span class="sd">      :math:`c_k`.</span>
@@ -683,7 +688,7 @@
 <span class="sd">        of shape :math:`(n\times d_K)`, computing the ground barycenters</span>
 <span class="sd">        (broadcasted over n). If not provided, done with Adam on PyTorch</span>
 <span class="sd">        (requires PyTorch backend), inefficiently using the cost functions in</span>
-<span class="sd">        `cost_list`.</span>
+<span class="sd">        `cost_list`. This function must be provided if `method=&quot;true_fixed_point&quot;` is used.</span>
 <span class="sd">    a : array-like, optional</span>
 <span class="sd">        Array of shape (n,) representing weights of the barycenter</span>
 <span class="sd">        measure.Defaults to uniform.</span>
@@ -766,8 +771,11 @@
 
     <span class="k">if</span> <span class="n">ground_bary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">auto_ground_bary</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;L2_barycentric_proj&quot;</span>
+        <span class="p">),</span> <span class="s2">&quot;ground_bary must be provided if method is &#39;true_fixed_point&#39;&quot;</span>
         <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;torch&quot;</span><span class="p">,</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Backend </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not compatible with ground_bary=None, it&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Backend </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not compatible with ground_bary=None, it &quot;</span>
             <span class="s2">&quot;must be provided if not using PyTorch backend&quot;</span>
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1092,7 +1100,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2016-2025, POT Contributors.</p>
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
@@ -1110,7 +1118,7 @@ aria-label="versions">
   <!--  add shift_up to the class for force viewing ,
   data-toggle="rst-current-version" -->
     <span class="rst-current-version"  style="margin-bottom:1mm;">
-      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.6
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
       <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
      <!--  versions
       <span class="fa fa-caret-down"></span>-->

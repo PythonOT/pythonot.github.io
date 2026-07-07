@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ot.bsp.bsp_ot &mdash; POT Python Optimal Transport 0.9.7 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f2328ca0"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            POT Python Optimal Transport
+              <img src="../../../_static/logo_dark.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">POT: Python Optimal Transport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/plot_quickstart_guide.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../all.html">API and modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributors.html">Contributors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to POT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">POT Python Optimal Transport</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ot.bsp.bsp_ot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ot.bsp.bsp_ot</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.bsp_wrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">bsp_solve_c</span><span class="p">,</span> <span class="n">merge_bijections_c</span>
+
+
+<div class="viewcode-block" id="compute_bspot_bijection">
+<a class="viewcode-back" href="../../../gen_modules/ot.bsp.html#ot.compute_bspot_bijection">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_bspot_bijection</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">n_plans</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initial_perm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gaussian_slicing</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    This solver provides a good and fast approximation of the combinatorial problem of finding</span>
+<span class="sd">    a bijection between two point clouds that minimizes the transport cost:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \min_{\sigma \in S_n}  \sum_{i=1}^n \|X_i - Y_{\sigma(i)}\|_p^p</span>
+
+<span class="sd">    To do so, it generates :math:`n_{plans}` random bijective BSP matchings, merges them together to obtain a bijection of low transport cost.</span>
+<span class="sd">    Log-linear complexity in the number of points. Algorithm 2 &amp; 3 from [84].</span>
+
+<span class="sd">    .. note:: There is no guarantee on the quality of the returned bijection, but the method is highly scalable on the CPU.</span>
+<span class="sd">        Worst cases are obtained between point clouds that are very similar (e.g. two samples from the same distribution),</span>
+<span class="sd">        where the solver can get stuck in local minima, but works well when the point clouds are very different.</span>
+<span class="sd">        The method also works best for the standard squared euclidean cost (p=2), as this cost enables</span>
+<span class="sd">        efficient BSP construction heuristic (with a cubic dependence on the dimension, this feature is disabled</span>
+<span class="sd">        for dimensions larger than 64).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (n_samples, dimension)</span>
+<span class="sd">    Y : array-like, shape (n_samples, dimension)</span>
+<span class="sd">    n_plans : int</span>
+<span class="sd">        The number of BSP Matchings used to compute the final bijection.</span>
+<span class="sd">    p : int, optional</span>
+<span class="sd">        The power of the ground metric (default 2 for squared euclidean, -1 for infinity norm).</span>
+<span class="sd">    initial_perm : array-like, shape (n_samples,), optional</span>
+<span class="sd">        Bijection to use for initializing merging (optional).</span>
+<span class="sd">    gaussian_slicing : &quot;auto&quot; or bool, optional</span>
+<span class="sd">        If true then uses the Gaussian slicing heuristic to improve matching quality.</span>
+<span class="sd">        Comes with a cubic complexity with dimension.</span>
+<span class="sd">        If &#39;auto&#39;, then the heuristic is used for dimensions smaller than 64, and disabled for larger dimensions.</span>
+<span class="sd">    seed : int, optional</span>
+<span class="sd">        Random seed for reproducibility (default 0).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cost : float</span>
+<span class="sd">        The transport cost of the final bijection.</span>
+<span class="sd">    perm : array-like, shape (n_samples,)</span>
+<span class="sd">        The final bijection, stored as a permutation (e.g. a list of numbers) such that X[i] is assigned to Y[perm[i]].</span>
+<span class="sd">    perms : array-like, shape (n_plans,n_samples)</span>
+<span class="sd">        The intermediary bijections used to compute the final one.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="n">X_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">Y_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">X_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">Y_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Y_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">Y_np</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X and Y must have the same shape&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">X_np</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X and Y must be 2D arrays&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">initial_perm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">initial_perm</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">initial_perm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">initial_perm</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;initial_perm must have shape (n,) where n is the number of points&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gaussian_slicing</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+        <span class="n">gaussian_slicing</span> <span class="o">=</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">64</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">gaussian_slicing</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Gaussian slicing heuristic disabled for dimension </span><span class="si">{}</span><span class="s2">. Set gaussian_slicing to True to enable it.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="n">cost_inner</span><span class="p">,</span> <span class="n">perm</span><span class="p">,</span> <span class="n">perms</span> <span class="o">=</span> <span class="n">bsp_solve_c</span><span class="p">(</span>
+        <span class="n">X_np</span><span class="p">,</span> <span class="n">Y_np</span><span class="p">,</span> <span class="n">n_plans</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">initial_perm</span><span class="p">,</span> <span class="n">gaussian_slicing</span><span class="p">,</span> <span class="n">seed</span>
+    <span class="p">)</span>
+
+    <span class="n">perm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># infinity norm per pair of points, then mean over all pairs</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">perm</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">perm</span><span class="p">])</span> <span class="o">**</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">cost</span> <span class="o">/</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># add warning if cost_inner and cost differ significantly</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">),</span> <span class="n">cost_inner</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Cost computed from perm differs from cost returned by solver. Cost from perm: </span><span class="si">{}</span><span class="s2">, Cost from solver: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">cost</span><span class="p">,</span> <span class="n">cost_inner</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">perm</span><span class="p">,</span> <span class="n">perms</span></div>
+
+
+
+<div class="viewcode-block" id="merge_bijections">
+<a class="viewcode-back" href="../../../gen_modules/ot.bsp.html#ot.merge_bijections">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_bijections</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">perms</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Merge several bijections between two point clouds to obtain a new one with low transport cost.</span>
+<span class="sd">    The new bijection is guaranteed to have a transport cost no greater than the cost of any of the input bijections.</span>
+<span class="sd">    Based on simple local/global swapping strategy, with a linear complexity in the number of points.</span>
+<span class="sd">    Algorithm 3 from [84].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (n_samples, dimension)</span>
+<span class="sd">    Y : array-like, shape (n_samples, dimension)</span>
+<span class="sd">    perms : array-like, shape (n_plans,n_samples)</span>
+<span class="sd">        The bijections to merge, stored as permutations (e.g. a list of numbers)</span>
+<span class="sd">    p : int, optional</span>
+<span class="sd">        The power of the ground metric (default 2 for squared euclidean).</span>
+<span class="sd">        If p is -1, the infinity norm is used.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cost : float</span>
+<span class="sd">        The transport cost of the merged bijection.</span>
+<span class="sd">    perm : array-like, shape (n_samples,)</span>
+<span class="sd">        The merged bijection, stored as a permutation (e.g. a list of numbers) such that X[i] is assigned to Y[perm[i]].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="n">X_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">Y_np</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">X_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">Y_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Y_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">Y_np</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X and Y must have the same shape&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">X_np</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X and Y must be 2D arrays&quot;</span><span class="p">)</span>
+
+    <span class="n">perms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">perms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">cost_inner</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="n">merge_bijections_c</span><span class="p">(</span><span class="n">X_np</span><span class="p">,</span> <span class="n">Y_np</span><span class="p">,</span> <span class="n">perms</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">perm</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># infinity norm per pair of points, then mean over all pairs</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">perm</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="n">perm</span><span class="p">])</span> <span class="o">**</span> <span class="n">p</span><span class="p">)</span>
+
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">cost</span> <span class="o">/</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># add warning if cost_inner and cost differ significantly</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">cost</span><span class="p">),</span> <span class="n">cost_inner</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Cost computed from perm differs from cost returned by solver. Cost from perm: </span><span class="si">{}</span><span class="s2">, Cost from solver: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">cost</span><span class="p">,</span> <span class="n">cost_inner</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">perm</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2016-2026, POT Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note"
+aria-label="versions">
+  <!--  add shift_up to the class for force viewing ,
+  data-toggle="rst-current-version" -->
+    <span class="rst-current-version"  style="margin-bottom:1mm;">
+      <span class="fa fa-book"> Python Optimal Transport</span> 0.9.7
+      <hr  style="margin-bottom:1.5mm;margin-top:5mm;">
+     <!--  versions
+      <span class="fa fa-caret-down"></span>-->
+      <span class="rst-current-version" style="display: inline-block;padding:
+      0px;color:#fcfcfcab;float:left;font-size: 100%;">
+        Versions: 
+        <a href="https://pythonot.github.io/" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Release</a>
+        <a href="https://pythonot.github.io/master" 
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Development</a>
+        <a href="https://github.com/PythonOT/POT"
+        style="padding: 3px;color:#fcfcfc;font-size: 100%;">Code</a>
+
+      </span>
+
+     
+    </span>
+  
+     <!--
+    <div class="rst-other-versions">
+
+      
+
+<div class="injected">
+
+    
+  <dl>
+    <dt>Versions</dt>
+
+    <dd><a href="https://pythonot.github.io/">Release</a></dd>
+    
+    <dd><a href="https://pythonot.github.io/master">Development</a></dd>
+   
+    
+
+    <dt><a href="https://github.com/PythonOT/POT">Code on Github</a></dt>       
+
+    
+  </dl>
+  <hr>
+
+</div> 
+</div>-->
+  </div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
