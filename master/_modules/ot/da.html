@@ -132,6 +132,9 @@
     <span class="n">joint_OT_mapping_kernel</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="c1"># value used in ys/yt to mark a sample whose label is unknown</span>
+<span class="n">MISSING_LABEL</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
 
 <div class="viewcode-block" id="sinkhorn_lpl1_mm">
 <a class="viewcode-back" href="../../gen_modules/ot.da.html#ot.sinkhorn_lpl1_mm">[docs]</a>
@@ -698,23 +701,24 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_</span><span class="p">)</span>
 
-                <span class="c1"># missing_labels is a (ns, nt) matrix of {0, 1} such that</span>
-                <span class="c1"># the cells (i, j) has 0 iff either ys[i] or yt[j] is masked</span>
-                <span class="n">missing_ys</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">)</span>
-                <span class="n">missing_yt</span> <span class="o">=</span> <span class="p">(</span><span class="n">yt</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">yt</span><span class="p">)</span>
-                <span class="n">missing_labels</span> <span class="o">=</span> <span class="n">missing_ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">@</span> <span class="n">missing_yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
-                <span class="c1"># labels_match is a (ns, nt) matrix of {True, False} such that</span>
-                <span class="c1"># the cells (i, j) has False if ys[i] != yt[i]</span>
-                <span class="n">label_match</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">!=</span> <span class="mi">0</span>
+                <span class="c1"># present_labels is a (ns, nt) matrix of {0, 1} such that</span>
+                <span class="c1"># the cell (i, j) is 1 iff both ys[i] and yt[j] are labeled</span>
+                <span class="c1"># (i.e. neither is masked with MISSING_LABEL)</span>
+                <span class="n">present_ys</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span> <span class="o">!=</span> <span class="n">MISSING_LABEL</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">ys</span><span class="p">)</span>
+                <span class="n">present_yt</span> <span class="o">=</span> <span class="p">(</span><span class="n">yt</span> <span class="o">!=</span> <span class="n">MISSING_LABEL</span><span class="p">)</span> <span class="o">+</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">yt</span><span class="p">)</span>
+                <span class="n">present_labels</span> <span class="o">=</span> <span class="n">present_ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">@</span> <span class="n">present_yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="c1"># label_mismatch is a (ns, nt) matrix of {True, False} such that</span>
+                <span class="c1"># the cell (i, j) is True if ys[i] != yt[j]</span>
+                <span class="n">label_mismatch</span> <span class="o">=</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">yt</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">!=</span> <span class="mi">0</span>
                 <span class="c1"># cost correction is a (ns, nt) matrix of {-Inf, float, Inf} such</span>
                 <span class="c1"># that he cells (i, j) has -Inf where there&#39;s no correction necessary</span>
-                <span class="c1"># by &#39;correction&#39; we mean setting cost to a large value when</span>
-                <span class="c1"># labels do not match</span>
+                <span class="c1"># by &#39;correction&#39; we mean setting cost to a large value when two</span>
+                <span class="c1"># labeled samples have different labels</span>
                 <span class="c1"># we suppress potential RuntimeWarning caused by Inf multiplication</span>
                 <span class="c1"># (as we explicitly cover potential NANs later)</span>
                 <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
                     <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
-                    <span class="n">cost_correction</span> <span class="o">=</span> <span class="n">label_match</span> <span class="o">*</span> <span class="n">missing_labels</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span>
+                    <span class="n">cost_correction</span> <span class="o">=</span> <span class="n">label_mismatch</span> <span class="o">*</span> <span class="n">present_labels</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit_max</span>
                 <span class="c1"># this operation is necessary because 0 * Inf = NAN</span>
                 <span class="c1"># thus is irrelevant when limit_max is finite</span>
                 <span class="n">cost_correction</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">cost_correction</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
