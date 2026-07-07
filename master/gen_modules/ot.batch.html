@@ -65,6 +65,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#ot.batch.loss_linear_samples_batch"><code class="docutils literal notranslate"><span class="pre">loss_linear_samples_batch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.batch.loss_quadratic_batch"><code class="docutils literal notranslate"><span class="pre">loss_quadratic_batch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.batch.loss_quadratic_samples_batch"><code class="docutils literal notranslate"><span class="pre">loss_quadratic_samples_batch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ot.batch.proximal_bregman_log_plan_batch"><code class="docutils literal notranslate"><span class="pre">proximal_bregman_log_plan_batch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.batch.solve_batch"><code class="docutils literal notranslate"><span class="pre">solve_batch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.batch.solve_gromov_batch"><code class="docutils literal notranslate"><span class="pre">solve_gromov_batch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.batch.solve_sample_batch"><code class="docutils literal notranslate"><span class="pre">solve_sample_batch()</span></code></a></li>
@@ -485,27 +486,122 @@ the loss.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ot.batch.proximal_bregman_log_plan_batch">
+<span class="sig-prename descclassname"><span class="pre">ot.batch.</span></span><span class="sig-name descname"><span class="pre">proximal_bregman_log_plan_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'detach'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/batch/_utils.html#proximal_bregman_log_plan_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.batch.proximal_bregman_log_plan_batch" title="Link to this definition"></a></dt>
+<dd><p>Returns optimal transport plans for a batch of cost matrices <span class="math notranslate nohighlight">\(\mathbf{C}\)</span> using a Bregman divergence based proximal point method <a class="reference internal" href="#references-ot-bregman-proximal-point"><span class="std std-ref">[92]</span></a>.</p>
+<p>This function solves the following optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \mathbf{T} = \mathop{\arg \min}_\mathbf{T} \quad &amp; \langle \mathbf{T}, \mathbf{C} \rangle_F + \textit{reg} \cdot \sum_{i,j} \mathbf{T}_{i,j} \log \mathbf{T}_{i,j} \\
+    \text{s.t.} \quad &amp; \mathbf{T} \mathbf{1} = \mathbf{a} \\
+    &amp; \mathbf{T}^T \mathbf{1} = \mathbf{b} \\
+    &amp; \mathbf{T} \geq 0
+\end{aligned}\end{split}\]</div>
+<p>The optimal transport plans are computed iteratively with a proximal point method based on a Bregman divergence where each iteration involves solving a Bregman projection problem:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{T}^{(k+1)} = \mathop{\arg \min}_\mathbf{T} \quad  \langle \mathbf{C} - \textit{inner\_reg} \cdot \log \mathbf{T}^{(k)}, \mathbf{T} \rangle + (\textit{reg} + \textit{inner\_reg}) \cdot \sum_{i,j} \mathbf{T}_{i,j} \log \mathbf{T}_{i,j}\]</div>
+<p>Denoting <span class="math notranslate nohighlight">\(\mathbf{K}^{(k)} =  - (\mathbf{C} + \textit{inner\_reg} \cdot \log \mathbf{T}^{(k)})/(\textit{reg} + \textit{inner\_reg})\)</span>, the affinity matrix at iteration <span class="math notranslate nohighlight">\(k\)</span>, the Bregman projection problem is solved in the log-domain with a finite number of inner iterations <span class="math notranslate nohighlight">\(\text{inner\_iter}\)</span>, i.e., the dual variables <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> are updated as follows:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{u}^{(i+1)} = \log(\mathbf{a}) - \text{LSE}(\mathbf{K}^{(k)} + \mathbf{v}^{(i)})\\\mathbf{v}^{(i+1)} = \log(\mathbf{b}) - \text{LSE}((\mathbf{K}^{(k)})^T + \mathbf{u}^{(i)})\end{aligned}\end{align} \]</div>
+<p>where LSE denotes the log-sum-exp operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>C</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>n</em><em>, </em><em>m</em><em>)</em>) – Cost matrix for each problem in the batch.</p></li>
+<li><p><strong>a</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>n</em><em>)</em><em>, </em><em>optional</em>) – Source distribution for each problem. If None, uniform distribution is used.</p></li>
+<li><p><strong>b</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>m</em><em>)</em><em>, </em><em>optional</em>) – Target distribution for each problem. If None, uniform distribution is used.</p></li>
+<li><p><strong>nx</strong> (<em>backend object</em><em>, </em><em>optional</em>) – Numerical backend to use for computations. If None, the default backend is used.</p></li>
+<li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of iterations.</p></li>
+<li><p><strong>inner_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Number of inner iterations for updating the dual variables u and v. Default is 1.</p></li>
+<li><p><strong>inner_reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Regularization parameter for the Bregman divergence. Default is 1e-3.</p></li>
+<li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Tolerance for convergence. The solver stops when the maximum change in
+the dual variables is below this value.</p></li>
+<li><p><strong>grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Gradient computation mode: ‘detach’, ‘autodiff’, or ‘last_step’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Dictionary containing:
+- ‘T’ : array-like, shape (B, n, m)</p>
+<blockquote>
+<div><p>Optimal transport plan for each problem.</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>’log_T’<span class="classifier">array-like, shape (B, n, m)</span></dt><dd><p>Logarithm of the optimal transport plan for each problem.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’potentials’<span class="classifier">tuple of array-like, shapes ((B, n), (B, m))</span></dt><dd><p>Log-scaling factors (u, v).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’n_iters’<span class="classifier">int</span></dt><dd><p>Number of iterations performed.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ot.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">proximal_bregman_log_plan_batch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create batch of affinity matrices</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>  <span class="c1"># 5 problems, 10x15 cost matrices</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">proximal_bregman_log_plan_batch</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span>  <span class="c1"># Shape (5, 10, 15)</span>
+</pre></div>
+</div>
+<section id="reference">
+<span id="references-ot-bregman-proximal-point"></span><h2>Reference<a class="headerlink" href="#reference" title="Link to this heading"></a></h2>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id1" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>92<span class="fn-bracket">]</span></span>
+<p>Xie, Y., Wang, X., Wang, R., &amp; Zha, H. (2020, August).</p>
+</aside>
+</aside>
+<p>A fast proximal point method for computing exact wasserstein distance.
+In Uncertainty in artificial intelligence (pp. 433-453). PMLR.</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ot.batch.solve_batch">
-<span class="sig-prename descclassname"><span class="pre">ot.batch.</span></span><span class="sig-name descname"><span class="pre">solve_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'log_sinkhorn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'entropy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'envelope'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/batch/_linear.html#solve_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.batch.solve_batch" title="Link to this definition"></a></dt>
-<dd><p>Batched version of ot.solve, use it to solve many entropic OT problems in parallel.</p>
+<span class="sig-prename descclassname"><span class="pre">ot.batch.</span></span><span class="sig-name descname"><span class="pre">solve_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'entropy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'envelope'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/batch/_linear.html#solve_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.batch.solve_batch" title="Link to this definition"></a></dt>
+<dd><p>Return solutions of a batch of discrete optimal transport problems in a <a class="reference internal" href="ot.utils.html#id56" title="ot.utils.OTResult"><code class="xref any py py-class docutils literal notranslate"><span class="pre">OTResult</span></code></a> object.</p>
+<p>The function solves in parallel a batch of optimal transport problems:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+    \mathbf{T} = \mathop{\arg \min}_\mathbf{T} \quad &amp; \langle \mathbf{T}, \mathbf{M} \rangle_F + \textit{reg} \cdot R(\mathbf{T}) \\
+    \text{s.t.} \quad &amp; \mathbf{T} \mathbf{1} = \mathbf{a} \\
+    &amp; \mathbf{T}^T \mathbf{1} = \mathbf{b} \\
+    &amp; \mathbf{T} \geq 0
+\end{aligned}\end{split}\]</div>
+<p>The problem is solved with either a proximal point method <a class="reference internal" href="#references-batch-solver"><span class="std std-ref">[92]</span></a> or a Sinkhorn algorithm <a class="reference internal" href="#references-batch-solver"><span class="std std-ref">[2]</span></a>. Unlike the Sinkhorn algorithm, which assumes a regularization term, the proximal point method can solve both regularized and unregularized optimal transport problems. When <cite>method</cite> is set to ‘auto’, the function automatically selects the appropriate method based on the value of <cite>reg</cite>. if <cite>reg</cite> is None or 0, the proximal point method is used. If <cite>reg</cite> is greater than 0, the Sinkhorn algorithm is used.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>M</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>ns</em><em>, </em><em>nt</em><em>)</em>) – Cost matrix</p></li>
-<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Regularization parameter for entropic regularization</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Regularization parameter. Default is None.</p></li>
 <li><p><strong>a</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>ns</em><em>)</em>) – Source distribution (optional). If None, uniform distribution is used.</p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>nt</em><em>)</em>) – Target distribution (optional). If None, uniform distribution is used.</p></li>
 <li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Maximum number of iterations</p></li>
 <li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tolerance for convergence</p></li>
-<li><p><strong>solver</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Solver to use, either ‘log_sinkhorn’ or ‘sinkhorn’. Default is “log_sinkhorn” which is more stable.</p></li>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Method to use, either ‘auto’, ‘proximal’, ‘log_sinkhorn’ or ‘sinkhorn’. Default is ‘auto’.</p></li>
+<li><p><strong>inner_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of inner Bregman iterations for the proximal method. Default is 1.</p></li>
+<li><p><strong>inner_reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Regularization parameter for the inner Bregman iterations in the proximal method. Default is 1e-3.</p></li>
 <li><p><strong>reg_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of regularization <span class="math notranslate nohighlight">\(R\)</span>  either “KL”, or “entropy”. Default is “entropy”.</p></li>
-<li><p><strong>grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of gradient computation, either or ‘autodiff’, ‘envelope’ or ‘last_step’ used only for
-Sinkhorn solver. By default ‘autodiff’ provides gradients wrt all
-outputs (<cite>plan, value, value_linear</cite>) but with important memory cost.
-‘envelope’ provides gradients only for <cite>value</cite> and and other outputs are
-detached. This is useful for memory saving when only the value is needed. ‘last_step’ provides
-gradients only for the last iteration of the Sinkhorn solver, but provides gradient for both the OT plan and the objective values.
-‘detach’ does not compute the gradients for the Sinkhorn solver.</p></li>
+<li><p><strong>grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of gradient computation, either ‘detach’, ‘autodiff’, ‘last_step’ or ‘envelope’.
+‘detach’ does not compute the gradients.
+‘autodiff’ provides gradients of all outputs (<cite>plan, value, value_linear</cite>) but with important memory cost.
+‘last_step’ provides gradients of all outputs (<cite>plan, value, value_linear</cite>) only for the last method iteration, useful for memory saving.
+‘envelope’ provides gradients only for <cite>value</cite>.
+Default is ‘envelope’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -529,22 +625,37 @@ gradients only for the last iteration of the Sinkhorn solver, but provides gradi
 <span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># 5 batches of 10 samples in 3D</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># 5 batches of 15 samples in 3D</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">dist_batch</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;euclidean&quot;</span><span class="p">)</span>  <span class="c1"># Compute cost matrices</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p_result</span> <span class="o">=</span> <span class="n">solve_batch</span><span class="p">(</span><span class="n">M</span><span class="p">)</span> <span class="c1"># Uses proximal method</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">reg</span> <span class="o">=</span> <span class="mf">0.1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">solve_batch</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># Optimal transport plans for each batch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s_result</span> <span class="o">=</span> <span class="n">solve_batch</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;log_sinkhorn&quot;</span><span class="p">)</span> <span class="c1"># Uses Sinkhorn method</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s_result</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># Optimal transport plans for each batch</span>
 <span class="go">(5, 10, 15)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># Optimal transport values for each batch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s_result</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># Optimal transport values for each batch</span>
 <span class="go">(5,)</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><a class="reference internal" href="#ot.batch.dist_batch" title="ot.batch.dist_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.batch.dist_batch</span></code></a></dt><dd><p>batched cost matrix computation for computing M.</p>
-</dd>
-<dt><a class="reference internal" href="../all.html#ot.solve" title="ot.solve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.solve</span></code></a></dt><dd><p>non-batched version of the OT solver.</p>
-</dd>
-</dl>
+<p>ot.batch.dist_batch : batched cost matrix computation for computing M.
+ot.solve : non-batched version of the solve_batch function.</p>
+<span class="target" id="references-batch-solver"></span><aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>92<span class="fn-bracket">]</span></span>
+<p>Xie, Y., Wang, X., Wang, R., &amp; Zha, H. (2020, August).</p>
+</aside>
+</aside>
+<p>A fast proximal point method for computing exact wasserstein distance.
+In Uncertainty in artificial intelligence (pp. 433-453). PMLR.</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id3" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
+<ol class="upperalpha simple" start="13">
+<li><p>Cuturi, Sinkhorn Distances : Lightspeed Computation</p></li>
+</ol>
+</aside>
+</aside>
+<p>of Optimal Transport, Advances in Neural Information Processing
+Systems (NIPS) 26, 2013</p>
 </div>
 </dd></dl>
 
@@ -641,13 +752,13 @@ Default is True.</p></li>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id1" role="doc-footnote">
+<aside class="footnote brackets" id="id4" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>12<span class="fn-bracket">]</span></span>
 <p>Gabriel Peyré, Marco Cuturi, and Justin Solomon,
 “Gromov-Wasserstein averaging of kernel and distance matrices.”
 International Conference on Machine Learning (ICML). 2016.</p>
 </aside>
-<aside class="footnote brackets" id="id2" role="doc-footnote">
+<aside class="footnote brackets" id="id5" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>81<span class="fn-bracket">]</span></span>
 <p>Xu, H., Luo, D., &amp; Carin, L. (2019). “Scalable Gromov-Wasserstein learning for graph partitioning and matching.”
 Advances in neural information processing systems (NeurIPS). 2019.</p>
@@ -657,28 +768,31 @@ Advances in neural information processing systems (NeurIPS). 2019.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="ot.batch.solve_sample_batch">
-<span class="sig-prename descclassname"><span class="pre">ot.batch.</span></span><span class="sig-name descname"><span class="pre">solve_sample_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sqeuclidean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'log_sinkhorn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'entropy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'envelope'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/batch/_linear.html#solve_sample_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.batch.solve_sample_batch" title="Link to this definition"></a></dt>
-<dd><p>Batched version of ot.solve, use it to solve many entropic OT problems in parallel.</p>
+<span class="sig-prename descclassname"><span class="pre">ot.batch.</span></span><span class="sig-name descname"><span class="pre">solve_sample_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sqeuclidean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'entropy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'envelope'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/batch/_linear.html#solve_sample_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.batch.solve_sample_batch" title="Link to this definition"></a></dt>
+<dd><p>Return solutions of a batch of discrete optimal transport problems in a <a class="reference internal" href="ot.utils.html#id56" title="ot.utils.OTResult"><code class="xref any py py-class docutils literal notranslate"><span class="pre">OTResult</span></code></a> object computed from batches of source and target samples.</p>
+<p>The problem is solved with either a proximal point method <a class="reference internal" href="#references-batch-solver"><span class="std std-ref">[91]</span></a> or a Sinkhorn algorithm <a class="reference internal" href="#references-batch-solver"><span class="std std-ref">[2]</span></a>. Unlike the Sinkhorn algorithm, which assumes a regularization term, the proximal point method can solve both regularized and unregularized optimal transport problems. When <cite>method</cite> is set to ‘auto’, the function automatically selects the appropriate method based on the value of <cite>reg</cite>. if <cite>reg</cite> is None or 0, the proximal point method is used. If <cite>reg</cite> is greater than 0, the Sinkhorn algorithm is used.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>M</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>ns</em><em>, </em><em>nt</em><em>)</em>) – Cost matrix</p></li>
-<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Regularization parameter for entropic regularization</p></li>
+<li><p><strong>X_a</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>ns</em><em>, </em><em>d</em><em>)</em>) – Samples from source distribution</p></li>
+<li><p><strong>X_b</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>nt</em><em>, </em><em>d</em><em>)</em>) – Samples from target distribution</p></li>
 <li><p><strong>metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – ‘sqeuclidean’, ‘euclidean’, ‘minkowski’ or ‘kl’</p></li>
 <li><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – p-norm for the Minkowski metrics. Default value is 2.</p></li>
+<li><p><strong>reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Regularization parameter. Default is None.</p></li>
 <li><p><strong>a</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>ns</em><em>)</em>) – Source distribution (optional). If None, uniform distribution is used.</p></li>
 <li><p><strong>b</strong> (<em>array-like</em><em>, </em><em>shape</em><em> (</em><em>B</em><em>, </em><em>nt</em><em>)</em>) – Target distribution (optional). If None, uniform distribution is used.</p></li>
 <li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Maximum number of iterations</p></li>
 <li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tolerance for convergence</p></li>
-<li><p><strong>solver</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Solver to use, either ‘log_sinkhorn’ or ‘sinkhorn’. Default is “log_sinkhorn” which is more stable.</p></li>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Method to use, either ‘auto’, ‘proximal’, ‘log_sinkhorn’ or ‘sinkhorn’. Default is ‘auto’.</p></li>
+<li><p><strong>inner_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of inner Bregman iterations for the proximal method. Default is 1.</p></li>
+<li><p><strong>inner_reg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Regularization parameter for the inner Bregman iterations in the proximal method. Default is 1e-3.</p></li>
 <li><p><strong>reg_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of regularization <span class="math notranslate nohighlight">\(R\)</span>  either “KL”, or “entropy”. Default is “entropy”.</p></li>
-<li><p><strong>grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of gradient computation, either or ‘autodiff’, ‘envelope’ or ‘last_step’ used only for
-Sinkhorn solver. By default ‘autodiff’ provides gradients wrt all
-outputs (<cite>plan, value, value_linear</cite>) but with important memory cost.
-‘envelope’ provides gradients only for <cite>value</cite> and and other outputs are
-detached. This is useful for memory saving when only the value is needed. ‘last_step’ provides
-gradients only for the last iteration of the Sinkhorn solver, but provides gradient for both the OT plan and the objective values.
-‘detach’ does not compute the gradients for the Sinkhorn solver.</p></li>
+<li><p><strong>grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of gradient computation, either ‘detach’, ‘autodiff’, ‘last_step’ or ‘envelope’.
+‘detach’ does not compute the gradients.
+‘autodiff’ provides gradients of all outputs (<cite>plan, value, value_linear</cite>) but with important memory cost.
+‘last_step’ provides gradients of all outputs (<cite>plan, value, value_linear</cite>) only for the last method iteration, useful for memory saving.
+‘envelope’ provides gradients only for <cite>value</cite>.
+Default is ‘envelope’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -699,7 +813,7 @@ gradients only for the last iteration of the Sinkhorn solver, but provides gradi
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="#ot.batch.solve_batch" title="ot.batch.solve_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.batch.solve_batch</span></code></a></dt><dd><p>solver for computing the optimal T from arbitrary cost matrix M.</p>
+<dt><a class="reference internal" href="#ot.batch.solve_batch" title="ot.batch.solve_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ot.batch.solve_batch</span></code></a></dt><dd><p>function for computing the optimal T from arbitrary cost matrix M.</p>
 </dd>
 </dl>
 </div>
@@ -774,7 +888,7 @@ and the loss becomes:</p>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id3" role="doc-footnote">
+<aside class="footnote brackets" id="id6" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>12<span class="fn-bracket">]</span></span>
 <p>Gabriel Peyré, Marco Cuturi, and Justin Solomon,
 “Gromov-Wasserstein averaging of kernel and distance matrices.”

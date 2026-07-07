@@ -82,7 +82,18 @@
            <div itemprop="articleBody">
              
   <h1>Source code for ot.batch._utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ot.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utility functions for batch operations in optimal transport.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Remi Flamary &lt;remi.flamary@unice.fr&gt;</span>
+<span class="c1">#         Paul Krzakala &lt;paul.krzakala@gmail.com&gt;</span>
+<span class="c1">#         Thibaut Germain &lt;thibaut.germain.pro@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: MIT License</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ot.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
 
 
 <div class="viewcode-block" id="entropy_batch">
@@ -376,6 +387,152 @@
         <span class="n">v</span> <span class="o">=</span> <span class="n">logb</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">summand_v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">log_T</span> <span class="o">=</span> <span class="n">K</span> <span class="o">+</span> <span class="n">u</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_T</span><span class="p">)</span>
+    <span class="n">log_potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;log_T&quot;</span><span class="p">:</span> <span class="n">log_T</span><span class="p">,</span> <span class="s2">&quot;n_iters&quot;</span><span class="p">:</span> <span class="n">n_iters</span><span class="p">,</span> <span class="s2">&quot;potentials&quot;</span><span class="p">:</span> <span class="n">log_potentials</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="proximal_bregman_log_plan_batch">
+<a class="viewcode-back" href="../../../gen_modules/ot.batch.html#ot.batch.proximal_bregman_log_plan_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">proximal_bregman_log_plan_batch</span><span class="p">(</span>
+    <span class="n">C</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">inner_reg</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">inner_iter</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">grad</span><span class="o">=</span><span class="s2">&quot;detach&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns optimal transport plans for a batch of cost matrices :math:`\mathbf{C}` using a Bregman divergence based proximal point method :ref:`[92] &lt;references-OT-bregman-proximal-point&gt;`.</span>
+
+<span class="sd">    This function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{aligned}</span>
+<span class="sd">            \mathbf{T} = \mathop{\arg \min}_\mathbf{T} \quad &amp; \langle \mathbf{T}, \mathbf{C} \rangle_F + \textit{reg} \cdot \sum_{i,j} \mathbf{T}_{i,j} \log \mathbf{T}_{i,j} \\</span>
+<span class="sd">            \text{s.t.} \quad &amp; \mathbf{T} \mathbf{1} = \mathbf{a} \\</span>
+<span class="sd">            &amp; \mathbf{T}^T \mathbf{1} = \mathbf{b} \\</span>
+<span class="sd">            &amp; \mathbf{T} \geq 0</span>
+<span class="sd">        \end{aligned}</span>
+
+<span class="sd">    The optimal transport plans are computed iteratively with a proximal point method based on a Bregman divergence where each iteration involves solving a Bregman projection problem: </span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{T}^{(k+1)} = \mathop{\arg \min}_\mathbf{T} \quad  \langle \mathbf{C} - \textit{inner\_reg} \cdot \log \mathbf{T}^{(k)}, \mathbf{T} \rangle + (\textit{reg} + \textit{inner\_reg}) \cdot \sum_{i,j} \mathbf{T}_{i,j} \log \mathbf{T}_{i,j}</span>
+<span class="sd">    </span>
+<span class="sd">    Denoting :math:`\mathbf{K}^{(k)} =  - (\mathbf{C} + \textit{inner\_reg} \cdot \log \mathbf{T}^{(k)})/(\textit{reg} + \textit{inner\_reg})`, the affinity matrix at iteration :math:`k`, the Bregman projection problem is solved in the log-domain with a finite number of inner iterations :math:`\text{inner\_iter}`, i.e., the dual variables :math:`\mathbf{u}` and :math:`\mathbf{v}` are updated as follows:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{u}^{(i+1)} = \log(\mathbf{a}) - \text{LSE}(\mathbf{K}^{(k)} + \mathbf{v}^{(i)})</span>
+
+<span class="sd">        \mathbf{v}^{(i+1)} = \log(\mathbf{b}) - \text{LSE}((\mathbf{K}^{(k)})^T + \mathbf{u}^{(i)})</span>
+
+<span class="sd">    where LSE denotes the log-sum-exp operation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    C : array-like, shape (B, n, m)</span>
+<span class="sd">        Cost matrix for each problem in the batch.</span>
+<span class="sd">    a : array-like, shape (B, n), optional</span>
+<span class="sd">        Source distribution for each problem. If None, uniform distribution is used.</span>
+<span class="sd">    b : array-like, shape (B, m), optional</span>
+<span class="sd">        Target distribution for each problem. If None, uniform distribution is used.</span>
+<span class="sd">    nx : backend object, optional</span>
+<span class="sd">        Numerical backend to use for computations. If None, the default backend is used.</span>
+<span class="sd">    max_iter : int, optional</span>
+<span class="sd">        Maximum number of iterations.</span>
+<span class="sd">    inner_iter : int, optional</span>
+<span class="sd">        Number of inner iterations for updating the dual variables u and v. Default is 1.</span>
+<span class="sd">    inner_reg : float, optional</span>
+<span class="sd">        Regularization parameter for the Bregman divergence. Default is 1e-3.</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Tolerance for convergence. The solver stops when the maximum change in</span>
+<span class="sd">        the dual variables is below this value.</span>
+<span class="sd">    grad : str, optional</span>
+<span class="sd">        Gradient computation mode: &#39;detach&#39;, &#39;autodiff&#39;, or &#39;last_step&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Dictionary containing:</span>
+<span class="sd">        - &#39;T&#39; : array-like, shape (B, n, m)</span>
+<span class="sd">            Optimal transport plan for each problem.</span>
+<span class="sd">        - &#39;log_T&#39; : array-like, shape (B, n, m)</span>
+<span class="sd">            Logarithm of the optimal transport plan for each problem.</span>
+<span class="sd">        - &#39;potentials&#39; : tuple of array-like, shapes ((B, n), (B, m))</span>
+<span class="sd">            Log-scaling factors (u, v).</span>
+<span class="sd">        - &#39;n_iters&#39; : int</span>
+<span class="sd">            Number of iterations performed.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from ot.batch import proximal_bregman_log_plan_batch</span>
+<span class="sd">    &gt;&gt;&gt; # Create batch of affinity matrices</span>
+<span class="sd">    &gt;&gt;&gt; C = np.random.rand(5, 10, 15)  # 5 problems, 10x15 cost matrices</span>
+<span class="sd">    &gt;&gt;&gt; result = proximal_bregman_log_plan_batch(C)</span>
+<span class="sd">    &gt;&gt;&gt; T = result[&#39;T&#39;]  # Shape (5, 10, 15)</span>
+
+<span class="sd">    .. _references-OT-bregman-proximal-point:</span>
+<span class="sd">    Reference</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [92] Xie, Y., Wang, X., Wang, R., &amp; Zha, H. (2020, August). </span>
+<span class="sd">    A fast proximal point method for computing exact wasserstein distance.</span>
+<span class="sd">    In Uncertainty in artificial intelligence (pp. 433-453). PMLR.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+
+    <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span> <span class="o">/</span> <span class="n">m</span>
+
+    <span class="k">if</span> <span class="n">reg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">reg</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">m</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C</span><span class="p">)</span>
+
+    <span class="n">loga</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">logb</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;detach&quot;</span><span class="p">:</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;last_step&quot;</span><span class="p">:</span>
+        <span class="n">C_</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">nx</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+
+    <span class="n">log_T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">C</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n_iters</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+        <span class="n">K_proj</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">C</span> <span class="o">+</span> <span class="n">inner_reg</span> <span class="o">*</span> <span class="n">log_T</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">reg</span> <span class="o">+</span> <span class="n">inner_reg</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inner_iter</span><span class="p">):</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">loga</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">K_proj</span> <span class="o">+</span> <span class="n">v</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">logb</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">K_proj</span> <span class="o">+</span> <span class="n">u</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">log_T</span> <span class="o">=</span> <span class="n">K_proj</span> <span class="o">+</span> <span class="n">u</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># Check convergence once every 10 iterations</span>
+        <span class="k">if</span> <span class="n">n_iters</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_T</span><span class="p">)</span>
+            <span class="n">marginal</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">norm_batch</span><span class="p">(</span><span class="n">marginal</span> <span class="o">-</span> <span class="n">a</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
+                <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">grad</span> <span class="o">==</span> <span class="s2">&quot;last_step&quot;</span><span class="p">:</span>
+        <span class="n">K_proj</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">C_</span> <span class="o">+</span> <span class="n">inner_reg</span> <span class="o">*</span> <span class="n">log_T</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">reg</span> <span class="o">+</span> <span class="n">inner_reg</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inner_iter</span><span class="p">):</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">loga</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">K_proj</span> <span class="o">+</span> <span class="n">v</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">logb</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">K_proj</span> <span class="o">+</span> <span class="n">u</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">log_T</span> <span class="o">=</span> <span class="n">K_proj</span> <span class="o">+</span> <span class="n">u</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
     <span class="n">T</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_T</span><span class="p">)</span>
     <span class="n">log_potentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
