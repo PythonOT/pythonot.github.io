@@ -89,15 +89,25 @@
 
 <span class="c1"># Author: Nicolas Courty &lt;ncourty@irisa.fr&gt;</span>
 <span class="c1"># Author: Clément Bonet &lt;clement.bonet.mapp@polytechnique.edu&gt;</span>
+<span class="c1"># Author: continuousml &lt;continuousml@gmail.com&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_projections_sphere</span><span class="p">,</span> <span class="n">projection_sphere_to_circle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_projections_sphere</span><span class="p">,</span>
+    <span class="n">get_random_projections</span><span class="p">,</span>
+    <span class="n">get_random_rotations</span><span class="p">,</span>
+    <span class="n">projection_sphere_to_circle</span><span class="p">,</span>
+    <span class="n">projection_sphere_to_ball</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..lp</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">wasserstein_circle</span><span class="p">,</span>
     <span class="n">semidiscrete_wasserstein2_unif_circle</span><span class="p">,</span>
     <span class="n">linear_circular_ot</span><span class="p">,</span>
+    <span class="n">wasserstein_1d</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -392,6 +402,175 @@
 
     <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="p">{</span><span class="s2">"projections"</span><span class="p">:</span> <span class="n">projections</span><span class="p">,</span> <span class="s2">"projected_emds"</span><span class="p">:</span> <span class="n">projected_lcot</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="stereographic_sliced_wasserstein_sphere">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.stereographic_sliced_wasserstein_sphere">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stereographic_sliced_wasserstein_sphere</span><span class="p">(</span>
+    <span class="n">X_s</span><span class="p">,</span>
+    <span class="n">X_t</span><span class="p">,</span>
+    <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_projections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">projections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_rotations</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">rotations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Computes the stereographic spherical sliced Wasserstein distance from :ref:`[93] &lt;references-s3w&gt;`.</span>
+
+<span class="sd">    General loss returned:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        S3W_p(\mu,\nu) = \left(\int_{\mathbb{S}^{d-2}} W_p^p(\theta_\# (\tfrac{1}{\pi}h_1\circ\phi_\epsilon)_\#\mu, \theta_\# (\tfrac{1}{\pi}h_1\circ\phi_\epsilon)_\#\nu)\ \mathrm{d}\sigma(\theta)\right)^{\frac{1}{p}}</span>
+
+<span class="sd">    where :math:`\mu,\nu\in\mathcal{P}(S^{d-1})` are two probability measures on the</span>
+<span class="sd">    sphere, :math:`\theta_\# \mu` stands for the pushforwards of the projection</span>
+<span class="sd">    :math:`X \in \mathbb{R}^{d-1} \mapsto \langle \theta, X \rangle`,</span>
+<span class="sd">    :math:`\phi_\epsilon` is the stereographic projection</span>
+<span class="sd">    :math:`\phi(x) = \frac{2 x_{1:d-1}}{1-x_d}` restricted to the sphere without the</span>
+<span class="sd">    :math:`\epsilon`-cap around the north pole (points with :math:`x_d &gt; 1-\epsilon`</span>
+<span class="sd">    are first mapped to the circle :math:`x_d = 1-\epsilon`), and</span>
+<span class="sd">    :math:`h_1(x) = \mathrm{arccos}\left(\frac{1-\|x\|^2}{1+\|x\|^2}\right)\frac{x}{\|x\|}`</span>
+<span class="sd">    is the injective defining function of :ref:`[93] &lt;references-s3w&gt;`, rescaled by</span>
+<span class="sd">    :math:`\frac{1}{\pi}` to map the sphere to the unit ball.</span>
+
+<span class="sd">    If ``n_rotations &gt;= 1`` or ``rotations`` is provided, computes instead a</span>
+<span class="sd">    Monte-Carlo approximation of the rotationally invariant extension</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        RI\text{-}S3W_p(\mu,\nu) = \int_{\mathrm{SO}(d)} S3W_p(R_\#\mu, R_\#\nu)\ \mathrm{d}\omega(R)</span>
+
+<span class="sd">    where :math:`\omega` is the normalized Haar measure on :math:`\mathrm{SO}(d)`.</span>
+<span class="sd">    The generation cost of the rotations can be amortized over several calls by</span>
+<span class="sd">    pregenerating a pool of rotations with</span>
+<span class="sd">    :any:`ot.sliced.get_random_rotations` and passing a random subset of it as</span>
+<span class="sd">    ``rotations`` at each call (ARI-S3W :ref:`[93] &lt;references-s3w&gt;`).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X_s: ndarray, shape (n_samples_a, dim)</span>
+<span class="sd">        Samples in the source domain</span>
+<span class="sd">    X_t: ndarray, shape (n_samples_b, dim)</span>
+<span class="sd">        Samples in the target domain</span>
+<span class="sd">    a : ndarray, shape (n_samples_a,), optional</span>
+<span class="sd">        samples weights in the source domain</span>
+<span class="sd">    b : ndarray, shape (n_samples_b,), optional</span>
+<span class="sd">        samples weights in the target domain</span>
+<span class="sd">    n_projections : int, optional</span>
+<span class="sd">        Number of projections used for the Monte-Carlo approximation</span>
+<span class="sd">    p: float, optional (default=2)</span>
+<span class="sd">        Power p used for computing the stereographic spherical sliced Wasserstein</span>
+<span class="sd">    projections: shape (dim-1, n_projections), optional</span>
+<span class="sd">        Projection matrix (n_projections and seed are not used in this case)</span>
+<span class="sd">    n_rotations : int, optional (default=0)</span>
+<span class="sd">        Number of rotations used for the Monte-Carlo approximation of</span>
+<span class="sd">        :math:`RI\text{-}S3W_p`. If 0, no rotation is applied and</span>
+<span class="sd">        :math:`S3W_p` is computed.</span>
+<span class="sd">    rotations: shape (n_rotations, dim, dim), optional</span>
+<span class="sd">        Rotation matrices (n_rotations is not used in this case)</span>
+<span class="sd">    eps: float, optional (default=1e-6)</span>
+<span class="sd">        Size of the cap around the north pole excluded from the stereographic</span>
+<span class="sd">        projection to ensure numerical stability</span>
+<span class="sd">    seed: int or RandomState or None, optional</span>
+<span class="sd">        Seed used for random number generator</span>
+<span class="sd">    log: bool, optional</span>
+<span class="sd">        if True, stereographic_sliced_wasserstein_sphere returns the projections</span>
+<span class="sd">        and rotations used and the associated EMDs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cost: float</span>
+<span class="sd">        Stereographic Spherical Sliced Wasserstein Cost</span>
+<span class="sd">    log: dict, optional</span>
+<span class="sd">        log dictionary return only if log==True in parameters</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import ot</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; n_samples_a = 20</span>
+<span class="sd">    &gt;&gt;&gt; X = np.random.normal(0., 1., (n_samples_a, 5))</span>
+<span class="sd">    &gt;&gt;&gt; X = X / np.sqrt(np.sum(X**2, -1, keepdims=True))</span>
+<span class="sd">    &gt;&gt;&gt; ot.stereographic_sliced_wasserstein_sphere(X, X, seed=0)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    0.0</span>
+
+
+<span class="sd">    .. _references-s3w:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [93] Tran, H., Bai, Y., Kothapalli, A., Shahbazi, A., Liu, X.,</span>
+<span class="sd">       Diaz Martin, R., &amp; Kolouri, S. (2024). Stereographic Spherical Sliced</span>
+<span class="sd">       Wasserstein Distances. International Conference on Machine Learning.</span>
+<span class="sd">    """</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">rotations</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"X_s and X_t must have the same number of dimensions </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2"> respectively given"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X_s</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"X_s is not on the sphere."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X_t</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"X_t is not on the sphere."</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">projections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_random_projections</span><span class="p">(</span>
+            <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">):</span>
+            <span class="c1"># draw the rotations from the stream advanced by the projections</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">rotations</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n_rotations</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">rotations</span> <span class="o">=</span> <span class="n">get_random_rotations</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span> <span class="n">n_rotations</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">rotations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_rotations</span> <span class="o">=</span> <span class="n">rotations</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">rotations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Xps</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"kij, nj -&gt; kni"</span><span class="p">,</span> <span class="n">rotations</span><span class="p">,</span> <span class="n">X_s</span><span class="p">)</span>
+        <span class="n">Xpt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"kij, nj -&gt; kni"</span><span class="p">,</span> <span class="n">rotations</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_rotations</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">Xps</span> <span class="o">=</span> <span class="n">X_s</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="n">Xpt</span> <span class="o">=</span> <span class="n">X_t</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+    <span class="n">Xps</span> <span class="o">=</span> <span class="n">projection_sphere_to_ball</span><span class="p">(</span><span class="n">Xps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+    <span class="n">Xpt</span> <span class="o">=</span> <span class="n">projection_sphere_to_ball</span><span class="p">(</span><span class="n">Xpt</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">)</span>
+
+    <span class="n">Xps</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"kni, il -&gt; nkl"</span><span class="p">,</span> <span class="n">Xps</span><span class="p">,</span> <span class="n">projections</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">X_s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_rotations</span> <span class="o">*</span> <span class="n">n_projections</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">Xpt</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"kni, il -&gt; nkl"</span><span class="p">,</span> <span class="n">Xpt</span><span class="p">,</span> <span class="n">projections</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">X_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_rotations</span> <span class="o">*</span> <span class="n">n_projections</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">projected_emd</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">wasserstein_1d</span><span class="p">(</span><span class="n">Xps</span><span class="p">,</span> <span class="n">Xpt</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">),</span> <span class="p">(</span><span class="n">n_rotations</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">projected_emd</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s2">"projections"</span><span class="p">:</span> <span class="n">projections</span><span class="p">,</span>
+            <span class="s2">"rotations"</span><span class="p">:</span> <span class="n">rotations</span><span class="p">,</span>
+            <span class="s2">"projected_emds"</span><span class="p">:</span> <span class="n">projected_emd</span><span class="p">,</span>
+        <span class="p">}</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
 </pre></div>
