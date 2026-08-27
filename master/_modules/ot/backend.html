@@ -170,6 +170,7 @@
 <span class="c1">#</span>
 <span class="c1"># License: MIT License</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib.util</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
@@ -192,6 +193,21 @@
         <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
         <span class="n">torch_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+        <span class="c1"># Load triton before TensorFlow is imported below. Both triton and</span>
+        <span class="c1"># TensorFlow ship a statically linked LLVM, and loading triton's</span>
+        <span class="c1"># libtriton.so into a process that has already imported TensorFlow</span>
+        <span class="c1"># segfaults inside dlopen. torch only imports triton lazily, on the</span>
+        <span class="c1"># first use of a feature that needs it (constructing an optimizer is</span>
+        <span class="c1"># enough), which would otherwise happen after TensorFlow is loaded.</span>
+        <span class="c1"># See https://github.com/PythonOT/POT/issues/816</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">DISABLE_TF_KEY</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">find_spec</span><span class="p">(</span><span class="s2">"tensorflow"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">triton</span>  <span class="c1"># noqa: F401</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">pass</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="n">torch</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">torch_type</span> <span class="o">=</span> <span class="nb">float</span>
