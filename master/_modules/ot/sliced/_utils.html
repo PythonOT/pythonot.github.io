@@ -331,6 +331,92 @@
 
 
 
+<div class="viewcode-block" id="get_projections_spiral">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced.get_projections_spiral">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_projections_spiral</span><span class="p">(</span>
+    <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">randomized</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Generates n_projections points on the sphere via generalized</span>
+<span class="sd">    spiral points (Rakhmanov, Saff &amp; Zhou, 1994) [96].</span>
+
+<span class="sd">    Only implemented for d=3 (the 2-sphere :math:`S^2`).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    d : int</span>
+<span class="sd">        dimension of the space. Only d=3 is currently supported.</span>
+<span class="sd">    n_projections : int</span>
+<span class="sd">        number of samples requested</span>
+<span class="sd">    randomized : bool, optional</span>
+<span class="sd">        If True (default), applies a random (d, d) rotation to the</span>
+<span class="sd">        deterministic spiral point set (RQSW), giving an unbiased estimator</span>
+<span class="sd">        suitable for stochastic optimization. If False, returns the plain</span>
+<span class="sd">        deterministic point set (QSW).</span>
+<span class="sd">    seed: int or RandomState, optional</span>
+<span class="sd">        Seed used for the random rotation. Ignored if randomized=False.</span>
+<span class="sd">    backend:</span>
+<span class="sd">        Backend to use for random generation</span>
+<span class="sd">    type_as: type, optional</span>
+<span class="sd">        Type of the returned array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out: ndarray, shape (d, n_projections)</span>
+<span class="sd">        The (optionally rotated) spiral points on the sphere</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; n_projections = 100</span>
+<span class="sd">    &gt;&gt;&gt; d = 3</span>
+<span class="sd">    &gt;&gt;&gt; projs = get_projections_spiral(d, n_projections, randomized=False)</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(np.sum(np.square(projs), 0), 1.)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; rprojs = get_projections_spiral(d, n_projections, randomized=True, seed=0)</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(np.sum(np.square(rprojs), 0), 1.)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    True</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [95] Nguyen, K., Bariletto, N., &amp; Ho, N. (2024). "Quasi-Monte Carlo for 3D Sliced Wasserstein." International Conference on Learning Representations (ICLR).</span>
+<span class="sd">    .. [96] Rakhmanov, E. A., Saff, E. B., &amp; Zhou, Y. M. (1994). "Minimal Discrete Energy on the Sphere." Mathematical Research Letters, 1(6), 647-662.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Generalized spiral points are only defined for d=3, got d=</span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">backend</span>
+
+    <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_projections</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_projections</span>
+    <span class="n">phi1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+    <span class="n">phi2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_projections</span><span class="p">)</span> <span class="o">*</span> <span class="n">phi1</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="n">theta_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi2</span><span class="p">),</span> <span class="n">z</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>  <span class="c1"># shape (d, n_projections)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">theta_np</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">randomized</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">theta</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">nx</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"numpy"</span><span class="p">:</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">seed</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="n">Q</span><span class="p">,</span> <span class="n">R</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">R</span><span class="p">))[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="projection_sphere_to_ball">
 <a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced.projection_sphere_to_ball">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">projection_sphere_to_ball</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
