@@ -346,27 +346,74 @@
 
 <div class="viewcode-block" id="unif">
 <a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.unif">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">unif</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">unif</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
-<span class="sd">    Return a uniform histogram of length `n` (simplex).</span>
+<span class="sd">    Return a uniform histogram normalized over its last dimension (simplex).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    n : int</span>
-<span class="sd">        number of bins in the histogram</span>
+<span class="sd">    shape : int or tuple of int</span>
+<span class="sd">        Number of bins in the histogram, or the full output shape. An integer</span>
+<span class="sd">        ``n`` is equivalent to ``(n,)``. For a shape ``(..., n)`` the output is</span>
+<span class="sd">        normalized over the last dimension, e.g. ``(B, n)`` returns ``B``</span>
+<span class="sd">        uniform histograms of length ``n``.</span>
 <span class="sd">    type_as : array-like</span>
 <span class="sd">        array of the same type of the expected output (numpy/pytorch/jax)</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    h : array-like, shape (n,)</span>
-<span class="sd">        histogram of length `n` such that :math:`\forall i, \mathbf{h}_i = \frac{1}{n}`</span>
+<span class="sd">    h : array-like, shape ``shape``</span>
+<span class="sd">        uniform histogram(s) such that each slice along the last dimension sums</span>
+<span class="sd">        to one, i.e. every entry equals :math:`\frac{1}{n}` with ``n`` the last</span>
+<span class="sd">        dimension.</span>
 <span class="sd">    """</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">shape</span><span class="p">),)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">size</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,))</span> <span class="o">/</span> <span class="n">n</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">type_as</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span></div>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span></div>
+
+
+
+<div class="viewcode-block" id="check_marginal">
+<a class="viewcode-back" href="../../gen_modules/ot.utils.html#ot.check_marginal">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_marginal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Validate or fill a marginal :math:`\mathbf{a}` against an expected shape.</span>
+
+<span class="sd">    When ``a`` is ``None`` it is filled with the uniform marginal of the given</span>
+<span class="sd">    ``shape`` on the backend, device and dtype of ``type_as`` (via :func:`unif`).</span>
+<span class="sd">    When provided, its shape is checked against ``shape`` and, if ``type_as`` is</span>
+<span class="sd">    given, it must share ``type_as``'s dtype and device -- otherwise an explicit</span>
+<span class="sd">    error is raised instead of a deep error later in the solver.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array-like, shape ``shape``, or None</span>
+<span class="sd">        The marginal to validate, or None to fill with a uniform marginal.</span>
+<span class="sd">    shape : int or tuple of int</span>
+<span class="sd">        Expected shape of the marginal (see :func:`unif`).</span>
+<span class="sd">    type_as : array-like, optional</span>
+<span class="sd">        Array fixing the backend, device and dtype of the filled/validated marginal.</span>
+<span class="sd">    nx : backend object, optional</span>
+<span class="sd">        Numerical backend to use. If None, it is inferred from ``type_as``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a : array-like, shape ``shape``</span>
+<span class="sd">        The validated marginal.</span>
+<span class="sd">    """</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">shape</span><span class="p">),)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">unif</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"marginal has shape </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">type_as</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">nx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">type_as</span><span class="p">)</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">assert_same_dtype_device</span><span class="p">(</span><span class="n">type_as</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">a</span></div>
 
 
 
