@@ -466,6 +466,99 @@
     <span class="n">radius</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="mf">3.0</span> <span class="o">+</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">x_d</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">5.0</span> <span class="o">+</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">x_d</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
     <span class="k">return</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">x_azimuth</span> <span class="o">/</span> <span class="n">nx</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm2</span><span class="p">)</span></div>
 
+
+
+<div class="viewcode-block" id="get_random_orthogonal_directions">
+<a class="viewcode-back" href="../../../gen_modules/ot.sliced.html#ot.sliced.get_random_orthogonal_directions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_random_orthogonal_directions</span><span class="p">(</span>
+    <span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Generates n_projections directions on the sphere via UnifOrtho</span>
+<span class="sd">    (Rowland et al., 2019) [97]: independent blocks of d mutually</span>
+<span class="sd">    orthogonal, unit-norm directions, each block drawn from the Haar</span>
+<span class="sd">    measure on the special orthogonal group :math:`\mathrm{SO}(d)`.</span>
+
+<span class="sd">    Unlike the generalized spiral points (:any:`get_projections_spiral`),</span>
+<span class="sd">    which only cover :math:`d=3`, UnifOrtho is defined for any dimension</span>
+<span class="sd">    d, and is recommended specifically for large d: Petrovic, Bardenet &amp;</span>
+<span class="sd">    Desolneux (2026) [98] show both empirically and theoretically that it</span>
+<span class="sd">    reduces the variance of the Sliced Wasserstein estimator in high</span>
+<span class="sd">    dimension, while quasi-Monte Carlo methods such as the spiral points</span>
+<span class="sd">    remain preferable in low dimension (:math:`d \in \{2, 3\}`).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    d : int</span>
+<span class="sd">        dimension of the space. Any d &gt;= 1 is supported.</span>
+<span class="sd">    n_projections : int</span>
+<span class="sd">        number of samples requested</span>
+<span class="sd">    seed: int or RandomState, optional</span>
+<span class="sd">        Seed used for the underlying random rotations</span>
+<span class="sd">    backend:</span>
+<span class="sd">        Backend to use for random generation</span>
+<span class="sd">    type_as: type, optional</span>
+<span class="sd">        Type of the returned array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out: ndarray, shape (d, n_projections)</span>
+<span class="sd">        The UnifOrtho directions on the sphere</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    ``n_projections`` need not be a multiple of ``d``: internally,</span>
+<span class="sd">    ``ceil(n_projections / d)`` independent orthogonal blocks are drawn</span>
+<span class="sd">    and concatenated, then truncated to the requested length. Every</span>
+<span class="sd">    individual direction is still marginally uniform on the sphere, but</span>
+<span class="sd">    if the last block is truncated, the directions coming from that</span>
+<span class="sd">    specific block are no longer guaranteed to be mutually orthogonal</span>
+<span class="sd">    with each other.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; n_projections = 100</span>
+<span class="sd">    &gt;&gt;&gt; d = 5</span>
+<span class="sd">    &gt;&gt;&gt; projs = get_random_orthogonal_directions(d, n_projections, seed=0)</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(np.sum(np.square(projs), 0), 1.)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; first_block = projs[:, :d]</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(first_block.T @ first_block, np.eye(d))  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    True</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    .. [97] Rowland, M., Hron, J., Tang, Y., Choromanski, K., Sarlos, T., &amp; Weller, A. (2019). "Orthogonal Estimation of Wasserstein Distances." Proceedings of the 22nd International Conference on Artificial Intelligence and Statistics (AISTATS), PMLR 89.</span>
+<span class="sd">    .. [98] Petrovic, V., Bardenet, R., &amp; Desolneux, A. (2026). "Repulsive Monte Carlo on the sphere for the sliced Wasserstein distance." Transactions on Machine Learning Research.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">NumpyBackend</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">backend</span>
+
+    <span class="c1"># Number of independent orthogonal blocks needed so that k * d covers</span>
+    <span class="c1"># at least n_projections directions (integer ceiling of n_projections / d).</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="n">n_projections</span> <span class="o">//</span> <span class="n">d</span><span class="p">)</span>
+
+    <span class="c1"># k independent Haar-uniform (d, d) orthogonal matrices. Within each</span>
+    <span class="c1"># (d, d) slice, the ROWS form d mutually orthogonal, unit-norm</span>
+    <span class="c1"># directions (see get_random_rotations for the QR-based construction</span>
+    <span class="c1"># and its Mezzadri (2007) sign correction, which is what makes the</span>
+    <span class="c1"># rotation genuinely Haar-uniform rather than merely orthogonal).</span>
+    <span class="n">rotations</span> <span class="o">=</span> <span class="n">get_random_rotations</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">type_as</span><span class="o">=</span><span class="n">type_as</span><span class="p">)</span>
+
+    <span class="c1"># Flatten the k blocks into a single list of k * d directions, one per row.</span>
+    <span class="n">directions</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+
+    <span class="c1"># (d, k * d): match the (dim, n_projections) convention.</span>
+    <span class="n">directions</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">directions</span><span class="p">)</span>
+
+    <span class="c1"># Trim down to exactly n_projections when n_projections is not a</span>
+    <span class="c1"># multiple of d (see Notes above for what this means for the last,</span>
+    <span class="c1"># possibly incomplete, orthogonal block).</span>
+    <span class="k">return</span> <span class="n">directions</span><span class="p">[:,</span> <span class="p">:</span><span class="n">n_projections</span><span class="p">]</span></div>
+
 </pre></div>
 
            </div>

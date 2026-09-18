@@ -95,7 +95,11 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">apply_scaler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_random_projections</span><span class="p">,</span> <span class="n">get_projections_spiral</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_random_projections</span><span class="p">,</span>
+    <span class="n">get_projections_spiral</span><span class="p">,</span>
+    <span class="n">get_random_orthogonal_directions</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..lp</span><span class="w"> </span><span class="kn">import</span> <span class="n">wasserstein_1d</span>
 
 
@@ -126,11 +130,18 @@
 <span class="sd">    - :math:`\theta_\# \mu` stands for the pushforwards of the projection :math:`X \in \mathbb{R}^d \mapsto \langle \theta, X \rangle`</span>
 
 <span class="sd">    By default, the projection directions :math:`\theta` are sampled uniformly</span>
-<span class="sd">    at random. Setting ``sampling_slices`` to ``"spiral_qmc"`` or ``"randomized_spiral_qmc"`` instead</span>
-<span class="sd">    uses Quasi-Monte Carlo point sets on the sphere (generalized spiral</span>
-<span class="sd">    points), which can reduce the approximation error for a given</span>
-<span class="sd">    ``n_projections`` [95]. These two options are</span>
-<span class="sd">    only implemented for ``dim == 3``.</span>
+<span class="sd">    at random. Two families of alternatives are available through</span>
+<span class="sd">    ``sampling_slices``, each better suited to a different regime:</span>
+
+<span class="sd">    - ``"spiral_qmc"`` / ``"randomized_spiral_qmc"`` use a deterministic,</span>
+<span class="sd">      low-discrepancy point set on the sphere (generalized spiral points),</span>
+<span class="sd">      only defined for ``dim == 3`` [95].</span>
+<span class="sd">    - ``"unif_ortho"`` uses independent blocks of mutually orthogonal</span>
+<span class="sd">      directions (UnifOrtho), defined for any dimension.</span>
+
+<span class="sd">    Recent numerical and theoretical studies [98, 99] recommend</span>
+<span class="sd">    ``"randomized_spiral_qmc"`` in low dimensions and</span>
+<span class="sd">    ``"unif_ortho"`` for large ``dim``, with no clear winner in between.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -181,6 +192,12 @@
 <span class="sd">          point set as ``"spiral_qmc"``, with a random rotation applied, giving an</span>
 <span class="sd">          unbiased estimator suitable for stochastic optimization. Only</span>
 <span class="sd">          implemented for ``dim == 3``.</span>
+<span class="sd">        - ``"unif_ortho"``: UnifOrtho [97] -- independent blocks of</span>
+<span class="sd">          mutually orthogonal directions, each block drawn from the Haar</span>
+<span class="sd">          measure on :math:`\mathrm{SO}(\mathrm{dim})`. Defined for any</span>
+<span class="sd">          ``dim``, and recommended in particular for large ``dim`` [98, 99].</span>
+<span class="sd">          See :any:`get_random_orthogonal_directions` for details, including</span>
+<span class="sd">          how ``n_projections`` not being a multiple of ``dim`` is handled.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -204,6 +221,9 @@
 <span class="sd">    .. [31] Bonneel, Nicolas, et al. "Sliced and radon wasserstein barycenters of measures." Journal of Mathematical Imaging and Vision 51.1 (2015): 22-45</span>
 <span class="sd">    .. [95] Nguyen, K., Bariletto, N., &amp; Ho, N. (2024). "Quasi-Monte Carlo for 3D Sliced Wasserstein." International Conference on Learning Representations (ICLR).</span>
 <span class="sd">    .. [96] Rakhmanov, E. A., Saff, E. B., &amp; Zhou, Y. M. (1994). "Minimal Discrete Energy on the Sphere." Mathematical Research Letters, 1(6), 647-662.</span>
+<span class="sd">    .. [97] Rowland, M., Hron, J., Tang, Y., Choromanski, K., Sarlos, T., &amp; Weller, A. (2019). "Orthogonal Estimation of Wasserstein Distances." Proceedings of the 22nd International Conference on Artificial Intelligence and Statistics (AISTATS), PMLR 89.</span>
+<span class="sd">    .. [98] Petrovic, V., Bardenet, R., &amp; Desolneux, A. (2026). "Repulsive Monte Carlo on the sphere for the sliced Wasserstein distance." Transactions on Machine Learning Research.</span>
+<span class="sd">    .. [99] Sisouk, K., Delon, J., &amp; Tierny, J. (2025). "A User's Guide to Sampling Strategies for Sliced Optimal Transport." Transactions on Machine Learning Research.</span>
 <span class="sd">    """</span>
 
     <span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">X_s</span><span class="p">,</span> <span class="n">X_t</span><span class="p">)</span>
@@ -246,10 +266,18 @@
                 <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
                 <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"unif_ortho"</span><span class="p">:</span>
+            <span class="n">projections</span> <span class="o">=</span> <span class="n">get_random_orthogonal_directions</span><span class="p">(</span>
+                <span class="n">d</span><span class="p">,</span>
+                <span class="n">n_projections</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
+                <span class="n">type_as</span><span class="o">=</span><span class="n">X_s</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Unknown sampling_slices method '</span><span class="si">{</span><span class="n">sampling_slices</span><span class="si">}</span><span class="s2">', "</span>
-                <span class="s2">"must be one of 'uniform', 'spiral_qmc', 'randomized_spiral_qmc'"</span>
+                <span class="s2">"must be one of 'uniform', 'spiral_qmc', 'randomized_spiral_qmc', 'unif_ortho' "</span>
             <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">n_projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>

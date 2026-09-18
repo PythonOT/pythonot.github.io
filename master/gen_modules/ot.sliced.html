@@ -79,6 +79,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#ot.sliced.expected_sliced_plan"><code class="docutils literal notranslate"><span class="pre">expected_sliced_plan()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.sliced.get_projections_sphere"><code class="docutils literal notranslate"><span class="pre">get_projections_sphere()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.sliced.get_projections_spiral"><code class="docutils literal notranslate"><span class="pre">get_projections_spiral()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ot.sliced.get_random_orthogonal_directions"><code class="docutils literal notranslate"><span class="pre">get_random_orthogonal_directions()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.sliced.get_random_projections"><code class="docutils literal notranslate"><span class="pre">get_random_projections()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.sliced.get_random_rotations"><code class="docutils literal notranslate"><span class="pre">get_random_rotations()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ot.sliced.linear_sliced_wasserstein_sphere"><code class="docutils literal notranslate"><span class="pre">linear_sliced_wasserstein_sphere()</span></code></a></li>
@@ -305,6 +306,69 @@ deterministic point set (QSW).</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ot.sliced.get_random_orthogonal_directions">
+<span class="sig-prename descclassname"><span class="pre">ot.sliced.</span></span><span class="sig-name descname"><span class="pre">get_random_orthogonal_directions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/sliced/_utils.html#get_random_orthogonal_directions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.sliced.get_random_orthogonal_directions" title="Link to this definition"></a></dt>
+<dd><p>Generates n_projections directions on the sphere via UnifOrtho
+(Rowland et al., 2019) [97]: independent blocks of d mutually
+orthogonal, unit-norm directions, each block drawn from the Haar
+measure on the special orthogonal group <span class="math notranslate nohighlight">\(\mathrm{SO}(d)\)</span>.</p>
+<p>Unlike the generalized spiral points (<a class="reference internal" href="#ot.sliced.get_projections_spiral" title="ot.sliced.get_projections_spiral"><code class="xref any py py-func docutils literal notranslate"><span class="pre">get_projections_spiral</span></code></a>),
+which only cover <span class="math notranslate nohighlight">\(d=3\)</span>, UnifOrtho is defined for any dimension
+d, and is recommended specifically for large d: Petrovic, Bardenet &amp;
+Desolneux (2026) [98] show both empirically and theoretically that it
+reduces the variance of the Sliced Wasserstein estimator in high
+dimension, while quasi-Monte Carlo methods such as the spiral points
+remain preferable in low dimension (<span class="math notranslate nohighlight">\(d \in \{2, 3\}\)</span>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – dimension of the space. Any d &gt;= 1 is supported.</p></li>
+<li><p><strong>n_projections</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – number of samples requested</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><em>RandomState</em><em>, </em><em>optional</em>) – Seed used for the underlying random rotations</p></li>
+<li><p><strong>backend</strong> – Backend to use for random generation</p></li>
+<li><p><strong>type_as</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.14)"><em>type</em></a><em>, </em><em>optional</em>) – Type of the returned array</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>out</strong> – The UnifOrtho directions on the sphere</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray, shape (d, n_projections)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">n_projections</span></code> need not be a multiple of <code class="docutils literal notranslate"><span class="pre">d</span></code>: internally,
+<code class="docutils literal notranslate"><span class="pre">ceil(n_projections</span> <span class="pre">/</span> <span class="pre">d)</span></code> independent orthogonal blocks are drawn
+and concatenated, then truncated to the requested length. Every
+individual direction is still marginally uniform on the sphere, but
+if the last block is truncated, the directions coming from that
+specific block are no longer guaranteed to be mutually orthogonal
+with each other.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">n_projections</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">projs</span> <span class="o">=</span> <span class="n">get_random_orthogonal_directions</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n_projections</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">projs</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="mf">1.</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">first_block</span> <span class="o">=</span> <span class="n">projs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">d</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">first_block</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">first_block</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id5" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>97<span class="fn-bracket">]</span></span>
+<p>Rowland, M., Hron, J., Tang, Y., Choromanski, K., Sarlos, T., &amp; Weller, A. (2019). “Orthogonal Estimation of Wasserstein Distances.” Proceedings of the 22nd International Conference on Artificial Intelligence and Statistics (AISTATS), PMLR 89.</p>
+</aside>
+<aside class="footnote brackets" id="id6" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>98<span class="fn-bracket">]</span></span>
+<p>Petrovic, V., Bardenet, R., &amp; Desolneux, A. (2026). “Repulsive Monte Carlo on the sphere for the sliced Wasserstein distance.” Transactions on Machine Learning Research.</p>
+</aside>
+</aside>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ot.sliced.get_random_projections">
 <span class="sig-prename descclassname"><span class="pre">ot.sliced.</span></span><span class="sig-name descname"><span class="pre">get_random_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ot/sliced/_utils.html#get_random_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ot.sliced.get_random_projections" title="Link to this definition"></a></dt>
 <dd><p>Generates n_projections samples from the uniform on the unit sphere of dimension <span class="math notranslate nohighlight">\(d-1\)</span>: <span class="math notranslate nohighlight">\(\mathcal{U}(\mathcal{S}^{d-1})\)</span></p>
@@ -372,7 +436,7 @@ determinant.</p>
 </div>
 <p class="rubric" id="references-get-random-rotations">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id5" role="doc-footnote">
+<aside class="footnote brackets" id="id7" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>94<span class="fn-bracket">]</span></span>
 <p>Mezzadri, F. (2007). How to generate random matrices from the
 classical compact groups. Notices of the American Mathematical
@@ -425,7 +489,7 @@ and their associated LCOT.</p></li>
 </div>
 <p class="rubric" id="references-lssot">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id6" role="doc-footnote">
+<aside class="footnote brackets" id="id8" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>79<span class="fn-bracket">]</span></span>
 <p>Liu, X., Bai, Y., Martín, R. D., Shi, K., Shahbazi, A., Landman,
 B. A., Chang, C., &amp; Kolouri, S. (2025). Linear Spherical Sliced Optimal
@@ -493,7 +557,7 @@ joint fitting on multiple distributions.</p>
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id7" role="doc-footnote">
+<aside class="footnote brackets" id="id9" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>35<span class="fn-bracket">]</span></span>
 <p>Deshpande, I., Hu, Y. T., Sun, R., Pyrros, A., Siddiqui, N., Koyejo, S., … &amp; Schwing, A. G. (2019). Max-sliced wasserstein distance and its use for gans. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 10648-10656).</p>
 </aside>
@@ -563,14 +627,14 @@ Returned only if <cite>log</cite> is True.</p></li>
 </dl>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id8" role="doc-footnote">
+<aside class="footnote brackets" id="id10" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>85<span class="fn-bracket">]</span></span>
 <p>Mahey, G., Chapel, L., Gasso, G., Bonet, C., &amp; Courty, N. (2023).
 Fast Optimal Transport through Sliced Generalized Wasserstein
 Geodesics. Advances in Neural Information Processing Systems, 36,
 35350–35385.</p>
 </aside>
-<aside class="footnote brackets" id="id9" role="doc-footnote">
+<aside class="footnote brackets" id="id11" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>86<span class="fn-bracket">]</span></span>
 <p>Tanguy, E., Chapel, L., Delon, J. (2025). Sliced Transport
 Plans. arXiv preprint 2506.03661.</p>
@@ -702,11 +766,18 @@ Returned only if <cite>log</cite> is True.</p></li>
 <li><p><span class="math notranslate nohighlight">\(\theta_\# \mu\)</span> stands for the pushforwards of the projection <span class="math notranslate nohighlight">\(X \in \mathbb{R}^d \mapsto \langle \theta, X \rangle\)</span></p></li>
 </ul>
 <p>By default, the projection directions <span class="math notranslate nohighlight">\(\theta\)</span> are sampled uniformly
-at random. Setting <code class="docutils literal notranslate"><span class="pre">sampling_slices</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;spiral_qmc&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;randomized_spiral_qmc&quot;</span></code> instead
-uses Quasi-Monte Carlo point sets on the sphere (generalized spiral
-points), which can reduce the approximation error for a given
-<code class="docutils literal notranslate"><span class="pre">n_projections</span></code> [95]. These two options are
-only implemented for <code class="docutils literal notranslate"><span class="pre">dim</span> <span class="pre">==</span> <span class="pre">3</span></code>.</p>
+at random. Two families of alternatives are available through
+<code class="docutils literal notranslate"><span class="pre">sampling_slices</span></code>, each better suited to a different regime:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;spiral_qmc&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;randomized_spiral_qmc&quot;</span></code> use a deterministic,
+low-discrepancy point set on the sphere (generalized spiral points),
+only defined for <code class="docutils literal notranslate"><span class="pre">dim</span> <span class="pre">==</span> <span class="pre">3</span></code> [95].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;unif_ortho&quot;</span></code> uses independent blocks of mutually orthogonal
+directions (UnifOrtho), defined for any dimension.</p></li>
+</ul>
+<p>Recent numerical and theoretical studies [98, 99] recommend
+<code class="docutils literal notranslate"><span class="pre">&quot;randomized_spiral_qmc&quot;</span></code> in low dimensions and
+<code class="docutils literal notranslate"><span class="pre">&quot;unif_ortho&quot;</span></code> for large <code class="docutils literal notranslate"><span class="pre">dim</span></code>, with no clear winner in between.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -747,6 +818,12 @@ generalized spiral points. Only implemented for <code class="docutils literal no
 point set as <code class="docutils literal notranslate"><span class="pre">&quot;spiral_qmc&quot;</span></code>, with a random rotation applied, giving an
 unbiased estimator suitable for stochastic optimization. Only
 implemented for <code class="docutils literal notranslate"><span class="pre">dim</span> <span class="pre">==</span> <span class="pre">3</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;unif_ortho&quot;</span></code>: UnifOrtho [97] – independent blocks of
+mutually orthogonal directions, each block drawn from the Haar
+measure on <span class="math notranslate nohighlight">\(\mathrm{SO}(\mathrm{dim})\)</span>. Defined for any
+<code class="docutils literal notranslate"><span class="pre">dim</span></code>, and recommended in particular for large <code class="docutils literal notranslate"><span class="pre">dim</span></code> [98, 99].
+See <a class="reference internal" href="#ot.sliced.get_random_orthogonal_directions" title="ot.sliced.get_random_orthogonal_directions"><code class="xref any py py-func docutils literal notranslate"><span class="pre">get_random_orthogonal_directions</span></code></a> for details, including
+how <code class="docutils literal notranslate"><span class="pre">n_projections</span></code> not being a multiple of <code class="docutils literal notranslate"><span class="pre">dim</span></code> is handled.</p></li>
 </ul>
 </p></li>
 </ul>
@@ -769,17 +846,29 @@ implemented for <code class="docutils literal notranslate"><span class="pre">dim
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id10" role="doc-footnote">
+<aside class="footnote brackets" id="id12" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>31<span class="fn-bracket">]</span></span>
 <p>Bonneel, Nicolas, et al. “Sliced and radon wasserstein barycenters of measures.” Journal of Mathematical Imaging and Vision 51.1 (2015): 22-45</p>
 </aside>
-<aside class="footnote brackets" id="id11" role="doc-footnote">
+<aside class="footnote brackets" id="id13" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>95<span class="fn-bracket">]</span></span>
 <p>Nguyen, K., Bariletto, N., &amp; Ho, N. (2024). “Quasi-Monte Carlo for 3D Sliced Wasserstein.” International Conference on Learning Representations (ICLR).</p>
 </aside>
-<aside class="footnote brackets" id="id12" role="doc-footnote">
+<aside class="footnote brackets" id="id14" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>96<span class="fn-bracket">]</span></span>
 <p>Rakhmanov, E. A., Saff, E. B., &amp; Zhou, Y. M. (1994). “Minimal Discrete Energy on the Sphere.” Mathematical Research Letters, 1(6), 647-662.</p>
+</aside>
+<aside class="footnote brackets" id="id15" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>97<span class="fn-bracket">]</span></span>
+<p>Rowland, M., Hron, J., Tang, Y., Choromanski, K., Sarlos, T., &amp; Weller, A. (2019). “Orthogonal Estimation of Wasserstein Distances.” Proceedings of the 22nd International Conference on Artificial Intelligence and Statistics (AISTATS), PMLR 89.</p>
+</aside>
+<aside class="footnote brackets" id="id16" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>98<span class="fn-bracket">]</span></span>
+<p>Petrovic, V., Bardenet, R., &amp; Desolneux, A. (2026). “Repulsive Monte Carlo on the sphere for the sliced Wasserstein distance.” Transactions on Machine Learning Research.</p>
+</aside>
+<aside class="footnote brackets" id="id17" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>99<span class="fn-bracket">]</span></span>
+<p>Sisouk, K., Delon, J., &amp; Tierny, J. (2025). “A User’s Guide to Sampling Strategies for Sliced Optimal Transport.” Transactions on Machine Learning Research.</p>
 </aside>
 </aside>
 </dd></dl>
@@ -829,7 +918,7 @@ implemented for <code class="docutils literal notranslate"><span class="pre">dim
 </div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id13" role="doc-footnote">
+<aside class="footnote brackets" id="id18" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>46<span class="fn-bracket">]</span></span>
 <p>Bonet, C., Berg, P., Courty, N., Septier, F., Drumetz, L., &amp; Pham, M. T. (2023). Spherical sliced-wasserstein. International Conference on Learning Representations.</p>
 </aside>
@@ -880,7 +969,7 @@ implemented for <code class="docutils literal notranslate"><span class="pre">dim
 <section id="references">
 <h2>References:<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id14" role="doc-footnote">
+<aside class="footnote brackets" id="id19" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>46<span class="fn-bracket">]</span></span>
 <p>Bonet, C., Berg, P., Courty, N., Septier, F., Drumetz, L., &amp; Pham, M. T. (2023). Spherical sliced-wasserstein. International Conference on Learning Representations.</p>
 </aside>
@@ -955,7 +1044,7 @@ and rotations used and the associated EMDs.</p></li>
 </div>
 <p class="rubric" id="references-s3w">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id15" role="doc-footnote">
+<aside class="footnote brackets" id="id20" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>93<span class="fn-bracket">]</span></span>
 <p>Tran, H., Bai, Y., Kothapalli, A., Shahbazi, A., Liu, X.,
 Diaz Martin, R., &amp; Kolouri, S. (2024). Stereographic Spherical Sliced
