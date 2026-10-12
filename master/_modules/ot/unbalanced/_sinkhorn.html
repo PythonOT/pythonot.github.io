@@ -99,6 +99,32 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">..backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_array</span><span class="p">,</span> <span class="n">get_parameter_pair</span>
 
+<span class="n">REG_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"kl"</span><span class="p">,</span> <span class="s2">"entropy"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_reg_type</span><span class="p">(</span><span class="n">reg_type</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Validate `reg_type` and return its lower case form.</span>
+
+<span class="sd">    Only ``'kl'`` and ``'entropy'`` are implemented. Any other value used to be</span>
+<span class="sd">    silently handled as ``'kl'``, which silently changed the solved problem, so</span>
+<span class="sd">    it is now rejected explicitly.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    reg_type : str</span>
+<span class="sd">        Name of the regularizer, either 'kl' or 'entropy' (case insensitive).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    reg_type : str</span>
+<span class="sd">        The lower case name of the regularizer.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">REG_TYPES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Unknown reg_type '</span><span class="si">{}</span><span class="s2">'. Must be either 'kl' or 'entropy'."</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
 
 <div class="viewcode-block" id="sinkhorn_unbalanced">
 <a class="viewcode-back" href="../../../gen_modules/ot.unbalanced.html#ot.sinkhorn_unbalanced">[docs]</a>
@@ -126,7 +152,7 @@
 
 <span class="sd">    .. math::</span>
 <span class="sd">        W = \arg \min_\gamma \ \langle \gamma, \mathbf{M} \rangle_F +</span>
-<span class="sd">        \mathrm{reg} \cdot \mathrm{KL}(\gamma, \mathbf{c}) +</span>
+<span class="sd">        \mathrm{reg} \cdot \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) +</span>
 <span class="sd">        \mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +</span>
 <span class="sd">        \mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})</span>
 
@@ -138,7 +164,17 @@
 <span class="sd">    - :math:`\mathbf{M}` is the (`dim_a`, `dim_b`) metric cost matrix</span>
 <span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
 <span class="sd">    - :math:`\mathbf{c}` is a reference distribution for the regularization</span>
-<span class="sd">    - KL is the Kullback-Leibler divergence</span>
+<span class="sd">    - :math:`\mathrm{KL}` is the generalized Kullback-Leibler divergence</span>
+<span class="sd">      :math:`\mathrm{KL}(\mathbf{P}, \mathbf{Q}) = \sum_{i,j} \mathbf{P}_{i,j} \log(\mathbf{P}_{i,j} / \mathbf{Q}_{i,j}) - \mathbf{P}_{i,j} + \mathbf{Q}_{i,j}`</span>
+
+<span class="sd">    and :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})` is the regularizer</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) =</span>
+<span class="sd">        \begin{cases}</span>
+<span class="sd">        \mathrm{KL}(\gamma, \mathbf{c}) &amp; \text{if } \texttt{reg\_type} = \text{'kl'}, \\</span>
+<span class="sd">        \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j} &amp; \text{if } \texttt{reg\_type} = \text{'entropy'}.</span>
+<span class="sd">        \end{cases}</span>
 
 <span class="sd">    The algorithm used for solving the problem is the generalized</span>
 <span class="sd">    Sinkhorn-Knopp matrix scaling algorithm as proposed in :ref:`[10, 25]</span>
@@ -178,17 +214,23 @@
 <span class="sd">        method used for the solver either 'sinkhorn', 'sinkhorn_stabilized', 'sinkhorn_translation_invariant' or</span>
 <span class="sd">        'sinkhorn_reg_scaling', see those function for specific parameters</span>
 <span class="sd">    reg_type : string, optional</span>
-<span class="sd">        Regularizer term. Can take two values:</span>
+<span class="sd">        Name of the regularizer :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})`,</span>
+<span class="sd">        case insensitive. Can take two values:</span>
 
 <span class="sd">        - Negative entropy: 'entropy':</span>
 <span class="sd">          :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j}`.</span>
-<span class="sd">          This is equivalent (up to a constant) to :math:`\Omega(\gamma) = \text{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)`.</span>
-<span class="sd">        - Kullback-Leibler divergence (default): 'kl':</span>
-<span class="sd">          :math:`\Omega(\gamma) = \text{KL}(\gamma, \mathbf{a} \mathbf{b}^T)`.</span>
+<span class="sd">          It is equal to :math:`\mathrm{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)` minus the</span>
+<span class="sd">          constant :math:`dim_a \times dim_b`, and the reference measure :math:`\mathbf{c}`</span>
+<span class="sd">          is overwritten by the all-ones matrix.</span>
+<span class="sd">        - Generalized Kullback-Leibler divergence (default): 'kl':</span>
+<span class="sd">          :math:`\Omega(\gamma, \mathbf{c}) = \mathrm{KL}(\gamma, \mathbf{c})` with</span>
+<span class="sd">          :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T` when `c` is None.</span>
+
+<span class="sd">        Any other value raises a :class:`ValueError`.</span>
 <span class="sd">    c : array-like, shape (dim_a, dim_b), optional (default=None)</span>
 <span class="sd">        Reference measure for the regularization.</span>
 <span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
-<span class="sd">        If :math:`\texttt{reg_type}=`'entropy', then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
+<span class="sd">        If ``reg_type="entropy"``, then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
 <span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
 <span class="sd">        (that is the logarithm of the `u`, `v` sinkhorn scaling vectors).</span>
@@ -204,7 +246,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    if n_hists == 1:</span>
+<span class="sd">    if n_hists == 0:</span>
 <span class="sd">        - gamma : array-like, shape(dim_a, dim_b)</span>
 <span class="sd">            Optimal transportation matrix for the given parameters</span>
 <span class="sd">        - log : dict</span>
@@ -214,6 +256,19 @@
 <span class="sd">            the OT distance between :math:`\mathbf{a}` and each of the histograms :math:`\mathbf{b}_i`</span>
 <span class="sd">        - log : dict</span>
 <span class="sd">            log dictionary returned only if `log` is `True`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    When `log=True`, the returned dictionary is the one of the solver selected by</span>
+<span class="sd">    `method`, see :any:`ot.unbalanced.sinkhorn_knopp_unbalanced`,</span>
+<span class="sd">    :any:`ot.unbalanced.sinkhorn_stabilized_unbalanced` and</span>
+<span class="sd">    :any:`ot.unbalanced.sinkhorn_unbalanced_translation_invariant`.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        When `b` is a 2d array of shape (`dim_b`, `n_hists`) -- which includes</span>
+<span class="sd">        :math:`n_{hists} = 1` -- only the negative entropy regularization is</span>
+<span class="sd">        implemented: `reg_type` and `c` are ignored, and only the linear cost is</span>
+<span class="sd">        returned.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -363,7 +418,7 @@
 
 <span class="sd">    .. math::</span>
 <span class="sd">        \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
-<span class="sd">        \mathrm{reg} \cdot \mathrm{KL}(\gamma, \mathbf{c}) +</span>
+<span class="sd">        \mathrm{reg} \cdot \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) +</span>
 <span class="sd">        \mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +</span>
 <span class="sd">        \mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})</span>
 
@@ -374,7 +429,17 @@
 <span class="sd">    - :math:`\mathbf{M}` is the (`dim_a`, `dim_b`) metric cost matrix</span>
 <span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
 <span class="sd">    - :math:`\mathbf{c}` is a reference distribution for the regularization</span>
-<span class="sd">    - KL is the Kullback-Leibler divergence</span>
+<span class="sd">    - :math:`\mathrm{KL}` is the generalized Kullback-Leibler divergence</span>
+<span class="sd">      :math:`\mathrm{KL}(\mathbf{P}, \mathbf{Q}) = \sum_{i,j} \mathbf{P}_{i,j} \log(\mathbf{P}_{i,j} / \mathbf{Q}_{i,j}) - \mathbf{P}_{i,j} + \mathbf{Q}_{i,j}`</span>
+
+<span class="sd">    and :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})` is the regularizer</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) =</span>
+<span class="sd">        \begin{cases}</span>
+<span class="sd">        \mathrm{KL}(\gamma, \mathbf{c}) &amp; \text{if } \texttt{reg\_type} = \text{'kl'}, \\</span>
+<span class="sd">        \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j} &amp; \text{if } \texttt{reg\_type} = \text{'entropy'}.</span>
+<span class="sd">        \end{cases}</span>
 
 <span class="sd">    The algorithm used for solving the problem is the generalized</span>
 <span class="sd">    Sinkhorn-Knopp matrix scaling algorithm as proposed in :ref:`[10, 25]</span>
@@ -413,17 +478,23 @@
 <span class="sd">        method used for the solver either 'sinkhorn', 'sinkhorn_stabilized', 'sinkhorn_translation_invariant' or</span>
 <span class="sd">        'sinkhorn_reg_scaling', see those function for specific parameters</span>
 <span class="sd">    reg_type : string, optional</span>
-<span class="sd">        Regularizer term. Can take two values:</span>
+<span class="sd">        Name of the regularizer :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})`,</span>
+<span class="sd">        case insensitive. Can take two values:</span>
 
 <span class="sd">        - Negative entropy: 'entropy':</span>
 <span class="sd">          :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j}`.</span>
-<span class="sd">          This is equivalent (up to a constant) to :math:`\Omega(\gamma) = \text{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)`.</span>
-<span class="sd">        - Kullback-Leibler divergence: 'kl':</span>
-<span class="sd">          :math:`\Omega(\gamma) = \text{KL}(\gamma, \mathbf{a} \mathbf{b}^T)`.</span>
+<span class="sd">          It is equal to :math:`\mathrm{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)` minus the</span>
+<span class="sd">          constant :math:`dim_a \times dim_b`, and the reference measure :math:`\mathbf{c}`</span>
+<span class="sd">          is overwritten by the all-ones matrix.</span>
+<span class="sd">        - Generalized Kullback-Leibler divergence (default): 'kl':</span>
+<span class="sd">          :math:`\Omega(\gamma, \mathbf{c}) = \mathrm{KL}(\gamma, \mathbf{c})` with</span>
+<span class="sd">          :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T` when `c` is None.</span>
+
+<span class="sd">        Any other value raises a :class:`ValueError`.</span>
 <span class="sd">    c : array-like, shape (dim_a, dim_b), optional (default=None)</span>
 <span class="sd">        Reference measure for the regularization.</span>
 <span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
-<span class="sd">        If :math:`\texttt{reg_type}=`'entropy', then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
+<span class="sd">        If ``reg_type="entropy"``, then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
 <span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
 <span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors).</span>
@@ -446,6 +517,19 @@
 <span class="sd">        the OT cost between :math:`\mathbf{a}` and each of the histograms :math:`\mathbf{b}_i`</span>
 <span class="sd">    log : dict</span>
 <span class="sd">        log dictionary returned only if `log` is `True`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    When `log=True`, the returned dictionary is the one of the solver selected by</span>
+<span class="sd">    `method`, see :any:`ot.unbalanced.sinkhorn_knopp_unbalanced`,</span>
+<span class="sd">    :any:`ot.unbalanced.sinkhorn_stabilized_unbalanced` and</span>
+<span class="sd">    :any:`ot.unbalanced.sinkhorn_unbalanced_translation_invariant`.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        When `b` is a 2d array of shape (`dim_b`, `n_hists`) -- which includes</span>
+<span class="sd">        :math:`n_{hists} = 1` -- only the negative entropy regularization is</span>
+<span class="sd">        implemented: `reg_type` and `c` are ignored, and only the linear cost is</span>
+<span class="sd">        returned.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -576,8 +660,13 @@
             <span class="k">return</span> <span class="n">cost</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"kl"</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"Reg_type not implemented yet. Use entropy."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">returnCost</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unknown returnCost = </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">returnCost</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">returnCost</span> <span class="o">!=</span> <span class="s2">"linear"</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"returnCost='total' is not available with a 2d b (n_hists=</span><span class="si">{}</span><span class="s2">): "</span>
+                <span class="s2">"the linear cost is returned."</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"sinkhorn"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">sinkhorn_knopp_unbalanced</span><span class="p">(</span>
@@ -677,7 +766,7 @@
 
 <span class="sd">    .. math::</span>
 <span class="sd">        W = \arg \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
-<span class="sd">        \mathrm{reg} \cdot \mathrm{KL}(\gamma, \mathbf{c}) +</span>
+<span class="sd">        \mathrm{reg} \cdot \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) +</span>
 <span class="sd">        \mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +</span>
 <span class="sd">        \mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})</span>
 
@@ -689,7 +778,17 @@
 <span class="sd">    - :math:`\mathbf{M}` is the (`dim_a`, `dim_b`) metric cost matrix</span>
 <span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
 <span class="sd">    - :math:`\mathbf{c}` is a reference distribution for the regularization</span>
-<span class="sd">    - KL is the Kullback-Leibler divergence</span>
+<span class="sd">    - :math:`\mathrm{KL}` is the generalized Kullback-Leibler divergence</span>
+<span class="sd">      :math:`\mathrm{KL}(\mathbf{P}, \mathbf{Q}) = \sum_{i,j} \mathbf{P}_{i,j} \log(\mathbf{P}_{i,j} / \mathbf{Q}_{i,j}) - \mathbf{P}_{i,j} + \mathbf{Q}_{i,j}`</span>
+
+<span class="sd">    and :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})` is the regularizer</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) =</span>
+<span class="sd">        \begin{cases}</span>
+<span class="sd">        \mathrm{KL}(\gamma, \mathbf{c}) &amp; \text{if } \texttt{reg\_type} = \text{'kl'}, \\</span>
+<span class="sd">        \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j} &amp; \text{if } \texttt{reg\_type} = \text{'entropy'}.</span>
+<span class="sd">        \end{cases}</span>
 
 <span class="sd">    The algorithm used for solving the problem is the generalized Sinkhorn-Knopp matrix scaling algorithm as proposed in :ref:`[10, 25] &lt;references-sinkhorn-knopp-unbalanced&gt;`</span>
 
@@ -724,17 +823,23 @@
 <span class="sd">        If :math:`\mathrm{reg_{m}}` is an array,</span>
 <span class="sd">        it must have the same backend as input arrays `(a, b, M)`.</span>
 <span class="sd">    reg_type : string, optional</span>
-<span class="sd">        Regularizer term. Can take two values:</span>
+<span class="sd">        Name of the regularizer :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})`,</span>
+<span class="sd">        case insensitive. Can take two values:</span>
 
 <span class="sd">        - Negative entropy: 'entropy':</span>
 <span class="sd">          :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j}`.</span>
-<span class="sd">          This is equivalent (up to a constant) to :math:`\Omega(\gamma) = \text{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)`.</span>
-<span class="sd">        - Kullback-Leibler divergence: 'kl':</span>
-<span class="sd">          :math:`\Omega(\gamma) = \text{KL}(\gamma, \mathbf{a} \mathbf{b}^T)`.</span>
+<span class="sd">          It is equal to :math:`\mathrm{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)` minus the</span>
+<span class="sd">          constant :math:`dim_a \times dim_b`, and the reference measure :math:`\mathbf{c}`</span>
+<span class="sd">          is overwritten by the all-ones matrix.</span>
+<span class="sd">        - Generalized Kullback-Leibler divergence (default): 'kl':</span>
+<span class="sd">          :math:`\Omega(\gamma, \mathbf{c}) = \mathrm{KL}(\gamma, \mathbf{c})` with</span>
+<span class="sd">          :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T` when `c` is None.</span>
+
+<span class="sd">        Any other value raises a :class:`ValueError`.</span>
 <span class="sd">    c : array-like, shape (dim_a, dim_b), optional (default=None)</span>
 <span class="sd">        Reference measure for the regularization.</span>
 <span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
-<span class="sd">        If :math:`\texttt{reg_type}=`'entropy', then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
+<span class="sd">        If ``reg_type="entropy"``, then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
 <span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
 <span class="sd">        (that is the logarithm of the `u`, `v` sinkhorn scaling vectors).</span>
@@ -750,7 +855,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    if n_hists == 1:</span>
+<span class="sd">    if n_hists == 0:</span>
 <span class="sd">        - gamma : array-like, shape (dim_a, dim_b)</span>
 <span class="sd">            Optimal transportation matrix for the given parameters</span>
 <span class="sd">        - log : dict</span>
@@ -760,6 +865,25 @@
 <span class="sd">            the OT cost between :math:`\mathbf{a}` and each of the histograms :math:`\mathbf{b}_i`</span>
 <span class="sd">        - log : dict</span>
 <span class="sd">            log dictionary returned only if `log` is `True`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The `log` dictionary returned when `log=True` contains:</span>
+
+<span class="sd">    - 'err' : list of float, the error at each iteration;</span>
+<span class="sd">    - 'logu', 'logv' : array-like, the log of the scaling vectors;</span>
+<span class="sd">    - 'cost' : float, the linear cost :math:`\langle \gamma, \mathbf{M} \rangle_F`;</span>
+<span class="sd">    - 'total_cost' : float, the value of the optimization problem above.</span>
+
+<span class="sd">    'cost' and 'total_cost' are only computed when `b` is a single histogram.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        When `b` is a 2d array of shape (`dim_b`, `n_hists`) -- which includes</span>
+<span class="sd">        :math:`n_{hists} = 1`, since any 2d `b` selects this branch -- the function</span>
+<span class="sd">        returns the cost of each column instead of a plan, and **only the negative</span>
+<span class="sd">        entropy regularization is implemented**: `reg_type` and `c` are ignored and</span>
+<span class="sd">        the reference measure is the all-ones matrix. In that case `log` only</span>
+<span class="sd">        contains 'err', 'logu' and 'logv'.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -794,6 +918,8 @@
     <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
+    <span class="n">reg_type</span> <span class="o">=</span> <span class="n">_check_reg_type</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)</span>
+
     <span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -805,6 +931,13 @@
         <span class="n">n_hists</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">n_hists</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">n_hists</span> <span class="ow">and</span> <span class="p">(</span><span class="n">reg_type</span> <span class="o">!=</span> <span class="s2">"entropy"</span> <span class="ow">or</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">"With a 2d b (n_hists=</span><span class="si">{}</span><span class="s2">) only the negative entropy regularization is "</span>
+            <span class="s2">"implemented: reg_type and c are ignored and the reference measure is "</span>
+            <span class="s2">"the all-ones matrix."</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_hists</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_m</span><span class="p">)</span>
 
@@ -824,10 +957,13 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">warmstart</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">warmstart</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">"If reg_type = entropy, then the matrix c is overwritten by the one matrix."</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
+        <span class="c1"># in 2d mode the warning above already reports that c is ignored</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">n_hists</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"reg_type='entropy' ignores the provided c: the reference measure "</span>
+                <span class="s2">"of the regularization is the all-ones matrix."</span>
+            <span class="p">)</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">n_hists</span><span class="p">:</span>
@@ -898,11 +1034,25 @@
             <span class="n">linear_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">"cost"</span><span class="p">]</span> <span class="o">=</span> <span class="n">linear_cost</span>
 
-            <span class="n">total_cost</span> <span class="o">=</span> <span class="n">linear_cost</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+            <span class="c1"># The regularizer is the generalized KL divergence</span>
+            <span class="c1">#     KL(plan, c) = sum(plan * log(plan / c) - plan + c).</span>
+            <span class="c1"># With reg_type="entropy" the reference measure is c = 1 and the</span>
+            <span class="c1"># regularizer is the negative entropy</span>
+            <span class="c1">#     Omega(plan) = sum(plan * log(plan) - plan)</span>
+            <span class="c1">#                 = KL(plan, 1) - dim_a * dim_b,</span>
+            <span class="c1"># so the constant dim_a * dim_b must be removed.</span>
+            <span class="n">reg_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
+                <span class="n">reg_cost</span> <span class="o">=</span> <span class="n">reg_cost</span> <span class="o">-</span> <span class="n">dim_a</span> <span class="o">*</span> <span class="n">dim_b</span>
+            <span class="n">total_cost</span> <span class="o">=</span> <span class="n">linear_cost</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">reg_cost</span>
             <span class="k">if</span> <span class="n">reg_m1</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">):</span>
-                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
+                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="n">reg_m2</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">):</span>
-                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">)</span>
+                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">"total_cost"</span><span class="p">]</span> <span class="o">=</span> <span class="n">total_cost</span>
 
             <span class="k">return</span> <span class="n">plan</span><span class="p">,</span> <span class="n">dict_log</span>
@@ -938,7 +1088,7 @@
 
 <span class="sd">    .. math::</span>
 <span class="sd">        W = \arg \min_\gamma \quad \langle \gamma, \mathbf{M} \rangle_F +</span>
-<span class="sd">        \mathrm{reg} \cdot \mathrm{KL}(\gamma, \mathbf{c}) +</span>
+<span class="sd">        \mathrm{reg} \cdot \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) +</span>
 <span class="sd">        \mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +</span>
 <span class="sd">        \mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})</span>
 
@@ -950,7 +1100,17 @@
 <span class="sd">    - :math:`\mathbf{M}` is the (`dim_a`, `dim_b`) metric cost matrix</span>
 <span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
 <span class="sd">    - :math:`\mathbf{c}` is a reference distribution for the regularization</span>
-<span class="sd">    - KL is the Kullback-Leibler divergence</span>
+<span class="sd">    - :math:`\mathrm{KL}` is the generalized Kullback-Leibler divergence</span>
+<span class="sd">      :math:`\mathrm{KL}(\mathbf{P}, \mathbf{Q}) = \sum_{i,j} \mathbf{P}_{i,j} \log(\mathbf{P}_{i,j} / \mathbf{Q}_{i,j}) - \mathbf{P}_{i,j} + \mathbf{Q}_{i,j}`</span>
+
+<span class="sd">    and :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})` is the regularizer</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) =</span>
+<span class="sd">        \begin{cases}</span>
+<span class="sd">        \mathrm{KL}(\gamma, \mathbf{c}) &amp; \text{if } \texttt{reg\_type} = \text{'kl'}, \\</span>
+<span class="sd">        \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j} &amp; \text{if } \texttt{reg\_type} = \text{'entropy'}.</span>
+<span class="sd">        \end{cases}</span>
 
 <span class="sd">    The algorithm used for solving the problem is the generalized</span>
 <span class="sd">    Sinkhorn-Knopp matrix scaling algorithm as proposed in :ref:`[10, 25] &lt;references-sinkhorn-stabilized-unbalanced&gt;`</span>
@@ -985,17 +1145,23 @@
 <span class="sd">        method used for the solver either 'sinkhorn', 'sinkhorn_stabilized' or</span>
 <span class="sd">        'sinkhorn_reg_scaling', see those function for specific parameters</span>
 <span class="sd">    reg_type : string, optional</span>
-<span class="sd">        Regularizer term. Can take two values:</span>
+<span class="sd">        Name of the regularizer :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})`,</span>
+<span class="sd">        case insensitive. Can take two values:</span>
 
 <span class="sd">        - Negative entropy: 'entropy':</span>
 <span class="sd">          :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j}`.</span>
-<span class="sd">          This is equivalent (up to a constant) to :math:`\Omega(\gamma) = \text{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)`.</span>
-<span class="sd">        - Kullback-Leibler divergence: 'kl':</span>
-<span class="sd">          :math:`\Omega(\gamma) = \text{KL}(\gamma, \mathbf{a} \mathbf{b}^T)`.</span>
+<span class="sd">          It is equal to :math:`\mathrm{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)` minus the</span>
+<span class="sd">          constant :math:`dim_a \times dim_b`, and the reference measure :math:`\mathbf{c}`</span>
+<span class="sd">          is overwritten by the all-ones matrix.</span>
+<span class="sd">        - Generalized Kullback-Leibler divergence (default): 'kl':</span>
+<span class="sd">          :math:`\Omega(\gamma, \mathbf{c}) = \mathrm{KL}(\gamma, \mathbf{c})` with</span>
+<span class="sd">          :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T` when `c` is None.</span>
+
+<span class="sd">        Any other value raises a :class:`ValueError`.</span>
 <span class="sd">    c : array-like, shape (dim_a, dim_b), optional (default=None)</span>
 <span class="sd">        Reference measure for the regularization.</span>
 <span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
-<span class="sd">        If :math:`\texttt{reg_type}=`'entropy', then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
+<span class="sd">        If ``reg_type="entropy"``, then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
 <span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
 <span class="sd">        (that is the logarithm of the `u`, `v` sinkhorn scaling vectors).</span>
@@ -1017,7 +1183,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    if n_hists == 1:</span>
+<span class="sd">    if n_hists == 0:</span>
 <span class="sd">        - gamma : array-like, shape (dim_a, dim_b)</span>
 <span class="sd">            Optimal transportation matrix for the given parameters</span>
 <span class="sd">        - log : dict</span>
@@ -1027,6 +1193,25 @@
 <span class="sd">            the OT cost between :math:`\mathbf{a}` and each of the histograms :math:`\mathbf{b}_i`</span>
 <span class="sd">        - log : dict</span>
 <span class="sd">            log dictionary returned only if `log` is `True`</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The `log` dictionary returned when `log=True` contains:</span>
+
+<span class="sd">    - 'err' : list of float, the error at each iteration;</span>
+<span class="sd">    - 'logu', 'logv' : array-like, the log of the scaling vectors;</span>
+<span class="sd">    - 'cost' : float, the linear cost :math:`\langle \gamma, \mathbf{M} \rangle_F`;</span>
+<span class="sd">    - 'total_cost' : float, the value of the optimization problem above.</span>
+
+<span class="sd">    'cost' and 'total_cost' are only computed when `b` is a single histogram.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        When `b` is a 2d array of shape (`dim_b`, `n_hists`) -- which includes</span>
+<span class="sd">        :math:`n_{hists} = 1`, since any 2d `b` selects this branch -- the function</span>
+<span class="sd">        returns the cost of each column instead of a plan, and **only the negative</span>
+<span class="sd">        entropy regularization is implemented**: `reg_type` and `c` are ignored and</span>
+<span class="sd">        the reference measure is the all-ones matrix. In that case `log` only</span>
+<span class="sd">        contains 'err', 'logu' and 'logv'.</span>
+
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 
@@ -1059,6 +1244,8 @@
     <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
+    <span class="n">reg_type</span> <span class="o">=</span> <span class="n">_check_reg_type</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)</span>
+
     <span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1070,6 +1257,13 @@
         <span class="n">n_hists</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">n_hists</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">n_hists</span> <span class="ow">and</span> <span class="p">(</span><span class="n">reg_type</span> <span class="o">!=</span> <span class="s2">"entropy"</span> <span class="ow">or</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">"With a 2d b (n_hists=</span><span class="si">{}</span><span class="s2">) only the negative entropy regularization is "</span>
+            <span class="s2">"implemented: reg_type and c are ignored and the reference measure is "</span>
+            <span class="s2">"the all-ones matrix."</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_hists</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_m</span><span class="p">)</span>
 
@@ -1090,9 +1284,12 @@
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">warmstart</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">nx</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">warmstart</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">"If reg_type = entropy, then the matrix c is overwritten by the one matrix."</span>
-        <span class="p">)</span>
+        <span class="c1"># in 2d mode the warning above already reports that c is ignored</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">n_hists</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"reg_type='entropy' ignores the provided c: the reference measure "</span>
+                <span class="s2">"of the regularization is the all-ones matrix."</span>
+            <span class="p">)</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">n_hists</span><span class="p">:</span>
@@ -1201,11 +1398,25 @@
             <span class="n">linear_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">"cost"</span><span class="p">]</span> <span class="o">=</span> <span class="n">linear_cost</span>
 
-            <span class="n">total_cost</span> <span class="o">=</span> <span class="n">linear_cost</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+            <span class="c1"># The regularizer is the generalized KL divergence</span>
+            <span class="c1">#     KL(plan, c) = sum(plan * log(plan / c) - plan + c).</span>
+            <span class="c1"># With reg_type="entropy" the reference measure is c = 1 and the</span>
+            <span class="c1"># regularizer is the negative entropy</span>
+            <span class="c1">#     Omega(plan) = sum(plan * log(plan) - plan)</span>
+            <span class="c1">#                 = KL(plan, 1) - dim_a * dim_b,</span>
+            <span class="c1"># so the constant dim_a * dim_b must be removed.</span>
+            <span class="n">reg_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
+                <span class="n">reg_cost</span> <span class="o">=</span> <span class="n">reg_cost</span> <span class="o">-</span> <span class="n">dim_a</span> <span class="o">*</span> <span class="n">dim_b</span>
+            <span class="n">total_cost</span> <span class="o">=</span> <span class="n">linear_cost</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">reg_cost</span>
             <span class="k">if</span> <span class="n">reg_m1</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">):</span>
-                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
+                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="n">reg_m2</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">):</span>
-                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">)</span>
+                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">"total_cost"</span><span class="p">]</span> <span class="o">=</span> <span class="n">total_cost</span>
 
             <span class="k">return</span> <span class="n">plan</span><span class="p">,</span> <span class="n">dict_log</span>
@@ -1239,7 +1450,7 @@
 
 <span class="sd">    .. math::</span>
 <span class="sd">        W = \arg \min_\gamma \ \langle \gamma, \mathbf{M} \rangle_F +</span>
-<span class="sd">        \mathrm{reg} \cdot \mathrm{KL}(\gamma, \mathbf{c}) +</span>
+<span class="sd">        \mathrm{reg} \cdot \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) +</span>
 <span class="sd">        \mathrm{reg_{m1}} \cdot \mathrm{KL}(\gamma \mathbf{1}, \mathbf{a}) +</span>
 <span class="sd">        \mathrm{reg_{m2}} \cdot \mathrm{KL}(\gamma^T \mathbf{1}, \mathbf{b})</span>
 
@@ -1249,9 +1460,18 @@
 <span class="sd">    where :</span>
 
 <span class="sd">    - :math:`\mathbf{M}` is the (`dim_a`, `dim_b`) metric cost matrix</span>
-<span class="sd">    - :math:`\Omega` is the entropic regularization term,KL divergence</span>
 <span class="sd">    - :math:`\mathbf{a}` and :math:`\mathbf{b}` are source and target unbalanced distributions</span>
-<span class="sd">    - KL is the Kullback-Leibler divergence</span>
+<span class="sd">    - :math:`\mathrm{KL}` is the generalized Kullback-Leibler divergence</span>
+<span class="sd">      :math:`\mathrm{KL}(\mathbf{P}, \mathbf{Q}) = \sum_{i,j} \mathbf{P}_{i,j} \log(\mathbf{P}_{i,j} / \mathbf{Q}_{i,j}) - \mathbf{P}_{i,j} + \mathbf{Q}_{i,j}`</span>
+
+<span class="sd">    and :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})` is the regularizer</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c}) =</span>
+<span class="sd">        \begin{cases}</span>
+<span class="sd">        \mathrm{KL}(\gamma, \mathbf{c}) &amp; \text{if } \texttt{reg\_type} = \text{'kl'}, \\</span>
+<span class="sd">        \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j} &amp; \text{if } \texttt{reg\_type} = \text{'entropy'}.</span>
+<span class="sd">        \end{cases}</span>
 
 <span class="sd">    The algorithm used for solving the problem is the translation invariant Sinkhorn algorithm as proposed in :ref:`[73] &lt;references-sinkhorn-unbalanced-translation-invariant&gt;`</span>
 
@@ -1275,15 +1495,23 @@
 <span class="sd">        `reg_m=(float("inf"), scalar)` or `reg_m=(scalar, float("inf"))`.</span>
 <span class="sd">        If reg_m is an array, it must have the same backend as input arrays (a, b, M).</span>
 <span class="sd">    reg_type : string, optional</span>
-<span class="sd">        Regularizer term. Can take two values:</span>
-<span class="sd">        'entropy' (negative entropy)</span>
-<span class="sd">        :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j}`, or</span>
-<span class="sd">        'kl' (Kullback-Leibler)</span>
-<span class="sd">        :math:`\Omega(\gamma) = \text{KL}(\gamma, \mathbf{a} \mathbf{b}^T)`.</span>
+<span class="sd">        Name of the regularizer :math:`\Omega_{\texttt{reg\_type}}(\gamma, \mathbf{c})`,</span>
+<span class="sd">        case insensitive. Can take two values:</span>
+
+<span class="sd">        - Negative entropy: 'entropy':</span>
+<span class="sd">          :math:`\Omega(\gamma) = \sum_{i,j} \gamma_{i,j} \log(\gamma_{i,j}) - \sum_{i,j} \gamma_{i,j}`.</span>
+<span class="sd">          It is equal to :math:`\mathrm{KL}(\gamma, 1_{dim_a} 1_{dim_b}^T)` minus the</span>
+<span class="sd">          constant :math:`dim_a \times dim_b`, and the reference measure :math:`\mathbf{c}`</span>
+<span class="sd">          is overwritten by the all-ones matrix.</span>
+<span class="sd">        - Generalized Kullback-Leibler divergence (default): 'kl':</span>
+<span class="sd">          :math:`\Omega(\gamma, \mathbf{c}) = \mathrm{KL}(\gamma, \mathbf{c})` with</span>
+<span class="sd">          :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T` when `c` is None.</span>
+
+<span class="sd">        Any other value raises a :class:`ValueError`.</span>
 <span class="sd">    c : array-like, shape (dim_a, dim_b), optional (default=None)</span>
 <span class="sd">        Reference measure for the regularization.</span>
 <span class="sd">        If None, then use :math:`\mathbf{c} = \mathbf{a} \mathbf{b}^T`.</span>
-<span class="sd">        If :math:`\texttt{reg_type}=`'entropy', then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
+<span class="sd">        If ``reg_type="entropy"``, then :math:`\mathbf{c} = 1_{dim_a} 1_{dim_b}^T`.</span>
 <span class="sd">    warmstart: tuple of arrays, shape (dim_a, dim_b), optional</span>
 <span class="sd">        Initialization of dual potentials. If provided, the dual potentials should be given</span>
 <span class="sd">        (that is the logarithm of the u,v sinkhorn scaling vectors).</span>
@@ -1299,7 +1527,7 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    if n_hists == 1:</span>
+<span class="sd">    if n_hists == 0:</span>
 <span class="sd">        - gamma : array-like, shape (dim_a, dim_b)</span>
 <span class="sd">            Optimal transportation matrix for the given parameters</span>
 <span class="sd">        - log : dict</span>
@@ -1309,6 +1537,25 @@
 <span class="sd">            the OT distance between :math:`\mathbf{a}` and each of the histograms :math:`\mathbf{b}_i`</span>
 <span class="sd">        - log : dict</span>
 <span class="sd">            log dictionary returned only if `log` is `True`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The `log` dictionary returned when `log=True` contains:</span>
+
+<span class="sd">    - 'err' : list of float, the error at each iteration;</span>
+<span class="sd">    - 'logu', 'logv' : array-like, the log of the scaling vectors;</span>
+<span class="sd">    - 'cost' : float, the linear cost :math:`\langle \gamma, \mathbf{M} \rangle_F`;</span>
+<span class="sd">    - 'total_cost' : float, the value of the optimization problem above.</span>
+
+<span class="sd">    'cost' and 'total_cost' are only computed when `b` is a single histogram.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        When `b` is a 2d array of shape (`dim_b`, `n_hists`) -- which includes</span>
+<span class="sd">        :math:`n_{hists} = 1`, since any 2d `b` selects this branch -- the function</span>
+<span class="sd">        returns the cost of each column instead of a plan, and **only the negative</span>
+<span class="sd">        entropy regularization is implemented**: `reg_type` and `c` are ignored and</span>
+<span class="sd">        the reference measure is the all-ones matrix. In that case `log` only</span>
+<span class="sd">        contains 'err', 'logu' and 'logv'.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -1333,6 +1580,8 @@
     <span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">list_to_array</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
     <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
+    <span class="n">reg_type</span> <span class="o">=</span> <span class="n">_check_reg_type</span><span class="p">(</span><span class="n">reg_type</span><span class="p">)</span>
+
     <span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1344,6 +1593,13 @@
         <span class="n">n_hists</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">n_hists</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">n_hists</span> <span class="ow">and</span> <span class="p">(</span><span class="n">reg_type</span> <span class="o">!=</span> <span class="s2">"entropy"</span> <span class="ow">or</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">"With a 2d b (n_hists=</span><span class="si">{}</span><span class="s2">) only the negative entropy regularization is "</span>
+            <span class="s2">"implemented: reg_type and c are ignored and the reference measure is "</span>
+            <span class="s2">"the all-ones matrix."</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_hists</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="n">reg_m1</span><span class="p">,</span> <span class="n">reg_m2</span> <span class="o">=</span> <span class="n">get_parameter_pair</span><span class="p">(</span><span class="n">reg_m</span><span class="p">)</span>
 
@@ -1366,9 +1622,12 @@
     <span class="n">u_</span><span class="p">,</span> <span class="n">v_</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span>
 
     <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">"If reg_type = entropy, then the matrix c is overwritten by the one matrix."</span>
-        <span class="p">)</span>
+        <span class="c1"># in 2d mode the warning above already reports that c is ignored</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">n_hists</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"reg_type='entropy' ignores the provided c: the reference measure "</span>
+                <span class="s2">"of the regularization is the all-ones matrix."</span>
+            <span class="p">)</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">dim_a</span><span class="p">,</span> <span class="n">dim_b</span><span class="p">),</span> <span class="n">type_as</span><span class="o">=</span><span class="n">M</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">n_hists</span><span class="p">:</span>
@@ -1487,11 +1746,25 @@
             <span class="n">linear_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">"cost"</span><span class="p">]</span> <span class="o">=</span> <span class="n">linear_cost</span>
 
-            <span class="n">total_cost</span> <span class="o">=</span> <span class="n">linear_cost</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+            <span class="c1"># The regularizer is the generalized KL divergence</span>
+            <span class="c1">#     KL(plan, c) = sum(plan * log(plan / c) - plan + c).</span>
+            <span class="c1"># With reg_type="entropy" the reference measure is c = 1 and the</span>
+            <span class="c1"># regularizer is the negative entropy</span>
+            <span class="c1">#     Omega(plan) = sum(plan * log(plan) - plan)</span>
+            <span class="c1">#                 = KL(plan, 1) - dim_a * dim_b,</span>
+            <span class="c1"># so the constant dim_a * dim_b must be removed.</span>
+            <span class="n">reg_cost</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">reg_type</span> <span class="o">==</span> <span class="s2">"entropy"</span><span class="p">:</span>
+                <span class="n">reg_cost</span> <span class="o">=</span> <span class="n">reg_cost</span> <span class="o">-</span> <span class="n">dim_a</span> <span class="o">*</span> <span class="n">dim_b</span>
+            <span class="n">total_cost</span> <span class="o">=</span> <span class="n">linear_cost</span> <span class="o">+</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">reg_cost</span>
             <span class="k">if</span> <span class="n">reg_m1</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">):</span>
-                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
+                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m1</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="n">reg_m2</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">):</span>
-                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">)</span>
+                <span class="n">total_cost</span> <span class="o">=</span> <span class="n">total_cost</span> <span class="o">+</span> <span class="n">reg_m2</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
+                    <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
             <span class="n">dict_log</span><span class="p">[</span><span class="s2">"total_cost"</span><span class="p">]</span> <span class="o">=</span> <span class="n">total_cost</span>
 
             <span class="k">return</span> <span class="n">plan</span><span class="p">,</span> <span class="n">dict_log</span>
