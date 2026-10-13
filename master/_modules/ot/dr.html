@@ -102,20 +102,54 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">linalg</span>
 
+<span class="c1"># ot.dr offers solvers with different dependencies. Each is imported optionally</span>
+<span class="c1"># so that, for instance, the PyTorch WDA solver works on an installation with no</span>
+<span class="c1"># autograd or pymanopt. Functions raise an ImportError naming what they need.</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">autograd.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.decomposition</span><span class="w"> </span><span class="kn">import</span> <span class="n">PCA</span>
 
+    <span class="n">HAS_AUTOGRAD</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - depends on the installation</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+    <span class="n">HAS_AUTOGRAD</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pymanopt</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pymanopt.manifolds</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pymanopt.optimizers</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-        <span class="s2">"Missing dependency for ot.dr. Requires autograd, pymanopt, scikit-learn. You can install with install with 'pip install POT[dr]', or 'conda install autograd pymanopt scikit-learn'"</span>
-    <span class="p">)</span>
 
+    <span class="n">HAS_PYMANOPT</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - depends on the installation</span>
+    <span class="n">HAS_PYMANOPT</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+    <span class="n">HAS_TORCH</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - depends on the installation</span>
+    <span class="n">HAS_TORCH</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.decomposition</span><span class="w"> </span><span class="kn">import</span> <span class="n">PCA</span>
+
+    <span class="n">HAS_SKLEARN</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - depends on the installation</span>
+    <span class="n">HAS_SKLEARN</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_backend</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.bregman</span><span class="w"> </span><span class="kn">import</span> <span class="n">sinkhorn</span> <span class="k">as</span> <span class="n">sinkhorn_bregman</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">dist</span> <span class="k">as</span> <span class="n">dist_utils</span><span class="p">,</span> <span class="n">check_random_state</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_require</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">dependencies</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Check requirement and raise error if not available."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">condition</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Missing dependency for ot.dr.</span><span class="si">{</span><span class="n">function</span><span class="si">}</span><span class="s2">. Requires </span><span class="si">{</span><span class="n">dependencies</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="s2">"You can install with 'pip install POT[dr]', or "</span>
+            <span class="s2">"'conda install autograd pymanopt scikit-learn'"</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="dist">
@@ -176,6 +210,340 @@
     <span class="n">lstsclass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">X</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lstsclass</span><span class="p">]</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stiefel_projection</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">nx</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Project a euclidean gradient onto the tangent space of the Stiefel manifold.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    P : array-like, shape (d, p)</span>
+<span class="sd">        Current point, with orthonormal columns.</span>
+<span class="sd">    G : array-like, shape (d, p)</span>
+<span class="sd">        Euclidean gradient at :math:`\mathbf{P}`.</span>
+<span class="sd">    nx : backend</span>
+<span class="sd">        Backend to use for the computation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    G_tangent : array-like, shape (d, p)</span>
+<span class="sd">        Component of :math:`\mathbf{G}` tangent to Stiefel at :math:`\mathbf{P}`,</span>
+<span class="sd">        that is :math:`\mathbf{G} - \mathbf{P}\,\mathrm{sym}(\mathbf{P}^\top \mathbf{G})`.</span>
+<span class="sd">    """</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">G</span> <span class="o">-</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">W</span> <span class="o">+</span> <span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stiefel_retraction</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">nx</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Retract :math:`\mathbf{P} + \mathbf{X}` onto the Stiefel manifold by QR.</span>
+
+<span class="sd">    The sign of each column is fixed so that the diagonal of :math:`\mathbf{R}`</span>
+<span class="sd">    is non-negative, which makes the retraction a continuous map.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    P : array-like, shape (d, p)</span>
+<span class="sd">        Current point, with orthonormal columns.</span>
+<span class="sd">    X : array-like, shape (d, p)</span>
+<span class="sd">        Tangent step to apply.</span>
+<span class="sd">    nx : backend</span>
+<span class="sd">        Backend to use for the computation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    P_next : array-like, shape (d, p)</span>
+<span class="sd">        Point on Stiefel with orthonormal columns.</span>
+<span class="sd">    """</span>
+    <span class="n">Q</span><span class="p">,</span> <span class="n">R</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">P</span> <span class="o">+</span> <span class="n">X</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Q</span> <span class="o">*</span> <span class="n">nx</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_wda_cost</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">xc</span><span class="p">,</span> <span class="n">wc</span><span class="p">,</span> <span class="n">regmean</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">sinkhorn_method</span><span class="p">,</span> <span class="n">nx</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Wasserstein Discriminant Analysis objective at a projection :math:`\mathbf{P}`.</span>
+
+<span class="sd">    Computes the ratio of the within-class to the between-class entropic</span>
+<span class="sd">    transport cost of the projected samples, which is the quantity `wda`</span>
+<span class="sd">    minimizes. The Sinkhorn solver is run for exactly `k` iterations rather</span>
+<span class="sd">    than to a tolerance, so the objective is a fixed-depth, differentiable</span>
+<span class="sd">    function of :math:`\mathbf{P}`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    P : array-like, shape (d, p)</span>
+<span class="sd">        Projection, with orthonormal columns.</span>
+<span class="sd">    xc : list of array-like</span>
+<span class="sd">        Samples split by class, each of shape (n_i, d).</span>
+<span class="sd">    wc : list of array-like</span>
+<span class="sd">        Uniform weights for each class, each of shape (n_i,).</span>
+<span class="sd">    regmean : array-like, shape (n_classes, n_classes)</span>
+<span class="sd">        Per-pair scaling of `reg`, all ones unless `normalize` was requested.</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Entropic regularization term &gt; 0.</span>
+<span class="sd">    k : int</span>
+<span class="sd">        Number of Sinkhorn iterations.</span>
+<span class="sd">    sinkhorn_method : str</span>
+<span class="sd">        Either 'sinkhorn' or 'sinkhorn_log', passed to :py:func:`ot.sinkhorn`.</span>
+<span class="sd">    nx : backend</span>
+<span class="sd">        Backend to use for the computation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    loss : float or array-like scalar</span>
+<span class="sd">        Within-class cost divided by between-class cost.</span>
+<span class="sd">    """</span>
+    <span class="n">loss_b</span><span class="p">,</span> <span class="n">loss_w</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">xi</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xc</span><span class="p">):</span>
+        <span class="n">xi</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">xj</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xc</span><span class="p">[</span><span class="n">i</span><span class="p">:]):</span>
+            <span class="n">xj</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xj</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">dist_utils</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">)</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">sinkhorn_bregman</span><span class="p">(</span>
+                <span class="n">wc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">wc</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="n">i</span><span class="p">],</span>
+                <span class="n">M</span><span class="p">,</span>
+                <span class="n">reg</span> <span class="o">*</span> <span class="n">regmean</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span>
+                <span class="n">method</span><span class="o">=</span><span class="n">sinkhorn_method</span><span class="p">,</span>
+                <span class="n">numItermax</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">stopThr</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">warn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">term</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="n">M</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">loss_w</span> <span class="o">=</span> <span class="n">loss_w</span> <span class="o">+</span> <span class="n">term</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss_b</span> <span class="o">=</span> <span class="n">loss_b</span> <span class="o">+</span> <span class="n">term</span>
+    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">loss_b</span><span class="p">))</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"The between-class transport cost underflowed to zero, so the WDA "</span>
+            <span class="s2">"objective is undefined. reg is too small for the scale of the "</span>
+            <span class="s2">"data: exp(-M/reg) underflows. Increase reg, or use "</span>
+            <span class="s2">"sinkhorn_method='sinkhorn_log'."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss_w</span> <span class="o">/</span> <span class="n">loss_b</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_wda_torch</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">y</span><span class="p">,</span>
+    <span class="n">p</span><span class="p">,</span>
+    <span class="n">reg</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">,</span>
+    <span class="n">sinkhorn_method</span><span class="p">,</span>
+    <span class="n">maxiter</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">,</span>
+    <span class="n">P0</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="p">,</span>
+    <span class="n">step_growth</span><span class="p">,</span>
+    <span class="n">step_shrink</span><span class="p">,</span>
+    <span class="n">max_backtracks</span><span class="p">,</span>
+    <span class="n">gtol</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Solve WDA with PyTorch autodiff and Riemannian gradient descent.</span>
+
+<span class="sd">    Follows the same scheme as pymanopt's ``SteepestDescent`` with its default</span>
+<span class="sd">    ``BackTrackingLineSearcher``: project the euclidean gradient onto the</span>
+<span class="sd">    tangent space, retract by QR, and backtrack from a step proportional to the</span>
+<span class="sd">    last accepted one. Both solvers therefore target the same optimum.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : torch.Tensor, shape (n, d)</span>
+<span class="sd">        Mean-centred training samples.</span>
+<span class="sd">    y : torch.Tensor, shape (n,)</span>
+<span class="sd">        Integer class codes.</span>
+<span class="sd">    p : int</span>
+<span class="sd">        Size of the dimensionality reduction.</span>
+<span class="sd">    reg : float</span>
+<span class="sd">        Entropic regularization term &gt; 0.</span>
+<span class="sd">    k : int</span>
+<span class="sd">        Number of Sinkhorn iterations per objective evaluation.</span>
+<span class="sd">    sinkhorn_method : str</span>
+<span class="sd">        Either 'sinkhorn' or 'sinkhorn_log'.</span>
+<span class="sd">    maxiter : int</span>
+<span class="sd">        Maximum number of descent iterations.</span>
+<span class="sd">    verbose : int</span>
+<span class="sd">        Print the objective and gradient norm at each iteration if non-zero.</span>
+<span class="sd">    P0 : torch.Tensor, shape (d, p) or None</span>
+<span class="sd">        Starting point. Drawn at random when None.</span>
+<span class="sd">    normalize : bool</span>
+<span class="sd">        Scale `reg` per class pair by the mean projected distance at `P0`.</span>
+<span class="sd">    random_state : int, RandomState or None</span>
+<span class="sd">        Seeds the starting point when `P0` is None.</span>
+<span class="sd">    step_growth : float</span>
+<span class="sd">        Factor applied to the last accepted step to start the line search.</span>
+<span class="sd">    step_shrink : float</span>
+<span class="sd">        Factor applied on each backtracking step.</span>
+<span class="sd">    max_backtracks : int</span>
+<span class="sd">        Maximum number of backtracking steps before the solver stops.</span>
+<span class="sd">    gtol : float</span>
+<span class="sd">        Stop once the tangent gradient norm falls below this value.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    P : torch.Tensor, shape (d, p)</span>
+<span class="sd">        Optimal projection.</span>
+<span class="sd">    """</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">get_backend</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">xc</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span>
+    <span class="n">wc</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xc</span>
+    <span class="p">]</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">nc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xc</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Need d &gt;= p &gt;= 1. Values supplied were d = </span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2"> and p = </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">P0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">))[</span>
+            <span class="mi">0</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">P0</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">regmean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nc</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">P0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">normalize</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">xi</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xc</span><span class="p">):</span>
+                <span class="n">xi</span> <span class="o">=</span> <span class="n">xi</span> <span class="o">@</span> <span class="n">P</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">xj</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xc</span><span class="p">[</span><span class="n">i</span><span class="p">:]):</span>
+                    <span class="n">xj</span> <span class="o">=</span> <span class="n">xj</span> <span class="o">@</span> <span class="n">P</span>
+                    <span class="n">regmean</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dist_utils</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span>
+                        <span class="n">xi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">xj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="n">Q</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_wda_cost</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">xc</span><span class="p">,</span> <span class="n">wc</span><span class="p">,</span> <span class="n">regmean</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">sinkhorn_method</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">value</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxiter</span><span class="p">):</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">_wda_cost</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">xc</span><span class="p">,</span> <span class="n">wc</span><span class="p">,</span> <span class="n">regmean</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">sinkhorn_method</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">g</span><span class="p">,)</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Q</span><span class="p">)</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="o">-</span><span class="n">_stiefel_projection</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+        <span class="n">gnorm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">direction</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">it</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">&lt;6d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span><span class="si">:</span><span class="s2">+.16e</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">gnorm</span><span class="si">:</span><span class="s2">.8e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gnorm</span> <span class="o">&lt;=</span> <span class="n">gtol</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="n">step_growth</span> <span class="o">*</span> <span class="n">step</span>
+        <span class="n">improved</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_backtracks</span><span class="p">):</span>
+            <span class="n">Pn</span> <span class="o">=</span> <span class="n">_stiefel_retraction</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">direction</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="n">value</span><span class="p">(</span><span class="n">Pn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="o">&lt;</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">improved</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">step_shrink</span> <span class="o">*</span> <span class="n">step</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">improved</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">P</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">Pn</span><span class="p">,</span> <span class="n">fn</span>
+    <span class="k">return</span> <span class="n">P</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_wda_torch_entry</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">y</span><span class="p">,</span>
+    <span class="n">p</span><span class="p">,</span>
+    <span class="n">reg</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">,</span>
+    <span class="n">sinkhorn_method</span><span class="p">,</span>
+    <span class="n">maxiter</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">,</span>
+    <span class="n">P0</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="p">,</span>
+    <span class="n">step_growth</span><span class="p">,</span>
+    <span class="n">step_shrink</span><span class="p">,</span>
+    <span class="n">max_backtracks</span><span class="p">,</span>
+    <span class="n">gtol</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Prepare inputs for the torch solver and wrap its output.</span>
+
+<span class="sd">    A torch tensor keeps its dtype and device throughout. Any other array type</span>
+<span class="sd">    is promoted to float64 on the CPU, matching what the autograd solver</span>
+<span class="sd">    returns, and the projection comes back as a numpy array.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like, shape (n, d)</span>
+<span class="sd">        Training samples, not modified.</span>
+<span class="sd">    y : array-like, shape (n,)</span>
+<span class="sd">        Labels, of any type numpy can take the unique values of.</span>
+
+<span class="sd">    Other parameters are those of :py:func:`ot.dr.wda`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    P : array-like, shape (d, p)</span>
+<span class="sd">        Optimal projection, of the same array type as `X`.</span>
+<span class="sd">    proj : callable</span>
+<span class="sd">        Projection function including mean centering.</span>
+<span class="sd">    """</span>
+    <span class="n">was_numpy</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">was_numpy</span><span class="p">:</span>
+        <span class="n">Xt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Xt</span> <span class="o">=</span> <span class="n">X</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="k">else</span> <span class="n">X</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="c1"># torch cannot hold arbitrary label types, so index classes by position the</span>
+    <span class="c1"># way split_classes does for numpy</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+        <span class="n">yt</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">Xt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">yt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">Xt</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">P0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">P0t</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">P0t</span> <span class="o">=</span> <span class="p">(</span><span class="n">P0</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">P0</span><span class="p">)</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">P0</span><span class="p">)))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">Xt</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">Xt</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+    <span class="n">mx</span> <span class="o">=</span> <span class="n">Xt</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">Xc</span> <span class="o">=</span> <span class="n">Xt</span> <span class="o">-</span> <span class="n">mx</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">Popt</span> <span class="o">=</span> <span class="n">_wda_torch</span><span class="p">(</span>
+        <span class="n">Xc</span><span class="p">,</span>
+        <span class="n">yt</span><span class="p">,</span>
+        <span class="n">p</span><span class="p">,</span>
+        <span class="n">reg</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">,</span>
+        <span class="n">sinkhorn_method</span><span class="p">,</span>
+        <span class="n">maxiter</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">,</span>
+        <span class="n">P0t</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="p">,</span>
+        <span class="n">step_growth</span><span class="p">,</span>
+        <span class="n">step_shrink</span><span class="p">,</span>
+        <span class="n">max_backtracks</span><span class="p">,</span>
+        <span class="n">gtol</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">was_numpy</span><span class="p">:</span>
+        <span class="n">Pn</span> <span class="o">=</span> <span class="n">Popt</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">mxn</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">proj</span><span class="p">(</span><span class="n">Z</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">Z</span> <span class="o">-</span> <span class="n">mxn</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Pn</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Pn</span><span class="p">,</span> <span class="n">proj</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">proj</span><span class="p">(</span><span class="n">Z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">Z</span> <span class="o">-</span> <span class="n">mx</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span> <span class="o">@</span> <span class="n">Popt</span>
+
+    <span class="k">return</span> <span class="n">Popt</span><span class="p">,</span> <span class="n">proj</span>
 
 
 <div class="viewcode-block" id="fda">
@@ -240,80 +608,33 @@
 
 
 
-<div class="viewcode-block" id="wda">
-<a class="viewcode-back" href="../../gen_modules/ot.dr.html#ot.dr.wda">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">wda</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">,</span>
-    <span class="n">y</span><span class="p">,</span>
-    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="n">solver</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">sinkhorn_method</span><span class="o">=</span><span class="s2">"sinkhorn"</span><span class="p">,</span>
-    <span class="n">maxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-    <span class="n">P0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_wda_autograd</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">solver</span><span class="p">,</span> <span class="n">sinkhorn_method</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">normalize</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
-<span class="sd">    Wasserstein Discriminant Analysis :ref:`[11] &lt;references-wda&gt;`</span>
-
-<span class="sd">    The function solves the following optimization problem:</span>
-
-<span class="sd">    .. math::</span>
-<span class="sd">        \mathbf{P} = \mathop{\arg \min}_\mathbf{P} \quad</span>
-<span class="sd">        \frac{\sum\limits_i W(P \mathbf{X}^i, P \mathbf{X}^i)}{\sum\limits_{i, j \neq i} W(P \mathbf{X}^i, P \mathbf{X}^j)}</span>
-
-<span class="sd">    where :</span>
-
-<span class="sd">    - :math:`P` is a linear projection operator in the Stiefel(`p`, `d`) manifold</span>
-<span class="sd">    - :math:`W` is entropic regularized Wasserstein distances</span>
-<span class="sd">    - :math:`\mathbf{X}^i` are samples in the dataset corresponding to class i</span>
-
-<span class="sd">    **Choosing a Sinkhorn solver**</span>
-
-<span class="sd">    By default and when using a regularization parameter that is not too small</span>
-<span class="sd">    the default sinkhorn solver should be enough. If you need to use a small</span>
-<span class="sd">    regularization to get sparse cost matrices, you should use the</span>
-<span class="sd">    :py:func:`ot.dr.sinkhorn_log` solver that will avoid numerical</span>
-<span class="sd">    errors, but can be slow in practice.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Solve WDA with autograd and a pymanopt optimizer.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    X : ndarray, shape (n, d)</span>
-<span class="sd">        Training samples.</span>
+<span class="sd">        Training samples, not modified.</span>
 <span class="sd">    y : ndarray, shape (n,)</span>
 <span class="sd">        Labels for training samples.</span>
-<span class="sd">    p : int, optional</span>
-<span class="sd">        Size of dimensionality reduction.</span>
-<span class="sd">    reg : float, optional</span>
-<span class="sd">        Regularization term &gt;0 (entropic regularization)</span>
-<span class="sd">    solver : None | str, optional</span>
-<span class="sd">        None for steepest descent or 'TrustRegions' for trust regions algorithm</span>
-<span class="sd">        else should be a pymanopt.solvers</span>
-<span class="sd">    sinkhorn_method : str</span>
-<span class="sd">        method used for the Sinkhorn solver, either 'sinkhorn' or 'sinkhorn_log'</span>
-<span class="sd">    P0 : ndarray, shape (d, p)</span>
-<span class="sd">        Initial starting point for projection.</span>
-<span class="sd">    normalize : bool, optional</span>
-<span class="sd">        Normalize the Wasserstaiun distance by the average distance on P0 (default : False)</span>
-<span class="sd">    verbose : int, optional</span>
-<span class="sd">        Print information along iterations.</span>
+<span class="sd">    solver : None | str | pymanopt.optimizers</span>
+<span class="sd">        ``None`` or ``'autograd'`` selects ``SteepestDescent``, ``'tr'`` or</span>
+<span class="sd">        ``'TrustRegions'`` selects ``TrustRegions``, and any other value is</span>
+<span class="sd">        used as a pymanopt optimizer instance.</span>
+
+<span class="sd">    Other parameters are those of :py:func:`ot.dr.wda`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    P : ndarray, shape (d, p)</span>
-<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">        Optimal projection.</span>
 <span class="sd">    proj : callable</span>
 <span class="sd">        Projection function including mean centering.</span>
-
-
-<span class="sd">    .. _references-wda:</span>
-<span class="sd">    References</span>
-<span class="sd">    ----------</span>
-<span class="sd">    .. [11] Flamary, R., Cuturi, M., Courty, N., &amp; Rakotomamonjy, A. (2016).</span>
-<span class="sd">        Wasserstein Discriminant Analysis. arXiv preprint arXiv:1608.08063.</span>
-<span class="sd">    """</span>  <span class="c1"># noqa</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">solver</span> <span class="o">==</span> <span class="s2">"autograd"</span><span class="p">:</span>
+        <span class="n">solver</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">sinkhorn_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"sinkhorn"</span><span class="p">:</span>
         <span class="n">sinkhorn_solver</span> <span class="o">=</span> <span class="n">sinkhorn</span>
@@ -384,7 +705,151 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">proj</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">mx</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Popt</span><span class="o">.</span><span class="n">point</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">Popt</span><span class="o">.</span><span class="n">point</span><span class="p">,</span> <span class="n">proj</span></div>
+    <span class="k">return</span> <span class="n">Popt</span><span class="o">.</span><span class="n">point</span><span class="p">,</span> <span class="n">proj</span>
+
+
+<div class="viewcode-block" id="wda">
+<a class="viewcode-back" href="../../gen_modules/ot.dr.html#ot.dr.wda">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wda</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">y</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">solver</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">sinkhorn_method</span><span class="o">=</span><span class="s2">"sinkhorn"</span><span class="p">,</span>
+    <span class="n">maxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">P0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">step_growth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">step_shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">max_backtracks</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+    <span class="n">gtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Wasserstein Discriminant Analysis :ref:`[11] &lt;references-wda&gt;`</span>
+
+<span class="sd">    The function solves the following optimization problem:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \mathbf{P} = \mathop{\arg \min}_\mathbf{P} \quad</span>
+<span class="sd">        \frac{\sum\limits_i W(P \mathbf{X}^i, P \mathbf{X}^i)}{\sum\limits_{i, j \neq i} W(P \mathbf{X}^i, P \mathbf{X}^j)}</span>
+
+<span class="sd">    where :</span>
+
+<span class="sd">    - :math:`P` is a linear projection operator in the Stiefel(`p`, `d`) manifold</span>
+<span class="sd">    - :math:`W` is entropic regularized Wasserstein distances</span>
+<span class="sd">    - :math:`\mathbf{X}^i` are samples in the dataset corresponding to class i</span>
+
+<span class="sd">    **Choosing a Sinkhorn solver**</span>
+
+<span class="sd">    By default and when using a regularization parameter that is not too small</span>
+<span class="sd">    the default sinkhorn solver should be enough. If you need to use a small</span>
+<span class="sd">    regularization to get sparse cost matrices, you should use the</span>
+<span class="sd">    :py:func:`ot.dr.sinkhorn_log` solver that will avoid numerical</span>
+<span class="sd">    errors, but can be slow in practice.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : ndarray, shape (n, d)</span>
+<span class="sd">        Training samples.</span>
+<span class="sd">    y : ndarray, shape (n,)</span>
+<span class="sd">        Labels for training samples.</span>
+<span class="sd">    p : int, optional</span>
+<span class="sd">        Size of dimensionality reduction.</span>
+<span class="sd">    reg : float, optional</span>
+<span class="sd">        Regularization term &gt;0 (entropic regularization)</span>
+<span class="sd">    solver : None | str | pymanopt.optimizers, optional</span>
+<span class="sd">        Chooses both the autodiff framework and the optimizer.</span>
+
+<span class="sd">        - `None` or `'autograd'` (default): autograd and pymanopt</span>
+<span class="sd">          `SteepestDescent`.</span>
+<span class="sd">        - `'TrustRegions'` (or `'tr'`): autograd and pymanopt `TrustRegions`.</span>
+<span class="sd">        - a `pymanopt.optimizers` instance: autograd with that optimizer.</span>
+<span class="sd">        - `'torch'`: PyTorch autodiff with Riemannian gradient descent and a QR</span>
+<span class="sd">          retraction. Requires only `torch`, so it works on installations</span>
+<span class="sd">          without autograd or pymanopt, and accepts torch tensors directly,</span>
+<span class="sd">          keeping their device and dtype.</span>
+<span class="sd">    sinkhorn_method : str</span>
+<span class="sd">        method used for the Sinkhorn solver, either 'sinkhorn' or 'sinkhorn_log'</span>
+<span class="sd">    P0 : ndarray, shape (d, p)</span>
+<span class="sd">        Initial starting point for projection.</span>
+<span class="sd">    normalize : bool, optional</span>
+<span class="sd">        Normalize the Wasserstaiun distance by the average distance on P0 (default : False)</span>
+<span class="sd">    verbose : int, optional</span>
+<span class="sd">        Print information along iterations.</span>
+<span class="sd">    random_state : int, RandomState instance or None, optional</span>
+<span class="sd">        Seeds the random starting point when `P0` is None. Only used by</span>
+<span class="sd">        `solver='torch'`; the pymanopt solvers draw their own starting point.</span>
+<span class="sd">    step_growth : float, optional</span>
+<span class="sd">        Factor applied to the last accepted step size to start the next line</span>
+<span class="sd">        search (default 2.0). Only used by `solver='torch'`.</span>
+<span class="sd">    step_shrink : float, optional</span>
+<span class="sd">        Factor applied to the step size on each backtracking step</span>
+<span class="sd">        (default 0.5). Only used by `solver='torch'`.</span>
+<span class="sd">    max_backtracks : int, optional</span>
+<span class="sd">        Maximum number of backtracking steps per iteration before the solver</span>
+<span class="sd">        stops (default 40). Only used by `solver='torch'`.</span>
+<span class="sd">    gtol : float, optional</span>
+<span class="sd">        Stop once the norm of the tangent gradient falls below this value</span>
+<span class="sd">        (default 1e-12). Only used by `solver='torch'`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    P : ndarray, shape (d, p)</span>
+<span class="sd">        Optimal transportation matrix for the given parameters</span>
+<span class="sd">    proj : callable</span>
+<span class="sd">        Projection function including mean centering.</span>
+
+
+<span class="sd">    .. _references-wda:</span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [11] Flamary, R., Cuturi, M., Courty, N., &amp; Rakotomamonjy, A. (2016).</span>
+<span class="sd">        Wasserstein Discriminant Analysis. arXiv preprint arXiv:1608.08063.</span>
+<span class="sd">    """</span>  <span class="c1"># noqa</span>
+
+    <span class="k">if</span> <span class="n">HAS_TORCH</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+        <span class="n">n_classes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">numel</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">if</span> <span class="n">n_classes</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"WDA needs at least two classes, got </span><span class="si">{</span><span class="n">n_classes</span><span class="si">}</span><span class="s2">: with a single "</span>
+            <span class="s2">"class the between-class transport cost is zero and the objective "</span>
+            <span class="s2">"is undefined."</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">solver</span> <span class="o">==</span> <span class="s2">"torch"</span><span class="p">:</span>
+        <span class="n">_require</span><span class="p">(</span><span class="n">HAS_TORCH</span><span class="p">,</span> <span class="s2">"wda(solver='torch')"</span><span class="p">,</span> <span class="s2">"torch"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_wda_torch_entry</span><span class="p">(</span>
+            <span class="n">X</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="n">p</span><span class="p">,</span>
+            <span class="n">reg</span><span class="p">,</span>
+            <span class="n">k</span><span class="p">,</span>
+            <span class="n">sinkhorn_method</span><span class="p">,</span>
+            <span class="n">maxiter</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+            <span class="n">P0</span><span class="p">,</span>
+            <span class="n">normalize</span><span class="p">,</span>
+            <span class="n">random_state</span><span class="p">,</span>
+            <span class="n">step_growth</span><span class="p">,</span>
+            <span class="n">step_shrink</span><span class="p">,</span>
+            <span class="n">max_backtracks</span><span class="p">,</span>
+            <span class="n">gtol</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">_require</span><span class="p">(</span>
+        <span class="n">HAS_AUTOGRAD</span> <span class="ow">and</span> <span class="n">HAS_PYMANOPT</span><span class="p">,</span>
+        <span class="s2">"wda(solver='autograd')"</span><span class="p">,</span>
+        <span class="s2">"autograd and pymanopt"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_wda_autograd</span><span class="p">(</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">solver</span><span class="p">,</span> <span class="n">sinkhorn_method</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">normalize</span>
+    <span class="p">)</span></div>
 
 
 
@@ -605,6 +1070,7 @@
     <span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">U0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_require</span><span class="p">(</span><span class="n">HAS_SKLEARN</span><span class="p">,</span> <span class="s2">"ewca"</span><span class="p">,</span> <span class="s2">"scikit-learn"</span><span class="p">)</span>
         <span class="n">pca_fitted</span> <span class="o">=</span> <span class="n">PCA</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
         <span class="n">U</span> <span class="o">=</span> <span class="n">pca_fitted</span><span class="o">.</span><span class="n">components_</span><span class="o">.</span><span class="n">T</span>
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"MM"</span><span class="p">:</span>
