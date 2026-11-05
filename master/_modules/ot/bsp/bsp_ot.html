@@ -243,6 +243,28 @@
     <span class="k">if</span> <span class="n">X_np</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"X and Y must be 2D arrays"</span><span class="p">)</span>
 
+    <span class="n">perms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">perms</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">perms</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"perms must be a 2D array of shape (n_plans, n_samples)"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">perms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"perms must have shape (n_plans, n_samples) where n_samples is the number "</span>
+            <span class="s2">"of points in X and Y, got </span><span class="si">{}</span><span class="s2"> plans of length </span><span class="si">{}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2"> points"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">perms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">perms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">perms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"perms must contain at least one plan"</span><span class="p">)</span>
+
+    <span class="c1"># Checked before the cast to int32: that cast truncates fractional values and wraps</span>
+    <span class="c1"># integers that do not fit, either of which can turn an invalid row into a permutation.</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">perms</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">perms</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">expected</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"each row of perms must be a permutation of 0..n_samples-1"</span><span class="p">)</span>
+
     <span class="n">perms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">perms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
     <span class="n">cost_inner</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="n">merge_bijections_c</span><span class="p">(</span><span class="n">X_np</span><span class="p">,</span> <span class="n">Y_np</span><span class="p">,</span> <span class="n">perms</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
